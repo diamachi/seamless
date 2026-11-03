@@ -93,10 +93,12 @@ struct MainWindow: View {
         }
         .modifier(FileDropTarget(phoneID: preferencesStore.preferences.selectedPhoneID, bulk: preferencesStore.connections.bulk))
         .accentColor(InterfacePalette(scheme: colorScheme).accent)
-        .toolbarBackground(.hidden, for: .windowToolbar)
+        .toolbarBackground(InterfacePalette(scheme: colorScheme).canvas, for: .windowToolbar)
+        .toolbarBackground(.visible, for: .windowToolbar)
         .background(WindowSurfaceConfigurator())
         .task {
             let reopen = {
+                NSApplication.shared.setActivationPolicy(.regular)
                 openWindow(id: "main")
                 NSApplication.shared.activate(ignoringOtherApps: true)
             }

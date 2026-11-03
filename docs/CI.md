@@ -1,6 +1,6 @@
 # GitHub Actions builds
 
-`.github/workflows/build.yml` runs on pushes to main, pull requests and manual dispatch. The jobs have read-only repository permission; checkout does not persist credentials. Official actions are pinned to commit SHAs, with version comments for maintenance. Pull requests do not receive signing secrets. A new run cancels an obsolete run for the same ref.
+`.github/workflows/build.yml` runs on pushes to main, pull requests and manual dispatch. Documentation-only changes are skipped for push/PR events; manual dispatch always remains available. The jobs have read-only repository permission; checkout does not persist credentials. Official actions are pinned to commit SHAs, with version comments for maintenance. Pull requests do not receive signing secrets. A new run cancels an obsolete run for the same ref.
 
 ## macOS
 
