@@ -3,7 +3,13 @@ name: Build test installers
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - docs/**
+      - "**/*.md"
   pull_request:
+    paths-ignore:
+      - docs/**
+      - "**/*.md"
   workflow_dispatch:
 
 permissions:
@@ -72,7 +78,7 @@ jobs:
             android/app/build.gradle.kts
             android/gradle/wrapper/gradle-wrapper.properties
       - name: Install required Android SDK packages
-        run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;35.0.0"' 
+        run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;35.0.0"'
       - name: Check source privacy
         run: python3 scripts/check-source-privacy.py
       - name: Build, test and lint companion
