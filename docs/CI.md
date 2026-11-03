@@ -18,6 +18,6 @@ The APK is debug-signed using the runner's generated development key. It is inst
 
 Open Actions → Build test installers → a completed run. Download `Seamless-macos-arm64` or `Seamless-android-debug` from Artifacts and extract the archive. Each includes a SHA-256 checksum file. Installer artifacts expire after 14 days; failure reports after 7 days.
 
-No GitHub Release is created and no installer is committed to Git. Release publishing, stable signing and notarization remain separate. The workflow is implemented locally until a hosted run is recorded in VALIDATION.md.
+This build workflow does not automatically create a GitHub Release, and no installer is committed to Git. Maintainers can publish a separately reviewed preview release. Release publishing, stable signing and notarization remain separate. The workflow is implemented locally until a hosted run is recorded in VALIDATION.md.
 
 Native icon packaging: CI sets SEAMLESS_REQUIRE_NATIVE_ICON=1 and compiles the original layered Seamless.icon through Xcode actool. Local Command Line Tools builds have an explicit ICNS fallback and cannot establish native clear/tinted icon validation. The app does not override a compiled catalog's system-selected appearance.
