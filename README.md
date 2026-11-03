@@ -46,12 +46,12 @@ Files, notifications, clipboard, phone screen and live camera, together in a nat
 
 ## Try it
 
-Download the [0.6.9 preview from GitHub Releases](https://github.com/diamachi/seamless/releases/tag/v0.6.9), or get CI packages from **Actions → Build test installers → a successful run → Artifacts**. See [CI setup and signing limits](docs/CI.md). Local build outputs are placed in `dist/`:
+Download the [0.6.10 preview from GitHub Releases](https://github.com/diamachi/seamless/releases/tag/v0.6.10), or get CI packages from **Actions → Build test installers → a successful run → Artifacts**. See [CI setup and signing limits](docs/CI.md). Local build outputs are placed in `dist/`:
 
 | Platform | Package | Install |
 | --- | --- | --- |
-| macOS | `Seamless-<version>-macos.dmg` | Open the image and drag Seamless into Applications. |
-| Android | `Seamless-Android-<version>-dev.apk` | Open the APK on Android and review the installation prompt. |
+| macOS | `Seamless_<version>.dmg` | Open the image and drag Seamless into Applications. |
+| Android | `Seamless_<version>.apk` | Open the APK on Android and review the installation prompt. |
 
 Local DMGs are ad-hoc signed test packages, **not notarized releases**. Android builds use development signing. Preview installers are published through GitHub Releases. No Homebrew package or automatic updater is configured. macOS package minimum is 14; Android minimum is 7.0/API 24, with feature-specific gates. These build minimums do not establish physical compatibility across all versions. Initial physical tests use Android 17 and macOS 27.
 
@@ -67,7 +67,7 @@ This removes the downloaded-file quarantine attribute from Seamless and its cont
 
 ### Pair once
 
-The QR flow requires macOS and Android companion 0.6.10 or newer (currently available through Actions/source builds). The 0.6.9 release uses the full-code method.
+The QR flow requires macOS and Android companion 0.6.10 or newer (available from GitHub Releases). Older releases use the full-code method.
 
 1. Connect both devices to the same reachable local network and open Seamless.
 2. On the Mac, choose Connect new phone → Create pairing QR.
