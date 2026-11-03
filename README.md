@@ -9,7 +9,7 @@
 
 Files, notifications, clipboard, phone screen and live camera, together in a native Mac app and Android companion. Pair your devices over your local network, select a phone, and keep the controls within reach from the window or menu bar.
 
-**Development preview.** Free public distribution is planned. Some integrations are experimental; the [validation record](docs/VALIDATION.md) separates device-tested behavior from remaining work. GitHub Actions builds test installers; there is no automatic updater yet.
+**Development preview.** A free public preview is available; production distribution is still in development. Some integrations are experimental; the [validation record](docs/VALIDATION.md) separates device-tested behavior from remaining work. GitHub Actions builds test installers; there is no automatic updater yet.
 
 ## Features
 
@@ -46,14 +46,14 @@ Files, notifications, clipboard, phone screen and live camera, together in a nat
 
 ## Try it
 
-Download CI packages from **Actions → Build test installers → a successful run → Artifacts**. See [CI setup and signing limits](docs/CI.md). Local build outputs are placed in `dist/`:
+Download the [0.6.9 preview from GitHub Releases](https://github.com/diamachi/seamless/releases/tag/v0.6.9), or get CI packages from **Actions → Build test installers → a successful run → Artifacts**. See [CI setup and signing limits](docs/CI.md). Local build outputs are placed in `dist/`:
 
 | Platform | Package | Install |
 | --- | --- | --- |
 | macOS | `Seamless-<version>-macos.dmg` | Open the image and drag Seamless into Applications. |
 | Android | `Seamless-Android-<version>-dev.apk` | Open the APK on Android and review the installation prompt. |
 
-Local DMGs are ad-hoc signed test packages, **not notarized releases**. Android builds use development signing. No Homebrew package or published release URL is configured. macOS package minimum is 14; Android minimum is 7.0/API 24, with feature-specific gates. These build minimums do not establish physical compatibility across all versions. Initial physical tests use Android 17 and macOS 27.
+Local DMGs are ad-hoc signed test packages, **not notarized releases**. Android builds use development signing. Preview installers are published through GitHub Releases. No Homebrew package or automatic updater is configured. macOS package minimum is 14; Android minimum is 7.0/API 24, with feature-specific gates. These build minimums do not establish physical compatibility across all versions. Initial physical tests use Android 17 and macOS 27.
 
 ### Pair once
 
