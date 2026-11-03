@@ -29,3 +29,5 @@ The Overview shows a connection card, one compact Mac card per authenticated Mac
 Builds/regressions and completed device checks are recorded in VALIDATION.md. First-run behavior must also be checked on a genuinely new install; do not clear a paired user's credentials merely to simulate it. Use only devices explicitly authorized for testing.
 
 Platform references: [Android runtime permissions](https://developer.android.com/training/permissions/requesting), [Android special access](https://developer.android.com/training/permissions/requesting-special), [Apple notification authorization](https://developer.apple.com/documentation/usernotifications/asking-permission-to-use-notifications).
+
+0.6.10 pairing refinement: Mac creates the QR, Android scans it using optional camera access, and Android still displays the trust approval. Manual full-code generation is a visible/selectable fallback with progress, expiry and errors. QR scanning does not require camera access on the Mac.

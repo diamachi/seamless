@@ -25,7 +25,7 @@ import dev.seamless.companion.connection.CompanionConnectionState
 import dev.seamless.companion.connection.ConnectionRuntime
 
 @Composable
-fun ConnectionPanel(state: CompanionConnectionState, onStartScreen: () -> Unit, onStartCamera: () -> Unit, onSetup: () -> Unit, onSettings: () -> Unit) {
+fun ConnectionPanel(state: CompanionConnectionState, onStartScreen: () -> Unit, onStartCamera: () -> Unit, onSetup: () -> Unit, onSettings: () -> Unit, onScanMac: () -> Unit) {
     val context = LocalContext.current
     val chooseFile = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
         ConnectionRuntime.server?.offerFiles(uris)
@@ -44,6 +44,7 @@ fun ConnectionPanel(state: CompanionConnectionState, onStartScreen: () -> Unit, 
     ) {
         Text("Overview", style = MaterialTheme.typography.headlineMedium)
         ConnectionOverviewCards(state, onSetup)
+        if (state.connectedMacs.isEmpty()) PairingCard(state, onScanMac)
         SharingRequests(state, onStartScreen, onStartCamera)
         CompanionCard("Share with your Mac") {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -74,7 +75,7 @@ fun ConnectionPanel(state: CompanionConnectionState, onStartScreen: () -> Unit, 
             FileSharingCard(state, chooseFile = { chooseFile.launch(arrayOf("*/*")) }, saveFile = { name -> saveFile.launch(name) })
         }
         if (state.sharedTextToSend.isNotEmpty() || state.incomingClipboard.isNotEmpty()) ClipboardCard(state)
-        if (state.pairingCode.isNotEmpty()) PairingCard(state)
+        if (state.connectedMacs.isNotEmpty() && state.pairingCode.isNotEmpty()) PairingCard(state, onScanMac)
         if (state.hotspotSetupRequested) {
             CompanionCard("Hotspot setup") {
                 Text("Enable your phone's hotspot, then join it from the Mac.")
@@ -153,31 +154,12 @@ private fun ClipboardCard(state: CompanionConnectionState) {
 }
 
 @Composable
-internal fun PairingCard(state: CompanionConnectionState) {
-    val context = LocalContext.current
-    CompanionCard("Pair a Mac") {
-        Text("Pair once. Your devices remember each other.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-        OutlinedButton(onClick = { startConnection(context, pairing = true) }) { Text("Create pairing code") }
-        if (state.pairingCode.isNotEmpty()) {
-            Text("Code ready · private · expires in five minutes", style = MaterialTheme.typography.bodySmall)
-            Button(onClick = { copyText(context, "Seamless pairing", state.pairingCode) }) { Text("Copy pairing code") }
-        }
-        val request = state.pairingRequest
-        if (request != null) {
-            Text("${request.macName} is requesting access")
-            Button(onClick = { ConnectionRuntime.server?.resolvePairing(request.requestID, true) }) { Text("Allow this Mac") }
-            TextButton(onClick = { ConnectionRuntime.server?.resolvePairing(request.requestID, false) }) { Text("Deny") }
-        }
-    }
-}
-
-@Composable
 internal fun PairingApproval(state: CompanionConnectionState) {
     val request = state.pairingRequest ?: return
     AlertDialog(
         onDismissRequest = { ConnectionRuntime.server?.resolvePairing(request.requestID, false) },
         title = { Text("Trust ${request.macName}?") },
-        text = { Text("Approve only the Mac on which you just entered this phone’s pairing code.") },
+        text = { Text("Approve only the Mac whose QR you scanned, or where you entered this phone’s full pairing code.") },
         confirmButton = { TextButton(onClick = { ConnectionRuntime.server?.resolvePairing(request.requestID, true) }) { Text("Allow") } },
         dismissButton = { TextButton(onClick = { ConnectionRuntime.server?.resolvePairing(request.requestID, false) }) { Text("Deny") } }
     )

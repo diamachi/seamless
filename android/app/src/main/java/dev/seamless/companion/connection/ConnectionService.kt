@@ -41,9 +41,15 @@ class ConnectionService : Service() {
                     ConnectionRuntime.server = server
                     server.start(reconnectRequested = intent?.action == ACTION_RECONNECT)
                 }
-                if (intent?.action == ACTION_PAIR) server.createInvitation()
+                if (intent?.action == ACTION_PAIR) {
+                    try {
+                        server.createInvitation()
+                    } catch (exception: Exception) {
+                        ConnectionRuntime.update { it.copy(isCreatingPairingCode = false, pairingError = exception.message ?: "Could not create pairing code") }
+                    }
+                }
             } catch (exception: Exception) {
-                ConnectionRuntime.update { it.copy(message = exception.message ?: "Connection service could not start") }
+                ConnectionRuntime.update { it.copy(isCreatingPairingCode = false, pairingError = exception.message ?: "Could not create pairing QR", message = exception.message ?: "Connection service could not start") }
                 stopSelf()
             }
         }

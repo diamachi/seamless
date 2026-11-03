@@ -67,9 +67,11 @@ This removes the downloaded-file quarantine attribute from Seamless and its cont
 
 ### Pair once
 
+The QR flow requires macOS and Android companion 0.6.10 or newer (currently available through Actions/source builds). The 0.6.9 release uses the full-code method.
+
 1. Connect both devices to the same reachable local network and open Seamless.
-2. On Android, open setup and create a pairing code.
-3. On the Mac, open Devices, paste the code, and approve the named Mac on Android.
+2. On the Mac, choose Connect new phone → Create pairing QR.
+3. On Android, choose Pair a Mac → Scan Mac QR code. Scan the Mac screen, then approve the named Mac on Android. The full-code method remains available under Use full code instead.
 4. Review the optional permissions for the features you want. Select notification apps explicitly.
 
 Saved credentials handle later connections. Android's connection service can run in the background with a persistent system notification; battery restrictions, force-stop and reboot can affect it. The Android Reconnect button asks a running, reachable paired Mac to reconnect. Normal Wi-Fi features do not require debugging. Android screen-sharing consent is still required for each normal capture session.
@@ -92,7 +94,7 @@ Setup explains the relevant grants and can be revisited from Settings. Declining
 | Notifications on each device | Display incoming alerts and transfer results. |
 | Android Accessibility, optional | Control the phone during an approved screen session. |
 | Android screen capture | Authorize each normal screen-sharing session. |
-| Android camera | Capture an explicitly requested live-camera session. |
+| Android camera | Scan the Mac pairing QR or capture an explicitly requested live-camera session. |
 | Android selected files/folders or All files access | Share and browse the authorized storage scope. |
 | Android battery exemption, optional | Reduce background-service interruptions. |
 | Mac Bluetooth and microphone, optional | Experimental call controls and audio routing. |

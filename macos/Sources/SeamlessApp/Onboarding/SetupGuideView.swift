@@ -58,7 +58,7 @@ struct SetupGuideView: View {
         case 1:
             WorkspaceCard {
                 Text("Pair your Android phone").font(.title2.weight(.semibold))
-                Text("1. Open Seamless on Android and choose Pair a Mac.\n2. Copy the pairing code into Devices on this Mac.\n3. Approve this Mac on the phone.").lineSpacing(8)
+                Text("1. In Devices on this Mac, choose Create pairing QR.\n2. On Android, choose Pair a Mac → Scan Mac QR code.\n3. Scan this Mac’s QR and approve the trust request on your phone.").lineSpacing(8)
                 Text(preferencesStore.preferences.rememberedPhones.isEmpty ? "No phone paired yet" : "\(preferencesStore.preferences.rememberedPhones.count) phone(s) remembered")
                     .font(.callout).foregroundStyle(.secondary)
                 Button("Open device pairing") { setup.isPresented = false; openDevices() }
