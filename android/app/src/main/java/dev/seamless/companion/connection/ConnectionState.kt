@@ -53,8 +53,7 @@ data class CompanionConnectionState(
     val cameraWhiteBalance: String = "auto",
     val cameraFacing: String = "back",
     val cameraResolutionHeight: Int = 1080,
-    val cameraFramesPerSecond: Int = 30,
-    val hotspotSetupRequested: Boolean = false
+    val cameraFramesPerSecond: Int = 30
 )
 
 object ConnectionRuntime {

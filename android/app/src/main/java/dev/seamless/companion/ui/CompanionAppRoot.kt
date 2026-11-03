@@ -62,6 +62,13 @@ fun CompanionAppRoot(
     val benchmark by BenchmarkState.snapshot.collectAsStateWithLifecycle()
     LaunchedEffect(connection.screenRequestID) { onRemoteScreen() }
     LaunchedEffect(connection.cameraRequestID) { onRemoteCamera() }
+    LaunchedEffect(connection.connectedMacIDs, connection.sharedFilesToSend) {
+        if (connection.connectedMacIDs.size == 1 && connection.sharedFilesToSend.isNotEmpty()) {
+            val files = connection.sharedFilesToSend
+            val accepted = ConnectionRuntime.server?.offerFiles(files.map { android.net.Uri.parse(it) }) == true
+            if (accepted) ConnectionRuntime.update { it.copy(sharedFilesToSend = emptyList()) }
+        }
+    }
     val colors = companionColors(isSystemInDarkTheme())
     MaterialTheme(colorScheme = colors) {
         Surface(Modifier.fillMaxSize()) {
@@ -100,6 +107,8 @@ fun CompanionAppRoot(
                         dismissButton = { TextButton(onClick = { showWelcome = false; setupPreferences.edit().putBoolean("seen", true).apply() }) { Text("Later") } }
                     )
                 }
+                SharingRequestDialogs(connection, onStartCamera)
+                SharedFilesDestinationDialog(connection)
                 PairingApproval(connection)
             }
         }
@@ -108,17 +117,17 @@ fun CompanionAppRoot(
 
 @Composable
 private fun companionColors(dark: Boolean) = if (dark) {
-    darkColorScheme(primary = Color(0xFFE6BC7A), onPrimary = Color(0xFF29231B),
-        background = Color(0xFF1D1C1A), onBackground = Color(0xFFEEE9DF),
-        surface = Color(0xFF1D1C1A), onSurface = Color(0xFFEEE9DF), onSurfaceVariant = Color(0xFFB7B0A3),
-        surfaceContainerLow = Color(0xFF2B2824), surfaceContainer = Color(0xFF342F28),
-        outline = Color(0xFF71685C), outlineVariant = Color(0xFF423D35),
-        secondaryContainer = Color(0xFF403529), onSecondaryContainer = Color(0xFFE6BC7A))
+    darkColorScheme(primary = Color(0xFFFED7B8), onPrimary = Color(0xFF391D22),
+        background = Color(0xFF231719), onBackground = Color(0xFFFFF1E7),
+        surface = Color(0xFF231719), onSurface = Color(0xFFFFF1E7), onSurfaceVariant = Color(0xFFD0ACAB),
+        surfaceContainerLow = Color(0xFF342125), surfaceContainer = Color(0xFF432A2E),
+        outline = Color(0xFFAD8585), outlineVariant = Color(0xFF604047),
+        secondaryContainer = Color(0xFF512E33), onSecondaryContainer = Color(0xFFFED7B8))
 } else {
-    lightColorScheme(primary = Color(0xFF8C5C25), onPrimary = Color.White,
-        background = Color(0xFFF7F5EF), onBackground = Color(0xFF302D27),
-        surface = Color(0xFFF7F5EF), onSurface = Color(0xFF302D27), onSurfaceVariant = Color(0xFF777166),
-        surfaceContainerLow = Color(0xFFFFFDFA), surfaceContainer = Color(0xFFF4EDDE),
-        outline = Color(0xFF938878), outlineVariant = Color(0xFFE4DED2),
-        secondaryContainer = Color(0xFFF1E4CD), onSecondaryContainer = Color(0xFF8C5C25))
+    lightColorScheme(primary = Color(0xFF59171B), onPrimary = Color.White,
+        background = Color(0xFFFFF5EC), onBackground = Color(0xFF391D22),
+        surface = Color(0xFFFFF5EC), onSurface = Color(0xFF391D22), onSurfaceVariant = Color(0xFF795C5D),
+        surfaceContainerLow = Color(0xFFFFFAF5), surfaceContainer = Color(0xFFFED7B8),
+        outline = Color(0xFF947071), outlineVariant = Color(0xFFE8C7BD),
+        secondaryContainer = Color(0xFFF5DCD0), onSecondaryContainer = Color(0xFF59171B))
 }

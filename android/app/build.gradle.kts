@@ -12,8 +12,8 @@ android {
         applicationId = "dev.seamless.companion"
         minSdk = 24
         targetSdk = 36
-        versionCode = 20
-        versionName = "0.6.10-dev"
+        versionCode = 21
+        versionName = "0.6.11-dev"
     }
     buildFeatures {
         compose = true

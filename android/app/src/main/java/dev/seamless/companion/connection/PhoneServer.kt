@@ -144,13 +144,14 @@ class PhoneServer(private val context: Context) : AutoCloseable {
 
     fun offerFile(uri: Uri) { offerFiles(listOf(uri)) }
 
-    fun offerFiles(uris: List<Uri>) {
-        val peer = peers.values.singleOrNull()
+    fun offerFiles(uris: List<Uri>, targetMacID: String? = null): Boolean {
+        val peer = if (targetMacID == null) peers.values.singleOrNull() else peers[targetMacID]
         if (peer == null) {
             ConnectionRuntime.update { it.copy(message = "Connect exactly one Mac before sending files") }
-            return
+            return false
         }
         bulk.enqueue(uris, peer)
+        return true
     }
 
     fun offerFolder(tree: Uri) {
@@ -412,10 +413,12 @@ class PhoneServer(private val context: Context) : AutoCloseable {
                     cameraResolutionHeight = height, cameraFramesPerSecond = framesPerSecond) }
                 ConnectionService.notifyCaptureRequest(context, camera = true)
             }
+            "cameraControls" -> {
+                if (cameraStreams.containsKey(peer.id)) CameraStreamService.updateControls(peer.id, payload)
+            }
             "cameraStop" -> {
                 if (cameraStreams.remove(peer.id)?.also { it.close() } != null) context.stopService(Intent(context, CameraStreamService::class.java))
             }
-            "hotspotHelp" -> ConnectionRuntime.update { it.copy(hotspotSetupRequested = true) }
             "input" -> {
                 require(screenStreams[peer.id]?.isAvailable == true) { "Start an approved screen-sharing session first" }
                 val expiresAt = payload.getLong("expiresAt")

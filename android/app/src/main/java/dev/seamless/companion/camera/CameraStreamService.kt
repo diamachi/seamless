@@ -20,7 +20,27 @@ class CameraStreamService : Service() {
     private var session: CameraEncodingSession? = null
     private var macID: String? = null
 
-    override fun onCreate() { super.onCreate(); thread.start(); worker = Handler(thread.looper) }
+    override fun onCreate() {
+        super.onCreate()
+        thread.start()
+        worker = Handler(thread.looper)
+        activeService = this
+    }
+
+    private fun applyLiveControls(requestingMacID: String, controls: org.json.JSONObject) {
+        worker.post {
+            if (macID != requestingMacID) return@post
+            try {
+                val exposure = controls.optDouble("exposureEV", 0.0)
+                val zoom = controls.optDouble("zoom", 1.0)
+                require(exposure.isFinite() && zoom.isFinite())
+                session?.updateControls(exposure.coerceIn(-3.0, 3.0), zoom.coerceIn(1.0, 4.0),
+                    controls.optBoolean("torch"), controls.optString("whiteBalance", "auto").take(30))
+            } catch (exception: Exception) {
+                ConnectionRuntime.server?.reportCameraError(requestingMacID, exception.message ?: "Camera control failed")
+            }
+        }
+    }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_STOP) { stopSelf(); return START_NOT_STICKY }
@@ -46,6 +66,7 @@ class CameraStreamService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? = null
     override fun onDestroy() {
+        if (activeService === this) activeService = null
         worker.post {
             try { session?.close() } catch (_: Exception) { } finally {
                 macID?.let { ConnectionRuntime.server?.cameraCaptureEnded(it) }
@@ -81,5 +102,13 @@ class CameraStreamService : Service() {
         }
     }
 
-    companion object { const val ACTION_STOP = "dev.seamless.companion.STOP_CAMERA" }
+    companion object {
+        const val ACTION_STOP = "dev.seamless.companion.STOP_CAMERA"
+        @Volatile private var activeService: CameraStreamService? = null
+
+        fun updateControls(macID: String, controls: org.json.JSONObject) {
+            // A control packet may only affect an already approved, running service.
+            activeService?.applyLiveControls(macID, controls)
+        }
+    }
 }

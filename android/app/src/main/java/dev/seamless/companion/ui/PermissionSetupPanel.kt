@@ -69,10 +69,11 @@ internal fun PermissionSetupPanel() {
             openSetupSettings(context, Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
         }
         HorizontalDivider()
-        PermissionRow("Background connection", "Review battery restrictions for reliable reconnect", access.battery) {
+        PermissionRow("Background connection", "Allow background connection; active paired sessions keep the CPU and Wi-Fi awake", access.battery) {
             openSetupSettings(context, Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
         }
     }
+    AutomaticDownloadsSetupCard()
     StorageSetupCard(access.storage, onChanged = refresh)
     CompanionCard("Screen sharing & calls") {
         Text("Android asks for screen-sharing consent for every new session. This cannot be pre-approved during setup.")
@@ -142,5 +143,29 @@ internal fun openSetupSettings(context: Context, intent: Intent) {
     try { context.startActivity(intent) }
     catch (_: android.content.ActivityNotFoundException) {
         context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + context.packageName)))
+    }
+}
+
+@Composable
+private fun AutomaticDownloadsSetupCard() {
+    val context = LocalContext.current
+    val policies = context.getSharedPreferences("phone_policies", Context.MODE_PRIVATE)
+    var enabled by remember { mutableStateOf(policies.getBoolean("automatic_downloads", false)) }
+    CompanionCard("Automatic Downloads") {
+        Text("Allow paired Macs to send files directly to this phone’s Downloads folder. Android 10+ needs no storage permission to save files created by Seamless. Older versions ask where to save.", style = MaterialTheme.typography.bodySmall)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text("Receive automatically")
+            androidx.compose.material3.Switch(checked = enabled, onCheckedChange = { allowed ->
+                enabled = allowed
+                val editor = policies.edit().putBoolean("automatic_downloads", allowed)
+                val identities = context.getSharedPreferences("connection_identity", Context.MODE_PRIVATE)
+                for (key in identities.all.keys) {
+                    if (key.startsWith("peer.")) editor.putBoolean("file_auto.${key.removePrefix("peer.")}", allowed)
+                }
+                for (macID in ConnectionRuntime.state.value.connectedMacIDs) editor.putBoolean("file_auto.$macID", allowed)
+                editor.apply()
+            })
+        }
+        Text("On the Mac, enable automatic Downloads in its setup guide too. You can change receiving choices later in Settings.", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
     }
 }

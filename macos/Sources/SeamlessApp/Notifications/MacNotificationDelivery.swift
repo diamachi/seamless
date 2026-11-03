@@ -20,7 +20,8 @@ final class MacNotificationDelivery: NSObject, ObservableObject, UNUserNotificat
         if settings.authorizationStatus == .notDetermined { status = "Mac notification access has not been requested." }
         else if settings.authorizationStatus == .denied { status = "Mac notification banners are not allowed. Enable Seamless in System Settings." }
         else if !canShowBanners { status = "Alerts are quiet or banners are disabled in macOS notification settings." }
-        else { status = "Mac notification banners are enabled." }
+        else if settings.soundSetting != .enabled { status = "Banners are enabled; notification sounds are off in macOS. Enable Play sound for Seamless in System Settings." }
+        else { status = "Mac notification banners and sounds are enabled." }
     }
 
     @discardableResult func requestAuthorization() async -> Bool {

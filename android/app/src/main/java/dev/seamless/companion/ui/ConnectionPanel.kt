@@ -51,9 +51,9 @@ fun ConnectionPanel(state: CompanionConnectionState, onStartScreen: () -> Unit, 
                 OutlinedButton(enabled = state.connectedMacs.size == 1, onClick = { chooseFile.launch(arrayOf("*/*")) }) { Text("Send files") }
                 OutlinedButton(enabled = state.connectedMacs.isNotEmpty(), onClick = { sendPhoneClipboard(context) }) { Text("Send clipboard") }
             }
+            OutlinedButton(enabled = state.connectedMacs.size == 1 && !state.isPreparingFolder,
+                onClick = { chooseFolder.launch(null) }) { Text("Send folder as ZIP") }
         }
-        OutlinedButton(enabled = state.connectedMacs.size == 1 && !state.isPreparingFolder,
-            onClick = { chooseFolder.launch(null) }) { Text("Send folder as ZIP") }
         if (state.isPreparingFolder) {
             CompanionCard("Preparing folder") {
                 Text("Creating a ZIP before sending. Free phone storage is required.")
@@ -76,12 +76,6 @@ fun ConnectionPanel(state: CompanionConnectionState, onStartScreen: () -> Unit, 
         }
         if (state.sharedTextToSend.isNotEmpty() || state.incomingClipboard.isNotEmpty()) ClipboardCard(state)
         if (state.connectedMacs.isNotEmpty() && state.pairingCode.isNotEmpty()) PairingCard(state, onScanMac)
-        if (state.hotspotSetupRequested) {
-            CompanionCard("Hotspot setup") {
-                Text("Enable your phone's hotspot, then join it from the Mac.")
-                OutlinedButton(onClick = { openSetupSettings(context, Intent(Settings.ACTION_WIRELESS_SETTINGS)) }) { Text("Open hotspot settings") }
-            }
-        }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             TextButton(onClick = onSetup) { Text("Pair a Mac") }
             TextButton(onClick = onSettings) { Text("Settings") }

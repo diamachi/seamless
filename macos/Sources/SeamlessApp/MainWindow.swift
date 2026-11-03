@@ -7,7 +7,6 @@ private enum Destination: String, CaseIterable, Identifiable {
     case devices = "Devices"
     case notifications = "Notifications"
     case files = "Files"
-    case hotspot = "Hotspot"
     case screen = "Phone screen"
     case webcam = "Live camera"
     case settings = "Settings"
@@ -22,7 +21,6 @@ private enum Destination: String, CaseIterable, Identifiable {
         case .devices: return "laptopcomputer.and.iphone"
         case .notifications: return "bell"
         case .files: return "folder"
-        case .hotspot: return "personalhotspot"
         case .screen: return "rectangle.on.rectangle"
         case .webcam: return "video"
         case .settings: return "gearshape"
@@ -139,12 +137,11 @@ struct MainWindow: View {
                     sidebarItem(.webcam)
                     sidebarCaption("MANAGE").padding(.top, 20)
                     sidebarItem(.devices)
-                    sidebarItem(.hotspot)
+                    sidebarItem(.settings)
                 }
             }
             Spacer(minLength: 0)
             VStack(alignment: .leading, spacing: 8) {
-                sidebarItem(.settings)
                 QuitApplicationButton()
                     .buttonStyle(WorkspaceButtonStyle())
             }
@@ -192,7 +189,6 @@ struct MainWindow: View {
         case .calls: CallsWorkspaceView(preferencesStore: preferencesStore, calls: preferencesStore.calls)
         case .settings: SettingsWorkspaceView(preferencesStore: preferencesStore)
         case .photos: PhotosWorkspaceView(preferencesStore: preferencesStore, browser: preferencesStore.connections.storage, bulk: preferencesStore.connections.bulk)
-        case .hotspot: HotspotView(preferencesStore: preferencesStore)
         case .files:
             FilesWorkspaceView(preferencesStore: preferencesStore, bulk: preferencesStore.connections.bulk, browser: preferencesStore.connections.storage)
         case .notifications:

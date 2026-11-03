@@ -261,9 +261,7 @@ final class PhoneConnections: ObservableObject {
         send(phoneID: phoneID, packet: ControlPacket(type: stop ? "stopRing" : "ring", payload: .object(["expiresAt": .number(expiry)])))
     }
 
-    func requestHotspotHelp(phoneID: String) {
-        send(phoneID: phoneID, packet: ControlPacket(type: "hotspotHelp"))
-    }
+
 
     func forget(phoneID: String) {
         guard sessions.state(for: phoneID) == .connected else {

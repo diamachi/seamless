@@ -39,3 +39,5 @@ Waiting offers expire after five minutes. Mac active idle deadlines refresh on p
 ## Validation
 
 Generated 32 MiB transfers have passed both directions with checksum comparison. Android multi-file/folder workflow was reported working; a broad provider/folder corpus and interruption/large-file campaigns remain pending. Automated checks cover split/coalesced framing, checksum rejection, peer isolation, large metadata and folder-tree constraints. See [VALIDATION.md](VALIDATION.md).
+
+Android share-sheet flow (0.6.11): Share file(s) → Seamless queues directly to a single connected Mac. With several connected Macs, choose the destination; offline, reconnect or cancel. Pending external URI grants remain in memory and are not restored after process death. Folder as ZIP is in Overview → Share with your Mac. Setup now exposes automatic Downloads consent on both devices; transfer progress remains in-app and terminal notifications remain enabled, without repeated OS progress alerts.

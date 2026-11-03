@@ -40,7 +40,6 @@ Files, notifications, clipboard, phone screen and live camera, together in a nat
 - See battery, processor, Android version, RAM and storage information. The companion can show its connected Mac's hardware summary.
 - Ring a connected phone, review setup permissions, and reconnect without pairing again.
 - Light, dark and system appearance, with subtle native translucency and a compact menu-bar dashboard. Closing the main window leaves the menu bar connected; Open app restores the window. Quit Seamless exits completely.
-- Guided hotspot setup. Remote hotspot activation is not implemented.
 
 **Experimental calls:** Bluetooth call controls and input/output selectors exist. HFP control connection has been tested; real call audio, SCO routing, mute and tones have not passed live-call validation. Do not rely on this preview for calling.
 

@@ -34,6 +34,7 @@ class CameraEncodingSession(
     private var zoom = 1.0
     private var torch = false
     private var whiteBalance = "auto"
+    private var repeatingRequest: CaptureRequest.Builder? = null
     private var characteristics: CameraCharacteristics? = null
     private val bufferInfo = MediaCodec.BufferInfo()
     private val drainTask = object : Runnable {
@@ -133,12 +134,25 @@ class CameraEncodingSession(
                     val request = device.createCaptureRequest(CameraDevice.TEMPLATE_RECORD)
                     request.addTarget(inputSurface)
                     request.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, rate)
+                    repeatingRequest = request
                     applyControls(request)
                     session.setRepeatingRequest(request.build(), null, handler)
                 } catch (exception: Exception) { onFailure(exception) }
             }
             override fun onConfigureFailed(session: CameraCaptureSession) { onFailure(IllegalStateException("Camera profile was rejected")) }
         }, handler)
+    }
+
+    fun updateControls(exposureEV: Double, zoom: Double, torch: Boolean, whiteBalance: String) {
+        if (closed) return
+        this.exposureEV = exposureEV
+        this.zoom = zoom
+        this.torch = torch
+        this.whiteBalance = whiteBalance
+        val request = repeatingRequest ?: return
+        val activeSession = cameraSession ?: return
+        applyControls(request)
+        activeSession.setRepeatingRequest(request.build(), null, handler)
     }
 
     private fun applyControls(request: CaptureRequest.Builder) {
@@ -157,7 +171,12 @@ class CameraEncodingSession(
         val modes = mapOf("auto" to CaptureRequest.CONTROL_AWB_MODE_AUTO, "daylight" to CaptureRequest.CONTROL_AWB_MODE_DAYLIGHT, "cloudy" to CaptureRequest.CONTROL_AWB_MODE_CLOUDY_DAYLIGHT,
             "incandescent" to CaptureRequest.CONTROL_AWB_MODE_INCANDESCENT, "fluorescent" to CaptureRequest.CONTROL_AWB_MODE_FLUORESCENT)
         val mode = modes[whiteBalance] ?: CaptureRequest.CONTROL_AWB_MODE_AUTO
-        if (info.get(CameraCharacteristics.CONTROL_AWB_AVAILABLE_MODES)?.contains(mode) == true) request.set(CaptureRequest.CONTROL_AWB_MODE, mode)
+        val supportedWhiteBalance = info.get(CameraCharacteristics.CONTROL_AWB_AVAILABLE_MODES)
+        if (supportedWhiteBalance?.contains(mode) == true) {
+            request.set(CaptureRequest.CONTROL_AWB_MODE, mode)
+        } else {
+            request.set(CaptureRequest.CONTROL_AWB_MODE, CaptureRequest.CONTROL_AWB_MODE_AUTO)
+        }
         val sensor = info.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE)
         val maximumZoom = info.get(CameraCharacteristics.SCALER_AVAILABLE_MAX_DIGITAL_ZOOM)?.toDouble() ?: 1.0
         if (sensor != null && maximumZoom > 1.0) {

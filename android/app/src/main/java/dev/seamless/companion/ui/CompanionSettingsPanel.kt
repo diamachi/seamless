@@ -80,7 +80,7 @@ fun CompanionSettingsPanel(onPerformance: () -> Unit, onSetup: () -> Unit) {
 private fun TrustedMacSettings(macID: String, name: String) {
     val context = LocalContext.current
     val preferences = context.getSharedPreferences("phone_policies", android.content.Context.MODE_PRIVATE)
-    var automaticFiles by remember(macID) { mutableStateOf(preferences.getBoolean("file_auto.$macID", false)) }
+    var automaticFiles by remember(macID) { mutableStateOf(preferences.getBoolean("file_auto.$macID", preferences.getBoolean("automatic_downloads", false))) }
     var automaticCamera by remember(macID) { mutableStateOf(preferences.getBoolean("camera_auto.$macID", false)) }
     CompanionCard(name) {
             Text("Automatically accept files from this Mac into Downloads")

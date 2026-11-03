@@ -11,10 +11,25 @@ import android.os.Build
 import android.os.IBinder
 import dev.seamless.companion.MainActivity
 import java.util.concurrent.Executors
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 
 class ConnectionService : Service() {
     private val worker = Executors.newSingleThreadExecutor()
     @Volatile private var isDestroyed = false
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private lateinit var powerLease: ConnectionPowerLease
+
+    override fun onCreate() {
+        super.onCreate()
+        powerLease = ConnectionPowerLease(this)
+        serviceScope.launch {
+            ConnectionRuntime.state.collect { state -> powerLease.setConnected(state.connectedMacIDs.isNotEmpty()) }
+        }
+    }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_STOP) {
@@ -60,6 +75,8 @@ class ConnectionService : Service() {
 
     override fun onDestroy() {
         isDestroyed = true
+        serviceScope.cancel()
+        powerLease.close()
         worker.execute {
             try {
                 ConnectionRuntime.server?.close()
@@ -96,15 +113,32 @@ class ConnectionService : Service() {
         const val ACTION_PAIR = "dev.seamless.companion.CREATE_INVITATION"
         const val ACTION_STOP = "dev.seamless.companion.STOP_CONNECTION"
         fun notifyCaptureRequest(context: android.content.Context, camera: Boolean = false) {
+            notifyRequest(context, if (camera) "Your Mac requested the camera" else "Your Mac requested screen sharing",
+                if (camera) "Tap to review and approve camera sharing." else "Tap to open Android’s screen-sharing consent.", 12)
+        }
+
+        fun notifyFileRequest(context: android.content.Context, name: String) {
+            notifyRequest(context, "File from your Mac", "Tap to accept $name", 13)
+        }
+
+        private fun notifyRequest(context: android.content.Context, title: String, message: String, identifier: Int) {
             if (ConnectionRuntime.isActivityVisible) return
             val manager = context.getSystemService(NotificationManager::class.java)
-            if (Build.VERSION.SDK_INT >= 26) manager.createNotificationChannel(NotificationChannel("screen_requests", "Screen sharing requests", NotificationManager.IMPORTANCE_DEFAULT))
-            val open = PendingIntent.getActivity(context, 12, Intent(context, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
-            val builder = if (Build.VERSION.SDK_INT >= 26) Notification.Builder(context, "screen_requests") else Notification.Builder(context)
+            // A new channel keeps previously low-importance service notifications separate.
+            val channel = "sharing_requests_v2"
+            if (Build.VERSION.SDK_INT >= 26) {
+                manager.createNotificationChannel(NotificationChannel(channel, "Sharing requests", NotificationManager.IMPORTANCE_HIGH))
+            }
+            val open = PendingIntent.getActivity(context, identifier, Intent(context, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
+            val builder = if (Build.VERSION.SDK_INT >= 26) Notification.Builder(context, channel) else Notification.Builder(context)
             try {
-                manager.notify(12, builder.setSmallIcon(android.R.drawable.ic_menu_share).setContentTitle(if (camera) "Your Mac requested the camera" else "Your Mac requested screen sharing")
-                    .setContentText(if (camera) "Tap to open Seamless and start the approved camera session." else "Tap to choose an app or screen in Android’s sharing dialog.").setContentIntent(open).setAutoCancel(true).build())
-            } catch (_: SecurityException) { }
+                manager.notify(identifier, builder.setSmallIcon(android.R.drawable.ic_menu_share)
+                    .setContentTitle(title).setContentText(message).setContentIntent(open)
+                    .setCategory(Notification.CATEGORY_EVENT).setPriority(Notification.PRIORITY_HIGH)
+                    .setDefaults(Notification.DEFAULT_ALL).setAutoCancel(true).build())
+            } catch (_: SecurityException) {
+                // Revoked display permission cannot interrupt the connection or transfer.
+            }
         }
         private const val CHANNEL = "mac_connection"
     }
