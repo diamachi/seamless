@@ -23,7 +23,12 @@ struct FileTransferLifecycleTests {
             if packet.type == "fileCancel" { cancellationPhoneID = phoneID }
         }
         transfers.receive(offer(id: "incoming-2"), phoneID: "phone-a")
-        try await Task.sleep(for: .milliseconds(200))
+        let clock = ContinuousClock()
+        let deadline = clock.now.advanced(by: .seconds(3))
+        // Other main-actor work can postpone timers on shared runners; await the event, not a fixed sleep.
+        while cancellationPhoneID == nil && clock.now < deadline {
+            try await Task.sleep(for: .milliseconds(10))
+        }
         #expect(transfers.offers.isEmpty)
         #expect(cancellationPhoneID == "phone-a")
     }
