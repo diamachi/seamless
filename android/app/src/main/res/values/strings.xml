@@ -1,0 +1,3 @@
+<resources>
+    <string name="accessibility_description">Allows your paired Mac to tap, swipe, navigate and set text in a focused field while you are sharing your phone screen. Seamless does not record keystrokes or read page contents for clipboard monitoring. Disable this service at any time to stop remote control.</string>
+</resources>
