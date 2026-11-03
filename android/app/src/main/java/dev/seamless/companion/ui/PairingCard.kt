@@ -61,4 +61,3 @@ internal fun PairingCard(state: CompanionConnectionState, onScanMac: () -> Unit)
         if (state.pairingError != null) Text(state.pairingError, color = MaterialTheme.colorScheme.error)
     }
 }
-
