@@ -63,6 +63,14 @@ final class PhoneVideoStreamController: ObservableObject {
         message = "On the phone, approve camera sharing."
     }
 
+    func updateCameraControls(phoneID: String, preferences: CameraPreferences) {
+        guard purpose == .camera, isStreaming, self.phoneID == phoneID else { return }
+        send?(phoneID, ControlPacket(type: "cameraControls", payload: .object([
+            "exposureEV": .number(preferences.exposureEV), "zoom": .number(preferences.zoom),
+            "torch": .bool(preferences.torch), "whiteBalance": .string(preferences.whiteBalance)
+        ])))
+    }
+
     func acceptGrant(phoneID: String, profile: ConnectionProfile, macID: String, credential: String, token: String) {
         guard self.phoneID == phoneID else { return }
         do {

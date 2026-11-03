@@ -46,7 +46,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        receiveSharedText(intent)
+        if (savedInstanceState == null) receiveSharedText(intent)
         setContent {
             dev.seamless.companion.ui.CompanionAppRoot(
                 initialFrameRate = preferences.getInt("screen_frame_rate", 60),
@@ -97,7 +97,13 @@ class MainActivity : ComponentActivity() {
                 val shared = intent.getParcelableExtra<android.net.Uri>(Intent.EXTRA_STREAM)
                 if (shared != null) uris.add(shared)
             }
-            val files = uris.filter { it.scheme == "content" }.distinct().take(8).map { it.toString() }
+            val clipData = intent.clipData
+            if (clipData != null) {
+                for (index in 0 until clipData.itemCount) {
+                    clipData.getItemAt(index).uri?.let { uris.add(it) }
+                }
+            }
+            val files = uris.filter { it.scheme == "content" }.distinct().map { it.toString() }
             if (files.isNotEmpty()) ConnectionRuntime.update { it.copy(sharedFilesToSend = files) }
         }
         if (intent?.action == Intent.ACTION_SEND && intent.type == "text/plain") {

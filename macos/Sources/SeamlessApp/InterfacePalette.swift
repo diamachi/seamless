@@ -3,15 +3,15 @@ import SwiftUI
 struct InterfacePalette {
     let scheme: ColorScheme
 
-    var canvas: Color { adaptive(light: 0xF7F5EF, dark: 0x1D1C1A) }
-    var sidebar: Color { adaptive(light: 0xF0ECE3, dark: 0x24221F) }
-    var surface: Color { adaptive(light: 0xFFFDFA, dark: 0x2B2824) }
-    var raisedSurface: Color { adaptive(light: 0xF4EDDE, dark: 0x342F28) }
-    var accent: Color { adaptive(light: 0x8C5C25, dark: 0xE6BC7A) }
-    var accentWash: Color { adaptive(light: 0xF1E4CD, dark: 0x403529) }
-    var text: Color { adaptive(light: 0x302D27, dark: 0xEEE9DF) }
-    var secondaryText: Color { adaptive(light: 0x777166, dark: 0xB7B0A3) }
-    var border: Color { adaptive(light: 0xE4DED2, dark: 0x423D35) }
+    var canvas: Color { adaptive(light: 0xFFF5EC, dark: 0x231719) }
+    var sidebar: Color { adaptive(light: 0xF6E4D8, dark: 0x2C1C1F) }
+    var surface: Color { adaptive(light: 0xFFFAF5, dark: 0x342125) }
+    var raisedSurface: Color { adaptive(light: 0xFED7B8, dark: 0x432A2E) }
+    var accent: Color { adaptive(light: 0x59171B, dark: 0xFED7B8) }
+    var accentWash: Color { adaptive(light: 0xF5DCD0, dark: 0x512E33) }
+    var text: Color { adaptive(light: 0x391D22, dark: 0xFFF1E7) }
+    var secondaryText: Color { adaptive(light: 0x795C5D, dark: 0xD0ACAB) }
+    var border: Color { adaptive(light: 0xE8C7BD, dark: 0x604047) }
 
     private func adaptive(light: UInt32, dark: UInt32) -> Color {
         if scheme == .dark {

@@ -68,6 +68,7 @@ struct SetupGuideView: View {
             }
         case 2:
             SetupMacPermissions(preferencesStore: preferencesStore, setup: setup)
+            DownloadsSetupCard(preferencesStore: preferencesStore)
             phonePermissions
         default:
             WorkspaceCard {
@@ -126,7 +127,7 @@ private struct SetupMacPermissions: View {
             Divider()
             permission("Microphone · calls", purpose: "Send your voice during a call. Optional until you use Mac audio.", status: setup.microphoneStatus,
                        action: "Review access", perform: setup.requestMicrophone)
-            Text("Phone camera preview does not need access to this Mac's camera. OBS manages its own camera extension and recording permissions. Hotspot network scanning may separately ask for location when you use that feature.")
+            Text("Phone camera preview does not need access to this Mac's camera. OBS manages its own camera extension and recording permissions.")
                 .font(.caption).foregroundStyle(.secondary)
             if !setup.message.isEmpty { Text(setup.message).font(.caption).foregroundStyle(.secondary) }
         }
@@ -140,6 +141,41 @@ private struct SetupMacPermissions: View {
             }
             Spacer()
             Button(action, action: perform)
+        }
+    }
+}
+
+@MainActor
+private final class DownloadsAccessStatus: ObservableObject {
+    @Published var message = ""
+}
+
+private struct DownloadsSetupCard: View {
+    @ObservedObject var preferencesStore: PreferencesStore
+    @StateObject private var access = DownloadsAccessStatus()
+
+    var body: some View {
+        WorkspaceCard {
+            Text("Automatic Downloads").font(.headline)
+            Toggle("Save files from this phone to Downloads automatically", isOn: preferencesStore.featurePreferences.automaticallyAcceptFiles)
+                .disabled(preferencesStore.preferences.selectedPhoneID == nil)
+            Text("Files use unique names and never replace existing downloads. Choose a paired phone first. macOS controls folder access separately.")
+                .font(.caption).foregroundStyle(.secondary)
+            Button("Check Downloads access") { checkDownloadsAccess() }
+            if !access.message.isEmpty { Text(access.message).font(.caption).foregroundStyle(.secondary) }
+        }
+    }
+
+    private func checkDownloadsAccess() {
+        do {
+            let directory = try FileManager.default.url(for: .downloadsDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
+            let probe = directory.appendingPathComponent(".seamless-access-" + UUID().uuidString)
+            // Exercise the real receiving location so macOS can request access during setup.
+            try Data().write(to: probe, options: .withoutOverwriting)
+            try FileManager.default.removeItem(at: probe)
+            access.message = "Downloads is writable. Received files can save here automatically."
+        } catch {
+            access.message = "Downloads access is unavailable. Review System Settings → Privacy & Security → Files and Folders for Seamless. " + error.localizedDescription
         }
     }
 }

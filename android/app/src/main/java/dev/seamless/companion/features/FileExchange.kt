@@ -98,6 +98,7 @@ class FileExchange(private val context: Context) : AutoCloseable {
         val path = File(context.cacheDir, "incoming-${UUID.randomUUID()}")
         incoming[transferID] = IncomingFile(peer, name, size, hash, path, SystemClock.elapsedRealtime())
         ConnectionRuntime.update { it.copy(incomingFileOffer = IncomingFileOffer(transferID, name, size)) }
+        dev.seamless.companion.connection.ConnectionService.notifyFileRequest(context, name)
     }
 
     private fun receiveChunk(peer: MacPeer, transferID: String, payload: JSONObject) {

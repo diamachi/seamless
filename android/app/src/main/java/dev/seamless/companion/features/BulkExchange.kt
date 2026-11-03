@@ -114,9 +114,14 @@ class BulkExchange(private val context: Context) : AutoCloseable {
         val state = ConnectionRuntime.state.value
         if (state.incomingFileOffer != null || state.receivedFile != null || entries.values.any { !it.outgoing && it.accepted }) return
         val next = entries.entries.filter { !it.value.outgoing && !it.value.accepted }.minByOrNull { it.value.expiresAt } ?: return
-        val autoAccept = context.getSharedPreferences("phone_policies", Context.MODE_PRIVATE).getBoolean("file_auto.${next.value.peer.id}", false)
+        val policies = context.getSharedPreferences("phone_policies", Context.MODE_PRIVATE)
+        val defaultAutomaticDownloads = policies.getBoolean("automatic_downloads", false)
+        val autoAccept = policies.getBoolean("file_auto.${next.value.peer.id}", defaultAutomaticDownloads)
         if (autoAccept) accept(next.key, true)
-        else ConnectionRuntime.update { it.copy(incomingFileOffer = IncomingFileOffer(next.key, next.value.name, next.value.size)) }
+        else {
+            ConnectionRuntime.update { it.copy(incomingFileOffer = IncomingFileOffer(next.key, next.value.name, next.value.size)) }
+            dev.seamless.companion.connection.ConnectionService.notifyFileRequest(context, next.value.name)
+        }
     }
 
     fun contains(id: String): Boolean = entries.containsKey(id)

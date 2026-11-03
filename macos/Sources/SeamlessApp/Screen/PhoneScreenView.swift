@@ -63,6 +63,10 @@ private final class ScreenLayerView: NSView {
         }
     }
     override func scrollWheel(with event: NSEvent) {
+        if controller.purpose == .camera || !controller.isStreaming {
+            super.scrollWheel(with: event)
+            return
+        }
         guard Date().timeIntervalSince(lastScrollAt) >= 0.3 else { return }
         lastScrollAt = Date()
         let endY = event.scrollingDeltaY < 0 ? 0.3 : 0.7
@@ -244,8 +248,8 @@ struct PhoneStreamMockup: View {
 
     private func navigationButton(_ title: String, symbol: String, command: String) -> some View {
         Button { controller.input(kind: command) } label: {
-            Image(systemName: symbol).frame(width: 36, height: 36).contentShape(Rectangle())
-        }.buttonStyle(.plain).accessibilityLabel(title).help(title)
+            Image(systemName: symbol).frame(width: 52, height: 44).contentShape(Rectangle())
+        }.buttonStyle(ScreenNavigationButtonStyle()).accessibilityLabel(title).help(title)
     }
 
     private var aspectRatio: CGFloat {
@@ -267,7 +271,7 @@ final class ScreenPopout: NSObject, NSWindowDelegate {
         controller.isDetached = true
         let ratio = streamAspectRatio
         let height = min(720, (NSScreen.main?.visibleFrame.height ?? 800) - 80)
-        let initialContentSize = NSSize(width: (height - 48) * ratio + 8, height: height)
+        let initialContentSize = NSSize(width: (height - 60) * ratio + 8, height: height)
         let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: initialContentSize.width, height: initialContentSize.height), styleMask: [.titled, .closable, .resizable, .miniaturizable], backing: .buffered, defer: false)
         window.title = "Phone screen"
         window.contentView = NSHostingView(rootView: CompactStreamPopout(controller: controller))
@@ -283,8 +287,9 @@ final class ScreenPopout: NSObject, NSWindowDelegate {
     }
     func windowWillResize(_ sender: NSWindow, to frameSize: NSSize) -> NSSize {
         let titleBarHeight = sender.frame.height - sender.contentLayoutRect.height
-        let contentHeight = max(280, frameSize.height - titleBarHeight)
-        return NSSize(width: (contentHeight - 48) * streamAspectRatio + 8,
+        let minimumHeight = max(280, 216 / streamAspectRatio + 60)
+        let contentHeight = max(minimumHeight, frameSize.height - titleBarHeight)
+        return NSSize(width: (contentHeight - 60) * streamAspectRatio + 8,
                       height: contentHeight + titleBarHeight)
     }
     func windowWillClose(_ notification: Notification) {
@@ -294,6 +299,7 @@ final class ScreenPopout: NSObject, NSWindowDelegate {
 }
 
 private struct CompactStreamPopout: View {
+    @Environment(\.colorScheme) private var colorScheme
     @ObservedObject var controller: PhoneVideoStreamController
     var body: some View {
         VStack(spacing: 4) {
@@ -303,12 +309,23 @@ private struct CompactStreamPopout: View {
                 navigationButton("Back", symbol: "chevron.left", command: "back")
                 navigationButton("Home", symbol: "circle", command: "home")
                 navigationButton("Recent apps", symbol: "square", command: "recents")
-            }.frame(height: 36)
-        }.padding(4)
+            }.frame(height: 48)
+        }.padding(4).background(InterfacePalette(scheme: colorScheme).canvas)
     }
     private func navigationButton(_ title: String, symbol: String, command: String) -> some View {
         Button { controller.input(kind: command) } label: {
-            Image(systemName: symbol).frame(width: 32, height: 32)
-        }.buttonStyle(.plain).accessibilityLabel(title)
+            Image(systemName: symbol).frame(width: 52, height: 44).contentShape(Rectangle())
+        }.buttonStyle(ScreenNavigationButtonStyle()).accessibilityLabel(title)
+    }
+}
+
+private struct ScreenNavigationButtonStyle: ButtonStyle {
+    @Environment(\.colorScheme) private var colorScheme
+    func makeBody(configuration: Configuration) -> some View {
+        let palette = InterfacePalette(scheme: colorScheme)
+        configuration.label
+            .foregroundStyle(palette.accent)
+            .background(configuration.isPressed ? palette.raisedSurface : palette.accentWash,
+                        in: RoundedRectangle(cornerRadius: 10))
     }
 }
