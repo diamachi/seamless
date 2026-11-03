@@ -11,3 +11,5 @@ These are hard requirements from the project owner.
 - Distinguish proposals, implemented behavior, and physically verified behavior.
 
 Current scope: application development authorized by the owner on 2026-11-02. Begin with native foundations and debugging-free screen performance feasibility. Do not describe unimplemented or untested integration as working.
+
+For every unnotarized macOS GitHub release, include the installation explanation and exact Seamless quarantine-removal command from `docs/RELEASE_TEMPLATE.md` in its release notes. Keep the README guidance consistent. Do not execute the command automatically on a user’s Mac.

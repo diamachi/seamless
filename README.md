@@ -55,6 +55,16 @@ Download the [0.6.9 preview from GitHub Releases](https://github.com/diamachi/se
 
 Local DMGs are ad-hoc signed test packages, **not notarized releases**. Android builds use development signing. Preview installers are published through GitHub Releases. No Homebrew package or automatic updater is configured. macOS package minimum is 14; Android minimum is 7.0/API 24, with feature-specific gates. These build minimums do not establish physical compatibility across all versions. Initial physical tests use Android 17 and macOS 27.
 
+## macOS installation — unnotarized preview
+
+Open the DMG and drag Seamless into Applications. This preview is not notarized. If macOS blocks the downloaded app and you trust this release, run:
+
+```sh
+xattr -dr com.apple.quarantine /Applications/Seamless.app
+```
+
+This removes the downloaded-file quarantine attribute from Seamless and its contents. It does not notarize the app or change system-wide Gatekeeper settings. Run it only for the copy you intentionally installed from this repository.
+
 ### Pair once
 
 1. Connect both devices to the same reachable local network and open Seamless.

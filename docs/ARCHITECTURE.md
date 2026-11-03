@@ -122,3 +122,5 @@ The original three-point artwork has a layered `Support/Seamless.icon` source. F
 
 ### Manual GitHub preview release
 `v0.6.9` is a manually published GitHub prerelease, explicitly approved for unnotarized distribution. It attaches the checked macOS 0.6.9 ad-hoc DMG, Android 0.6.7 CI-debug APK and SHA256SUMS.txt. This is separate from the read-only build workflow and does not configure automatic publishing, stable release keys or Apple notarization. All distribution remains through GitHub; no App Store submission is involved.
+
+Unnotarized release installation guidance is maintained in RELEASE_TEMPLATE.md and mirrored in the README. Project rules require including it in every unnotarized GitHub release. It documents an explicit user-run quarantine-attribute removal command for the installed Seamless bundle; app code/installers never execute it and no system-wide Gatekeeper setting is changed.
