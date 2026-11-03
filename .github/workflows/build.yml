@@ -16,7 +16,7 @@ concurrency:
 jobs:
   macos:
     name: macOS DMG · Apple silicon
-    runs-on: macos-15
+    runs-on: macos-26
     timeout-minutes: 35
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
@@ -72,7 +72,7 @@ jobs:
             android/app/build.gradle.kts
             android/gradle/wrapper/gradle-wrapper.properties
       - name: Install required Android SDK packages
-        run: sdkmanager 'platforms;android-36' 'build-tools;35.0.0'
+        run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;35.0.0"' 
       - name: Check source privacy
         run: python3 scripts/check-source-privacy.py
       - name: Build, test and lint companion

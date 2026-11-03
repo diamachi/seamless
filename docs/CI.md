@@ -4,7 +4,7 @@
 
 ## macOS
 
-The macos-15 Apple-silicon runner selects Xcode 26.3 explicitly, checks architecture/source privacy, runs native tests, builds the app and packages/verifies a DMG. SEAMLESS_SIGNING_IDENTITY is explicitly ad-hoc. The job uploads only the DMG and its checksum, not a workspace, debug symbols, credentials or build cache.
+The macos-26 Apple-silicon runner selects Xcode 26.3 explicitly, checks architecture/source privacy, runs native tests, builds the app and packages/verifies a DMG. SEAMLESS_SIGNING_IDENTITY is explicitly ad-hoc. The job uploads only the DMG and its checksum, not a workspace, debug symbols, credentials or build cache.
 
 The resulting app is an Apple-silicon test build, not universal, Developer ID signed or notarized. Installing a differently signed copy can request fresh macOS/Keychain approval. Minimum OS metadata is not proof of compatibility with every supported system.
 
