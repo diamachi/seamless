@@ -8,9 +8,15 @@ final class MacNotificationDelivery: NSObject, ObservableObject, UNUserNotificat
     @Published private(set) var status = "Checking notification access…"
     @Published private(set) var lastError = ""
     @Published private(set) var canShowBanners = false
+    var onCallAction: ((String, String, String) -> Void)?
 
     func configure() {
         UNUserNotificationCenter.current().delegate = self
+        let answer = UNNotificationAction(identifier: "answer-call", title: "Answer on Mac", options: [.foreground])
+        let decline = UNNotificationAction(identifier: "decline-call", title: "Decline", options: [.destructive])
+        UNUserNotificationCenter.current().setNotificationCategories([
+            UNNotificationCategory(identifier: "incoming-call", actions: [answer, decline], intentIdentifiers: [])
+        ])
         Task { await refresh() }
     }
 
@@ -65,6 +71,32 @@ final class MacNotificationDelivery: NSObject, ObservableObject, UNUserNotificat
                 lastError = ""
             } catch { lastError = error.localizedDescription }
         }
+    }
+
+    func incomingCall(phoneID: String, caller: String, token: String) {
+        let content = UNMutableNotificationContent()
+        content.title = "Incoming phone call"
+        content.body = caller.isEmpty ? "Unknown caller" : caller
+        content.categoryIdentifier = "incoming-call"
+        content.userInfo = ["phoneID": phoneID, "callToken": token]
+        content.sound = .default
+        UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: "incoming-call-" + phoneID,
+                                                                     content: content, trigger: nil))
+    }
+
+    func clearIncomingCall(phoneID: String) {
+        UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: ["incoming-call-" + phoneID])
+    }
+
+    nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse) async {
+        let info = response.notification.request.content.userInfo
+        guard let phoneID = info["phoneID"] as? String, let token = info["callToken"] as? String else { return }
+        let action = response.actionIdentifier
+        await handleCallAction(phoneID: phoneID, token: token, action: action)
+    }
+
+    private func handleCallAction(phoneID: String, token: String, action: String) {
+        onCallAction?(phoneID, token, action)
     }
 
     func postLocalTest() {

@@ -44,7 +44,8 @@ fun CompanionAppRoot(
     onStartScreen: () -> Unit,
     onStartCamera: () -> Unit,
     onRemoteScreen: () -> Unit,
-    onRemoteCamera: () -> Unit
+    onRemoteCamera: () -> Unit,
+    onReadContacts: () -> Unit
 ) {
     val context = LocalContext.current
     val setupPreferences = context.getSharedPreferences("onboarding", Context.MODE_PRIVATE)
@@ -67,6 +68,12 @@ fun CompanionAppRoot(
             val files = connection.sharedFilesToSend
             val accepted = ConnectionRuntime.server?.offerFiles(files.map { android.net.Uri.parse(it) }) == true
             if (accepted) ConnectionRuntime.update { it.copy(sharedFilesToSend = emptyList()) }
+        }
+    }
+    LaunchedEffect(connection.connectedMacIDs, connection.sharedTextToSend) {
+        if (connection.connectedMacIDs.size == 1 && connection.sharedTextToSend.isNotEmpty()) {
+            val sent = ConnectionRuntime.server?.sendClipboard(connection.sharedTextToSend) == true
+            if (sent) ConnectionRuntime.update { it.copy(sharedTextToSend = "", message = "Shared text sent to your Mac") }
         }
     }
     val colors = companionColors(isSystemInDarkTheme())
@@ -109,6 +116,15 @@ fun CompanionAppRoot(
                 }
                 SharingRequestDialogs(connection, onStartCamera)
                 SharedFilesDestinationDialog(connection)
+                connection.contactsRequest?.let { request ->
+                    androidx.compose.material3.AlertDialog(
+                        onDismissRequest = { ConnectionRuntime.server?.shareContacts(request, false) },
+                        title = { Text("Share contacts with ${request.macName}?") },
+                        text = { Text("Allow this paired Mac to read names and phone numbers for its call picker. Contacts stay in memory on the Mac and are cleared on disconnect. You can revoke access in Settings.") },
+                        confirmButton = { TextButton(onClick = onReadContacts) { Text("Allow contacts") } },
+                        dismissButton = { TextButton(onClick = { ConnectionRuntime.server?.shareContacts(request, false) }) { Text("Decline") } }
+                    )
+                }
                 PairingApproval(connection)
             }
         }

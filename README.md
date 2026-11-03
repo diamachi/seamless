@@ -30,7 +30,7 @@ Files, notifications, clipboard, phone screen and live camera, together in a nat
 ### Phone screen and camera
 
 - Mirror your phone inside the Mac app or pop it into a separate window, with optional Accessibility-based control.
-- Request 60 fps or experimental 120 fps profiles. Device, network and workload determine actual performance.
+- Screen sharing targets 60 fps. Device, network and workload determine actual performance.
 - Use optional ADB/scrcpy integration for direct single-app windows and USB transport. USB debugging must remain enabled for that mode.
 - Stream the phone camera with supported quality/frame-rate controls. An experimental OBS virtual-camera bridge has been tested in local preview and browser camera selection; it requires the OBS driver. A standalone native camera extension is not shipped.
 
@@ -73,7 +73,7 @@ The QR flow requires macOS and Android companion 0.6.10 or newer (available from
 3. On Android, choose Pair a Mac → Scan Mac QR code. Scan the Mac screen, then approve the named Mac on Android. The full-code method remains available under Use full code instead.
 4. Review the optional permissions for the features you want. Select notification apps explicitly.
 
-Saved credentials handle later connections. Android's connection service can run in the background with a persistent system notification; battery restrictions, force-stop and reboot can affect it. The Android Reconnect button asks a running, reachable paired Mac to reconnect. Normal Wi-Fi features do not require debugging. Android screen-sharing consent is still required for each normal capture session.
+Saved credentials handle later connections. Calls uses a separate Bluetooth setup; Android contacts can be loaded on demand for dialing, with optional Contacts permission. Android's connection service can run in the background with a persistent system notification; battery restrictions, force-stop and reboot can affect it. The Android Reconnect button asks a running, reachable paired Mac to reconnect. Normal Wi-Fi features do not require debugging. Android screen-sharing consent is still required for each normal capture session.
 
 ## Your data
 
@@ -143,3 +143,5 @@ UI observes feature state; connection and platform services own the behavior. Co
 - [Calling setup](docs/CALLING_SETUP.md)
 
 A source license has not been selected in this workspace. Public release licensing, distribution signing and notarization remain release tasks.
+
+Clipboard: Mac → phone uses Send copied text (or optional auto-send) and confirms when Android copies it. Phone → Mac uses Android Share → Seamless, then paste on the Mac. Merely copying in another Android app does not provide reliable background sync. Clipboard history is optional and stays in memory.

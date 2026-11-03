@@ -70,6 +70,9 @@ final class PreferencesStore: ObservableObject {
         hasStartedConnections = true
         applyAppearance()
         connections.reconnectSavedPhones()
+        if let phoneID = preferences.selectedPhoneID, calls.options(for: phoneID).reconnectOnLaunch {
+            calls.connect(phoneID: phoneID)
+        }
         let arguments = CommandLine.arguments
         if let option = arguments.firstIndex(of: "--pairing-file"), option + 1 < arguments.count {
             do {

@@ -44,5 +44,9 @@ final class WindowSurfaceView: NSView {
         // Native material must see the desktop rather than an opaque window backing.
         window?.isOpaque = false
         window?.backgroundColor = .clear
+        window?.titlebarAppearsTransparent = true
+        window?.titleVisibility = .hidden
+        window?.titlebarSeparatorStyle = .none
+        window?.styleMask.insert(.fullSizeContentView)
     }
 }

@@ -10,7 +10,7 @@ struct MultiPhoneTests {
         try preferences.rememberPhone(id: "phone-two", displayName: "Other phone")
         var firstPhoneSettings = try preferences.featurePreferences(for: "phone-one")
         firstPhoneSettings.camera.facing = .front
-        firstPhoneSettings.screenFramesPerSecond = 120
+        firstPhoneSettings.camera.resolutionHeight = 720
         firstPhoneSettings.notifications.isPaused = true
         try preferences.updateFeaturePreferences(firstPhoneSettings, for: "phone-one")
         try preferences.selectPhone(id: "phone-two")
@@ -47,7 +47,7 @@ struct MultiPhoneTests {
         #expect(migrated.rememberedPhones.isEmpty)
         #expect(migrated.selectedPhoneID == nil)
         #expect(migrated.defaultPhonePreferences.camera.facing == .front)
-        #expect(migrated.defaultPhonePreferences.screenFramesPerSecond == 120)
+        #expect(migrated.defaultPhonePreferences.screenFramesPerSecond == 60)
         #expect(migrated.defaultPhonePreferences.notifications.isPaused)
     }
 

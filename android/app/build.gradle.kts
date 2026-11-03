@@ -26,8 +26,8 @@ android {
         applicationId = "dev.seamless.companion"
         minSdk = 24
         targetSdk = 36
-        versionCode = 22
-        versionName = "0.6.12"
+        versionCode = 23
+        versionName = "0.6.13"
     }
     signingConfigs {
         if (distributionKeystore != null) {

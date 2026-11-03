@@ -130,11 +130,20 @@ class PhoneServer(private val context: Context) : AutoCloseable {
         pending.latch.countDown()
     }
 
-    fun sendClipboard(text: String) {
-        require(peers.isNotEmpty()) { "Connect your Mac first" }
-        require(text.length <= 32_000) { "Clipboard text exceeds 32,000 characters" }
-        for (peer in peers.values) {
-            safeSend(peer, "clipboard", JSONObject().put("text", text))
+    fun sendClipboard(text: String): Boolean {
+        val peer = peers.values.singleOrNull()
+        if (peer == null || text.isEmpty() || text.length > 32_000) {
+            ConnectionRuntime.update { it.copy(message = "Connect exactly one Mac and choose text up to 32,000 characters") }
+            return false
+        }
+        return try {
+            peer.channel.send("clipboard", JSONObject().put("text", text))
+            ConnectionRuntime.update { it.copy(message = "Copied text sent to ${peer.name}") }
+            true
+        } catch (_: Exception) {
+            peer.channel.close()
+            ConnectionRuntime.update { it.copy(message = "Mac disconnected before text could be sent") }
+            false
         }
     }
 
@@ -151,6 +160,39 @@ class PhoneServer(private val context: Context) : AutoCloseable {
     fun revokeBrowserAccess() { storage.revoke() }
 
     fun offerFile(uri: Uri) { offerFiles(listOf(uri)) }
+
+    fun revokeContacts(macID: String) {
+        preferences.edit().putBoolean("contacts_allowed.$macID", false).apply()
+        peers[macID]?.let { safeSend(it, "contactsRevoked", JSONObject()) }
+    }
+
+    fun shareContacts(request: ContactsRequest, allowed: Boolean, rememberConsent: Boolean = true) {
+        if (allowed && rememberConsent) {
+            preferences.edit().putBoolean("contacts_allowed.${request.macID}", true).apply()
+        }
+        executor.execute {
+            val peer = peers[request.macID] ?: return@execute
+            try {
+                require(allowed) { "Contacts access was declined on the phone" }
+                val contacts = dev.seamless.companion.features.PhoneContacts.read(context)
+                val pages = contacts.chunked(100).ifEmpty { listOf(emptyList()) }
+                for ((index, page) in pages.withIndex()) {
+                    require(peers[peer.id] === peer) { "Mac disconnected" }
+                    require(preferences.getBoolean("contacts_allowed.${peer.id}", false)) { "Contacts access was revoked" }
+                    peer.channel.send("contactsPage", JSONObject().put("token", request.token)
+                        .put("index", index).put("last", index == pages.lastIndex)
+                        .put("contacts", JSONArray(page)), waitForCapacity = true)
+                }
+            } catch (exception: Exception) {
+                safeSend(peer, "contactsError", JSONObject().put("token", request.token)
+                    .put("message", exception.message ?: "Could not read contacts"))
+            } finally {
+                ConnectionRuntime.update {
+                    if (it.contactsRequest?.token == request.token) it.copy(contactsRequest = null) else it
+                }
+            }
+        }
+    }
 
     fun requestReconnect() {
         synchronized(pausedMacs) {
@@ -295,7 +337,9 @@ class PhoneServer(private val context: Context) : AutoCloseable {
         executor.shutdownNow()
         browserExecutor.shutdownNow()
         mainHandler.post { ringer.stop() }
-        ConnectionRuntime.update { CompanionConnectionState(message = "Connection service stopped") }
+        if (ConnectionRuntime.server === this) {
+            ConnectionRuntime.update { CompanionConnectionState(message = "Connection service stopped") }
+        }
     }
 
     private fun acceptConnections() {
@@ -377,10 +421,13 @@ class PhoneServer(private val context: Context) : AutoCloseable {
                 files.disconnect(finishedPeer.id)
                 bulk.disconnect(finishedPeer.id)
                 storage.disconnected(finishedPeer.id)
-                ConnectionRuntime.update { state ->
+                if (ConnectionRuntime.server === this) ConnectionRuntime.update { state ->
                     var updated = state
                     if (state.screenRequestedBy == finishedPeer.id) {
                         updated = updated.copy(screenRequestedBy = null, screenRequestID = null)
+                    }
+                    if (state.contactsRequest?.macID == finishedPeer.id) {
+                        updated = updated.copy(contactsRequest = null)
                     }
                     if (state.cameraRequestedBy == finishedPeer.id) {
                         updated = updated.copy(cameraRequestedBy = null, cameraRequestID = null)
@@ -443,7 +490,7 @@ class PhoneServer(private val context: Context) : AutoCloseable {
             }
             "unpair" -> {
                 identity.revokePeer(peer.id)
-                preferences.edit().remove("policy.${peer.id}").remove("file_auto.${peer.id}").remove("camera_auto.${peer.id}").commit()
+                preferences.edit().remove("policy.${peer.id}").remove("file_auto.${peer.id}").remove("camera_auto.${peer.id}").remove("contacts_allowed.${peer.id}").commit()
                 peers.remove(peer.id, peer)
                 if (screenStreams.remove(peer.id)?.also { it.close() } != null) context.stopService(Intent(context, ScreenBenchmarkService::class.java))
                 if (cameraStreams.remove(peer.id)?.also { it.close() } != null) context.stopService(Intent(context, CameraStreamService::class.java))
@@ -484,7 +531,7 @@ class PhoneServer(private val context: Context) : AutoCloseable {
             "screenRequest" -> {
                 val frameRate = payload.getInt("framesPerSecond")
                 require(frameRate == 60 || frameRate == 120)
-                ConnectionRuntime.update { it.copy(screenRequestedBy = peer.id, screenRequestID = requestID, screenRequestedApplication = payload.optString("applicationName").take(120), screenCaptureEntireDisplay = payload.optBoolean("captureEntireDisplay", false), screenRequestedFramesPerSecond = frameRate) }
+                ConnectionRuntime.update { it.copy(screenRequestedBy = peer.id, screenRequestID = requestID, screenRequestedApplication = payload.optString("applicationName").take(120), screenCaptureEntireDisplay = payload.optBoolean("captureEntireDisplay", false), screenRequestedFramesPerSecond = 60) }
                 ConnectionService.notifyCaptureRequest(context)
             }
             "screenStop" -> {
@@ -518,7 +565,19 @@ class PhoneServer(private val context: Context) : AutoCloseable {
                 check(preferences.edit().putString("policy.${peer.id}", payload.toString()).commit())
                 peer.channel.send("ack", requestID = requestID)
             }
-            "clipboard" -> receiveClipboard(payload)
+            "contactsRequest" -> {
+                val token = payload.getString("token")
+                require(token.length == 36)
+                val request = ContactsRequest(peer.id, token, peer.name)
+                val hasPermission = context.checkSelfPermission(android.Manifest.permission.READ_CONTACTS) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                if (hasPermission && preferences.getBoolean("contacts_allowed.${peer.id}", false)) {
+                    shareContacts(request, true, rememberConsent = false)
+                } else {
+                    ConnectionRuntime.update { it.copy(contactsRequest = request) }
+                    ConnectionService.notifyContactsRequest(context, peer.name)
+                }
+            }
+            "clipboard" -> receiveClipboard(peer, payload, requestID)
             "notificationAction" -> {
                 val packageName = payload.getString("packageName")
                 val profileID = payload.getString("profileIdentifier")
@@ -540,13 +599,19 @@ class PhoneServer(private val context: Context) : AutoCloseable {
         while (socket.getInputStream().read() != -1) { /* Channel lifetime follows the authenticated receiver. */ }
     }
 
-    private fun receiveClipboard(payload: JSONObject) {
+    private fun receiveClipboard(peer: MacPeer, payload: JSONObject, requestID: String) {
         val text = payload.getString("text")
         require(text.length <= 32_000)
         ConnectionRuntime.update { it.copy(incomingClipboard = text) }
-        if (ConnectionRuntime.isActivityVisible) {
-            mainHandler.post {
-                context.getSystemService(ClipboardManager::class.java).setPrimaryClip(ClipData.newPlainText("From your Mac", text))
+        mainHandler.post {
+            try {
+                context.getSystemService(ClipboardManager::class.java)
+                    .setPrimaryClip(ClipData.newPlainText("From your Mac", text))
+                peer.channel.send("clipboardResult", JSONObject().put("copied", true), requestID)
+                ConnectionRuntime.update { it.copy(message = "Copied from Mac · paste in any app") }
+            } catch (_: Exception) {
+                try { peer.channel.send("clipboardResult", JSONObject().put("copied", false), requestID) }
+                catch (_: Exception) { peer.channel.close() }
             }
         }
     }
@@ -578,6 +643,7 @@ class PhoneServer(private val context: Context) : AutoCloseable {
     }
 
     private fun updateConnectedMacs() {
+        if (ConnectionRuntime.server !== this) return
         val connected = peers.values.sortedBy { it.id }
         ConnectionRuntime.update { it.copy(connectedMacs = connected.map { peer -> peer.name }, connectedMacIDs = connected.map { peer -> peer.id },
             macDetails = connected.mapNotNull { peer -> peer.details?.let { peer.id to it } }.toMap()) }

@@ -20,6 +20,7 @@ import kotlinx.coroutines.launch
 class ConnectionService : Service() {
     private val worker = Executors.newSingleThreadExecutor()
     @Volatile private var isDestroyed = false
+    @Volatile private var ownedServer: PhoneServer? = null
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private lateinit var powerLease: ConnectionPowerLease
 
@@ -45,14 +46,16 @@ class ConnectionService : Service() {
         worker.execute {
             try {
                 if (isDestroyed) return@execute
-                var server = ConnectionRuntime.server
+                var server = ownedServer
                 if (intent?.action == ACTION_RECONNECT && ConnectionRuntime.state.value.connectedMacIDs.isEmpty()) {
                     server?.close()
-                    ConnectionRuntime.server = null
+                    if (ConnectionRuntime.server === server) ConnectionRuntime.server = null
+                    ownedServer = null
                     server = null
                 }
                 if (server == null) {
                     server = PhoneServer(applicationContext)
+                    ownedServer = server
                     ConnectionRuntime.server = server
                     server.start(reconnectRequested = intent?.action == ACTION_RECONNECT)
                 } else if (intent?.action == ACTION_RECONNECT) {
@@ -81,9 +84,11 @@ class ConnectionService : Service() {
         powerLease.close()
         worker.execute {
             try {
-                ConnectionRuntime.server?.close()
+                val server = ownedServer
+                server?.close()
+                if (ConnectionRuntime.server === server) ConnectionRuntime.server = null
             } finally {
-                ConnectionRuntime.server = null
+                ownedServer = null
                 worker.shutdown()
             }
         }
@@ -121,6 +126,10 @@ class ConnectionService : Service() {
 
         fun notifyFileRequest(context: android.content.Context, name: String) {
             notifyRequest(context, "File from your Mac", "Tap to accept $name", 13, "file")
+        }
+
+        fun notifyContactsRequest(context: android.content.Context, macName: String) {
+            notifyRequest(context, "Share phone contacts?", "$macName requested contacts for the call picker", 15, "contacts")
         }
 
         fun notifyPairingRequest(context: android.content.Context, macName: String) {

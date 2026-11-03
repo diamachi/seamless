@@ -32,19 +32,25 @@ struct ClipboardSharingView: View {
 
     private var composerCard: some View {
         WorkspaceCard(fillsHeight: true) {
-            Text("Send to phone").font(.headline)
+            Text("Mac → phone").font(.headline)
+            Text("Copy text on this Mac, then send it below. Once confirmed, paste in any phone app.")
+                .font(.caption).foregroundStyle(.secondary)
             textEditor
             if let phoneID = preferencesStore.preferences.selectedPhoneID {
                 HStack {
                     Spacer()
-                    Button("Send clipboard") { preferencesStore.connections.sendClipboard(phoneID: phoneID) }
+                    Button("Send copied text") { preferencesStore.connections.sendClipboard(phoneID: phoneID) }
                     Button("Send text") { preferencesStore.connections.sendText(editor.text, phoneID: phoneID) }
                         .buttonStyle(WorkspaceButtonStyle(prominent: true))
-                        .disabled(editor.text.isEmpty || editor.text.count > 32_000)
+                        .disabled(editor.text.isEmpty || editor.text.utf16.count > 32_000)
                 }.disabled(preferencesStore.sessions.state(for: phoneID) != .connected)
             }
-            Toggle("Automatically send new Mac clipboard text", isOn: preferencesStore.featurePreferences.automaticallyShareMacClipboard)
-            Text("From Android, use Share → Seamless or Send phone clipboard. Android 10+ restricts unattended background clipboard reads.")
+            if let phoneID = preferencesStore.preferences.selectedPhoneID {
+                Text(preferencesStore.connections.clipboardStatus[phoneID] ?? "Ready · copy text or write a message above")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            Toggle("Auto-send new copies from this Mac", isOn: preferencesStore.featurePreferences.automaticallyShareMacClipboard)
+            Text("Phone → Mac: select text in an Android app → Share → Seamless. It is copied to this Mac when connected. Simply copying on Android cannot sync reliably while Seamless is in the background.")
                 .font(.caption).foregroundStyle(.secondary)
         }
     }

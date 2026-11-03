@@ -133,7 +133,7 @@ final class AdvancedMirroringController: ObservableObject {
     }
 
     private func launchServer(adb: URL, serial: String, remotePath: String, token: String, framesPerSecond: Int, expected: UUID) throws {
-        guard [60, 120].contains(framesPerSecond) else { throw AndroidDebugBridgePlan.PlanError.invalidDevice }
+        guard framesPerSecond == 60 else { throw AndroidDebugBridgePlan.PlanError.invalidDevice }
         let process = Process()
         process.executableURL = adb
         process.arguments = ["-s", serial, "shell", "CLASSPATH=\(remotePath)", "app_process", "/", "com.genymobile.scrcpy.Server", "5.0.1",

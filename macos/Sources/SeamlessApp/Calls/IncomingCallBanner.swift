@@ -16,7 +16,7 @@ struct IncomingCallBanner: View {
                 Text(calls.state.caller.isEmpty ? "Unknown caller" : calls.state.caller).font(.title3)
                 HStack {
                     Button("Decline") { calls.end() }
-                    Button("Answer") { calls.answer() }.buttonStyle(WorkspaceButtonStyle(prominent: true))
+                    Button("Answer on Mac") { calls.answer() }.buttonStyle(WorkspaceButtonStyle(prominent: true))
                     Button("Open calls", action: openCalls)
                 }
             }

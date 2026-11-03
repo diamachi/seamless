@@ -127,7 +127,7 @@ struct PhoneScreenView: View {
                 WorkspaceHeading(title: "Phone screen", subtitle: "Your apps, with room for everything else.")
                 Spacer()
                 VStack(alignment: .trailing, spacing: 12) {
-                    WorkspaceSegments(options: [(60, "60 fps"), (120, "120 fps")], selection: preferencesStore.featurePreferences.screenFramesPerSecond)
+                    Text("60 fps").font(.caption.weight(.medium)).foregroundStyle(.secondary)
                     Button {
                         if let phone = preferencesStore.preferences.selectedPhone {
                             if let application = selectedApplication, let serial = preferencesStore.connections.usb.verifiedSerial(phoneID: phone.id) {

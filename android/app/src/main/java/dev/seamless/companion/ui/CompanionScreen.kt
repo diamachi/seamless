@@ -60,7 +60,7 @@ fun CompanionScreen(
             Text("Measure local encoding or inspect an approved Mac screen-sharing session. Developer Options can stay off.")
             Text("Requested frame rate")
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                for (option in listOf(60, 120)) {
+                for (option in listOf(60)) {
                     FilterChip(
                         selected = if (benchmark.isRunning) {
                             benchmark.requestedFramesPerSecond == option
@@ -97,7 +97,7 @@ fun CompanionScreen(
             }
             BenchmarkResults(benchmark)
             Text("For a useful result, approve sharing your entire screen, then scroll or play an animation in another app. Static screens naturally produce fewer frames. Return here to inspect results; stop from the notification or Android sharing indicator.")
-            Text("These numbers measure encoder output, not Mac presentation or end-to-end latency. 120 fps is experimental and depends on real capture and hardware support.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("These numbers measure encoder output, not Mac presentation or end-to-end latency. Screen sharing targets 60 fps.", color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

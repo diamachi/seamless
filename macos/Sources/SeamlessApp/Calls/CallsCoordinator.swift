@@ -1,5 +1,6 @@
 import AppKit
 import Combine
+import UserNotifications
 @preconcurrency import IOBluetooth
 import SeamlessCore
 
@@ -17,6 +18,7 @@ final class CallsCoordinator: ObservableObject {
     @Published private(set) var isConnecting = false
     @Published private(set) var isAudioConnected = false
     @Published private(set) var message = "Pair your phone in macOS Bluetooth settings, then choose it here."
+    var openCalls: (() -> Void)?
     let devices = CallAudioDeviceCatalog()
     let audio = CallAudioRouter()
     private let preferences = CallsPreferences()
@@ -26,8 +28,22 @@ final class CallsCoordinator: ObservableObject {
     private var timeout: Task<Void, Never>?
     private var audioTimeout: Task<Void, Never>?
     private var refreshTask: Task<Void, Never>?
+    private var incomingCallToken: String?
+    private var routeAnsweredCallToMac = false
+    private var applyAudioWhenAvailable = false
 
     init() {
+        MacNotificationDelivery.shared.onCallAction = { [weak self] phoneID, token, action in
+            guard let self, self.activePhoneID == phoneID, self.incomingCallToken == token, self.state.canAnswer else { return }
+            if action == "answer-call" {
+                self.openCalls?()
+                self.answer()
+            } else if action == "decline-call" {
+                self.end()
+            } else if action == UNNotificationDefaultActionIdentifier {
+                self.openCalls?()
+            }
+        }
         devices.onChange = { [weak self] in self?.audioDevicesChanged() }
     }
 
@@ -99,6 +115,10 @@ final class CallsCoordinator: ObservableObject {
     }
 
     func disconnect() {
+        if let activePhoneID { MacNotificationDelivery.shared.clearIncomingCall(phoneID: activePhoneID) }
+        incomingCallToken = nil
+        routeAnsweredCallToMac = false
+        applyAudioWhenAvailable = false
         generation = UUID()
         timeout?.cancel()
         audioTimeout?.cancel()
@@ -125,18 +145,22 @@ final class CallsCoordinator: ObservableObject {
 
     func dial(_ text: String) {
         guard state.isConnected, !state.hasCall, let number = PhoneCallState.dialNumber(text) else { return }
+        routeAnsweredCallToMac = true
         handsFree?.dialNumber(number)
         message = "Dial request sent. Waiting for the phone's call state."
     }
 
     func answer() {
         guard state.canAnswer else { return }
+        routeAnsweredCallToMac = true
         handsFree?.acceptCall()
         message = "Answer requested."
     }
 
     func end() {
         guard state.isConnected, state.hasCall else { return }
+        routeAnsweredCallToMac = false
+        applyAudioWhenAvailable = false
         handsFree?.endCall()
         message = "End call requested."
     }
@@ -148,6 +172,7 @@ final class CallsCoordinator: ObservableObject {
 
     func useMacAudio() {
         guard state.isConnected, state.hasCall else { return }
+        applyAudioWhenAvailable = true
         handsFree?.transferAudioToComputer()
         message = "Mac audio requested. Waiting for Bluetooth voice audio…"
         let expected = generation
@@ -160,6 +185,8 @@ final class CallsCoordinator: ObservableObject {
     }
 
     func usePhoneAudio() {
+        applyAudioWhenAvailable = false
+        routeAnsweredCallToMac = false
         audioTimeout?.cancel()
         audio.stop()
         handsFree?.transferAudioToPhone()
@@ -222,11 +249,30 @@ final class CallsCoordinator: ObservableObject {
         case .audioClosed:
             isAudioConnected = false
             audio.stop(reason: "Bluetooth voice audio closed.")
-        case .active: state.isActive = event.value != 0; cleanUpEndedCall()
+        case .active:
+            state.isActive = event.value != 0
+            if state.isActive && routeAnsweredCallToMac {
+                routeAnsweredCallToMac = false
+                useMacAudio()
+            }
+            cleanUpEndedCall()
         case .setup: state.setupMode = event.value; cleanUpEndedCall()
         case .held: state.heldMode = event.value; cleanUpEndedCall()
         case .caller: state.caller = event.text
         case .current: receiveCurrentCall(event)
+        }
+        updateIncomingCallNotification()
+    }
+
+    private func updateIncomingCallNotification() {
+        guard let phoneID = activePhoneID else { return }
+        if state.canAnswer && incomingCallToken == nil {
+            let token = UUID().uuidString
+            incomingCallToken = token
+            MacNotificationDelivery.shared.incomingCall(phoneID: phoneID, caller: state.caller, token: token)
+        } else if !state.canAnswer, incomingCallToken != nil {
+            incomingCallToken = nil
+            MacNotificationDelivery.shared.clearIncomingCall(phoneID: phoneID)
         }
     }
 
@@ -243,6 +289,8 @@ final class CallsCoordinator: ObservableObject {
 
     private func cleanUpEndedCall() {
         if !state.hasCall {
+            routeAnsweredCallToMac = false
+            applyAudioWhenAvailable = false
             state.caller = ""
             audio.stop(reason: "No active call.")
         }
@@ -255,6 +303,13 @@ final class CallsCoordinator: ObservableObject {
                 do { try await Task.sleep(for: .seconds(1)) } catch { return }
                 guard let self, isAudioConnected else { return }
                 devices.refresh()
+                if applyAudioWhenAvailable, let phoneID = activePhoneID {
+                    let options = preferences.options(for: phoneID)
+                    if phoneEndpoint(options: options, input: true) != nil && phoneEndpoint(options: options, input: false) != nil {
+                        applyAudioWhenAvailable = false
+                        await applySelectedAudio(phoneID: phoneID)
+                    }
+                }
             }
         }
     }

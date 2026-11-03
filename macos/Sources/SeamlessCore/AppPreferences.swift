@@ -51,12 +51,14 @@ public struct PhonePreferences: Codable, Equatable, Sendable {
         previewColor = try container.decodeIfPresent(String.self, forKey: .previewColor) ?? "sage"
         notifications = try container.decode(NotificationPolicy.self, forKey: .notifications)
         camera = try container.decode(CameraPreferences.self, forKey: .camera)
-        screenFramesPerSecond = try container.decode(Int.self, forKey: .screenFramesPerSecond)
+        let savedFrameRate = try container.decode(Int.self, forKey: .screenFramesPerSecond)
+        if savedFrameRate == 120 { screenFramesPerSecond = 60 }
+        else { screenFramesPerSecond = savedFrameRate }
         automaticallyShareMacClipboard = try container.decodeIfPresent(Bool.self, forKey: .automaticallyShareMacClipboard) ?? false
     }
 
     public func validate() throws {
-        guard [60, 120].contains(screenFramesPerSecond),
+        guard screenFramesPerSecond == 60,
               [720, 1080, 1440, 2160].contains(camera.resolutionHeight),
               [24, 30, 60].contains(camera.framesPerSecond), camera.exposureEV.isFinite, (-3...3).contains(camera.exposureEV), camera.zoom.isFinite, (1...4).contains(camera.zoom) else {
             throw PreferencesError.invalidProfile
@@ -185,7 +187,9 @@ public struct AppPreferences: Codable, Equatable, Sendable {
             // Preserve original settings as defaults without inventing a paired phone.
             defaultPhonePreferences.notifications = try container.decode(NotificationPolicy.self, forKey: .notifications)
             defaultPhonePreferences.camera = try container.decode(CameraPreferences.self, forKey: .camera)
-            defaultPhonePreferences.screenFramesPerSecond = try container.decode(Int.self, forKey: .screenFramesPerSecond)
+            let savedFrameRate = try container.decode(Int.self, forKey: .screenFramesPerSecond)
+            if savedFrameRate == 120 { defaultPhonePreferences.screenFramesPerSecond = 60 }
+            else { defaultPhonePreferences.screenFramesPerSecond = savedFrameRate }
         } else if version == 2 {
             defaultPhonePreferences = try container.decode(PhonePreferences.self, forKey: .defaultPhonePreferences)
             rememberedPhones = try container.decode([RememberedPhone].self, forKey: .rememberedPhones)

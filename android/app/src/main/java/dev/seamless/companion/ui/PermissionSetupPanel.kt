@@ -70,14 +70,24 @@ internal fun PermissionSetupPanel() {
         }
         HorizontalDivider()
         PermissionRow("Background connection", "Allow background connection; active paired sessions keep the CPU and Wi-Fi awake", access.battery) {
-            openSetupSettings(context, Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
+            if (access.battery) {
+                openSetupSettings(context, Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
+            } else {
+                openSetupSettings(context, Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:" + context.packageName)))
+            }
         }
+    }
+    CompanionCard("Keep the connection available") {
+        Text(if (access.battery) "Android battery exemption is active" else "Android battery exemption is not active", color = MaterialTheme.colorScheme.primary)
+        Text("If the persistent Seamless notification disappears, the service has stopped. Review background activity and Auto start in your phone’s app settings if available. Reconnect pauses that you chose yourself stay paused.", style = MaterialTheme.typography.bodySmall)
+        Text(dev.seamless.companion.features.BackgroundConnectionDiagnostics.summary(context), style = MaterialTheme.typography.bodySmall)
+        OutlinedButton(onClick = { openSetupSettings(context, Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + context.packageName))) }) { Text("Review app background settings") }
     }
     AutomaticDownloadsSetupCard()
     StorageSetupCard(access.storage, onChanged = refresh)
     CompanionCard("Screen sharing & calls") {
         Text("Android asks for screen-sharing consent for every new session. This cannot be pre-approved during setup.")
-        Text("Bluetooth call pairing is done in the phone and Mac Bluetooth settings. Seamless does not need Android microphone or contacts access for its Mac HFP backend.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text("Bluetooth call pairing is done in the phone and Mac Bluetooth settings. Call audio does not need Android microphone access. The optional contacts picker requests Contacts access separately.", color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
