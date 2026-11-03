@@ -21,3 +21,5 @@ Open Actions → Build test installers → a completed run. Download `Seamless-m
 This build workflow does not automatically create a GitHub Release, and no installer is committed to Git. Maintainers can publish a separately reviewed preview release. Release publishing, stable signing and notarization remain separate. The workflow is implemented locally until a hosted run is recorded in VALIDATION.md.
 
 Native icon packaging: CI sets SEAMLESS_REQUIRE_NATIVE_ICON=1 and compiles the original layered Seamless.icon through Xcode actool. Local Command Line Tools builds have an explicit ICNS fallback and cannot establish native clear/tinted icon validation. The app does not override a compiled catalog's system-selected appearance.
+
+Installer naming: local builds and GitHub Actions use `Seamless_<version>.dmg` and `Seamless_<version>.apk`. Android packaging removes the development-only `-dev` suffix from the filename; signing and the installed version are unchanged. Workflow artifact archives retain platform labels, while installer files use this shared naming convention.

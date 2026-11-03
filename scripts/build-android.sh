@@ -17,7 +17,8 @@ if version_match is None:
 output_directory = project_directory / "dist"
 output_directory.mkdir(exist_ok=True)
 source = project_directory / "android/app/build/outputs/apk/debug/app-debug.apk"
-destination = output_directory / f"Seamless-Android-{version_match.group(1)}.apk"
+package_version = version_match.group(1).removesuffix("-dev")
+destination = output_directory / f"Seamless_{package_version}.apk"
 shutil.copyfile(source, destination)
 print(f"Packaged {destination.name}")
 PY
