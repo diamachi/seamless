@@ -1,0 +1,11 @@
+# Local connection, first implementation
+
+Accepted implementation direction, 2026-11-02. This refines the earlier mutual-TLS proposal.
+
+Android hosts a TLS 1.2+ endpoint using a persistent Android Keystore identity. A user explicitly starts the connection service and creates a short-lived, single-use pairing invitation. The invitation contains endpoint addresses, opaque phone identity, certificate SHA-256 pin and 256-bit random secret. Mac verifies that exact certificate before sending anything sensitive, then submits the invitation secret and its own opaque identity. Android shows a separate Allow/Deny request before issuing a distinct persistent random credential. Mac stores that credential in Keychain; Android stores it encrypted using an Android Keystore AES-GCM key. Reconnect authenticates the Mac credential inside the pinned TLS connection. No trust-all fallback, plaintext mode, ADB dependency or generic remote-shell command is allowed.
+
+The initial interface imports a pairing code; QR/scanning and Bonjour discovery are later convenience work. Pairing metadata alone does not authorize a device. Invitations expire after five minutes and are consumed before Android confirmation, preventing concurrent reuse. Invalid/unknown authentication receives no phone status, content or commands. Connections have bounded frames, timeouts and bounded concurrency. No session can authenticate as another Mac by merely supplying its name. Revocation closes affected sessions.
+
+Control messages use bounded newline-delimited UTF-8 JSON (256 KiB maximum per frame), version 1, and unique IDs. Events/actions are routed to explicit phone identity by the owning authenticated connection. Bulk/media streams are separate future channels; small file-transfer chunks are a deliberately limited first implementation and must not be confused with the planned optimized bulk channel. Large files will require that channel before production.
+
+This is server-authenticated pinned TLS plus application-level client credentials, not mutual TLS. It uses platform cryptography and is not independently audited. Endpoint IP addresses are metadata and may change; a changed certificate requires explicit re-pairing, never automatic re-pinning.
