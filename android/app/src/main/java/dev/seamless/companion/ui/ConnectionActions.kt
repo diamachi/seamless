@@ -15,14 +15,19 @@ internal fun startConnection(context: Context, pairing: Boolean, reconnect: Bool
         .edit().putBoolean("reconnect_on_launch", true).apply()
     val intent = Intent(context, ConnectionService::class.java)
     if (pairing) {
+        ConnectionRuntime.update { it.copy(isCreatingPairingCode = true, pairingError = null) }
         intent.action = ConnectionService.ACTION_PAIR
     } else if (reconnect) {
         intent.action = ConnectionService.ACTION_RECONNECT
     }
-    if (Build.VERSION.SDK_INT >= 26) {
-        context.startForegroundService(intent)
-    } else {
-        context.startService(intent)
+    try {
+        if (Build.VERSION.SDK_INT >= 26) {
+            context.startForegroundService(intent)
+        } else {
+            context.startService(intent)
+        }
+    } catch (exception: RuntimeException) {
+        ConnectionRuntime.update { it.copy(isCreatingPairingCode = false, pairingError = exception.message ?: "Could not start pairing") }
     }
 }
 

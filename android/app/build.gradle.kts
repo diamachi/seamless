@@ -12,8 +12,8 @@ android {
         applicationId = "dev.seamless.companion"
         minSdk = 24
         targetSdk = 36
-        versionCode = 17
-        versionName = "0.6.7-dev"
+        versionCode = 20
+        versionName = "0.6.10-dev"
     }
     buildFeatures {
         compose = true
@@ -38,5 +38,9 @@ dependencies {
     implementation("androidx.compose.ui:ui")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.9.4")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
+    implementation("com.google.zxing:core:3.5.4")
+    implementation("androidx.camera:camera-camera2:1.6.2")
+    implementation("androidx.camera:camera-lifecycle:1.6.2")
+    implementation("androidx.camera:camera-view:1.6.2")
     testImplementation("junit:junit:4.13.2")
 }

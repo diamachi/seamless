@@ -4,7 +4,7 @@
 
 Seamless is a native macOS app and Android companion for local device continuity. Android apps execute on the phone; the Mac displays their streams. A Mac can remember multiple phones, maintain independent trust/preferences, and select the target for interactive actions. Transfers and streams stay bound to their initiating peer.
 
-Implemented paths include pinned TLS pairing/reconnect, notifications, clipboard, files/storage/media, screen/control, live camera, device details, ringing and optional ADB USB/app mirroring. Calls and OBS webcam routing are experimental. Automatic hotspot activation, persistent transfer resume, a standalone native camera extension and QR pairing are not implemented. [VALIDATION.md](VALIDATION.md) distinguishes physical evidence from source/build coverage.
+Implemented paths include pinned TLS pairing/reconnect, notifications, clipboard, files/storage/media, screen/control, live camera, device details, ringing and optional ADB USB/app mirroring. Calls and OBS webcam routing are experimental. Automatic hotspot activation, persistent transfer resume and a standalone native camera extension are not implemented. QR pairing is implemented in 0.6.10 with physical acceptance pending. [VALIDATION.md](VALIDATION.md) distinguishes physical evidence from source/build coverage.
 
 macOS package minimum is 14; Swift tools version is 6. Android minSdk is 24 and target/compile SDK is 36. Features use API gates; older-device compatibility must be physically tested rather than inferred from minSdk. Normal Wi-Fi operation does not require debugging. Optional ADB integration requires debugging throughout use.
 
@@ -46,7 +46,7 @@ macOS package minimum is 14; Swift tools version is 6. Android minSdk is 24 and 
 4. Saved connections authenticate with credentials. DNS-SD updates routing only, never trust. No cloud identity or relay is used.
 5. Status advertises feature versions; dispatch gates optional payloads by those capabilities for older-companion compatibility.
 
-The Mac new-phone flow is Wi-Fi pairing with three numbered steps. Manual IP is routing troubleshooting, not a second trust mechanism. USB appears separately for an already-paired phone and requires active debugging plus compatible local adb/scrcpy tools. QR pairing is not offered.
+The Mac new-phone flow is QR-first Wi-Fi pairing, with a full-code fallback. Manual IP is routing troubleshooting, not a second trust mechanism. USB appears separately for an already-paired phone and requires active debugging plus compatible local adb/scrcpy tools. QR pairing generates on Mac and scans on Android; see the 0.6.10 protocol below.
 
 ### Android-initiated reconnect
 
@@ -124,3 +124,16 @@ The original three-point artwork has a layered `Support/Seamless.icon` source. F
 `v0.6.9` is a manually published GitHub prerelease, explicitly approved for unnotarized distribution. It attaches the checked macOS 0.6.9 ad-hoc DMG, Android 0.6.7 CI-debug APK and SHA256SUMS.txt. This is separate from the read-only build workflow and does not configure automatic publishing, stable release keys or Apple notarization. All distribution remains through GitHub; no App Store submission is involved.
 
 Unnotarized release installation guidance is maintained in RELEASE_TEMPLATE.md and mirrored in the README. Project rules require including it in every unnotarized GitHub release. It documents an explicit user-run quarantine-attribute removal command for the installed Seamless bundle; app code/installers never execute it and no system-wide Gatekeeper setting is changed.
+
+### Mac-generated QR pairing (0.6.10)
+Mac Devices now leads with Create pairing QR; Android Overview/setup leads with Scan Mac QR code. The old full-code flow remains in an explicit fallback, where Android shows a selectable invitation, Copy action, expiry and creation errors. Mac Paste/Pair labels explain when manual pairing becomes available.
+
+`Pairing/MacQrPairingCoordinator.swift` opens an ephemeral local TCP listener only for the visible pairing page, with a 15-second startup deadline and five-minute session lifetime. `LocalPairingAddresses.swift` enumerates active non-loopback, non-point-to-point IPv4 routes. The QR (`seamlessmac1:` + base64 JSON) contains version, random session UUID, Mac display name, up to eight local addresses, ephemeral port and a cryptographically random 256-bit key. Core Image renders it; nothing is uploaded, logged or persisted. Closing/hiding/regenerating the QR invalidates its listener/key.
+
+Android parses the QR using `MacQrPairingOffer.kt`. `PairingQrCameraPreview.kt` uses lifecycle-bound CameraX 1.6.2 and ZXing core 3.5.4, processing luminance frames locally at most four times a second. Camera permission is requested only upon opening the scanner; no Mac camera access is needed. Frames are neither saved nor sent. Preview/analyzer resources are unbound on completion/dismissal. The scanner ignores unrelated QR payloads.
+
+`PhoneServer.pairUsingMacQr` creates a normal fresh phone invitation. `MacQrPairingTask.kt` encrypts it with AES-256-GCM using the QR key, a random 96-bit nonce and a 128-bit tag. AAD is UTF-8 `Seamless QR pairing v1:<sessionID>:request`. Only the session ID and sealed nonce+ciphertext+tag travel over TCP. The authenticated acknowledgement seals `accepted` with purpose `ack`, preventing reflection. The QR key never travels on this network connection. Requests are bounded to 32 KiB, replies to 1 KiB; Android uses finite connect/read timeouts and a cancellable socket, while Mac permits at most three simultaneous connections with ten-second deadlines.
+
+Core `MacQrPairingOffer.swift` validates/decrypts a complete phone invitation, including its certificate pin and existing strong pairing secret. The coordinator consumes the QR once, sends its encrypted acknowledgement, then invokes the existing pinned-TLS pair flow. Phone approval and credential storage are unchanged. QR discovery/bootstrap does not grant trust or weaken TLS; no short low-entropy authentication code replaces the invitation. This does not depend on an Internet service, ADB or cloud account.
+
+Swift/Kotlin share a deterministic synthetic AES-GCM test vector. Regression coverage verifies tamper rejection, purpose/session separation and complete invitation validation. Build checks and physical scanning acceptance are tracked separately in VALIDATION.md. New third-party dependencies use Apache-2.0 licensing; see THIRD_PARTY_NOTICES.md.

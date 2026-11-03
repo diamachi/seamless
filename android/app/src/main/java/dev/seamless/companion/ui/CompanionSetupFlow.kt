@@ -24,7 +24,7 @@ import androidx.compose.ui.unit.dp
 import dev.seamless.companion.connection.CompanionConnectionState
 
 @Composable
-fun CompanionSetupFlow(state: CompanionConnectionState, onFinish: (Boolean) -> Unit) {
+fun CompanionSetupFlow(state: CompanionConnectionState, onScanMac: () -> Unit, onFinish: (Boolean) -> Unit) {
     var step by rememberSaveable { mutableIntStateOf(0) }
     val titles = listOf("Welcome", "Pair your Mac", "Choose permissions", "You're ready")
     Column(Modifier.fillMaxSize().padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -42,9 +42,9 @@ fun CompanionSetupFlow(state: CompanionConnectionState, onFinish: (Boolean) -> U
                     Text("Nothing starts sharing just because you finish setup.", style = MaterialTheme.typography.bodySmall)
                 }
                 1 -> {
-                    PairingCard(state)
+                    PairingCard(state, onScanMac)
                     CompanionCard("On the Mac") {
-                        Text("Open Seamless → Devices, paste this phone's code and confirm the trust request here.")
+                        Text("On the Mac, choose Connect new phone → Create pairing QR. Scan that Mac QR with this phone, then approve the trust request here.")
                         Text(if (state.connectedMacs.isNotEmpty()) "Connected to ${state.connectedMacs.joinToString()}" else "Waiting for your Mac", color = MaterialTheme.colorScheme.primary)
                     }
                 }

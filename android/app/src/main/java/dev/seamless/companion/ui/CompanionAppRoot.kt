@@ -49,6 +49,11 @@ fun CompanionAppRoot(
     val context = LocalContext.current
     val setupPreferences = context.getSharedPreferences("onboarding", Context.MODE_PRIVATE)
     val hasTrustedMac = context.getSharedPreferences("connection_identity", Context.MODE_PRIVATE).all.keys.any { it.startsWith("peer.") }
+    var showQrScanner by rememberSaveable { mutableStateOf(false) }
+    val scanMac = {
+        startConnection(context, pairing = false)
+        showQrScanner = true
+    }
     var showSetup by rememberSaveable { mutableStateOf(false) }
     var showWelcome by rememberSaveable { mutableStateOf(!hasTrustedMac && !setupPreferences.getBoolean("seen", false)) }
     var showSettings by rememberSaveable { mutableStateOf(false) }
@@ -66,7 +71,7 @@ fun CompanionAppRoot(
                     Text("Seamless", style = MaterialTheme.typography.titleLarge)
                 }
                 if (showSetup) {
-                    CompanionSetupFlow(connection) { completed ->
+                    CompanionSetupFlow(connection, onScanMac = scanMac) { completed ->
                         setupPreferences.edit().putBoolean("seen", true).putBoolean("completed", completed).apply()
                         showSetup = false
                     }
@@ -78,9 +83,10 @@ fun CompanionAppRoot(
                     when {
                         showBenchmark -> CompanionScreen(benchmark, initialFrameRate, initialMaximumDimension, onProfileChanged, onStartBenchmark, onStopBenchmark)
                         showSettings -> CompanionSettingsPanel(onPerformance = { showBenchmark = true; showSettings = false }, onSetup = { showSetup = true })
-                        else -> ConnectionPanel(connection, onStartScreen, onStartCamera, onSetup = { showSetup = true }, onSettings = { showSettings = true })
+                        else -> ConnectionPanel(connection, onStartScreen, onStartCamera, onSetup = { showSetup = true }, onSettings = { showSettings = true }, onScanMac = scanMac)
                     }
                 }
+                if (showQrScanner) PairingQrScannerDialog(onClose = { showQrScanner = false })
                 if (showWelcome) {
                     androidx.compose.material3.AlertDialog(
                         onDismissRequest = { showWelcome = false; setupPreferences.edit().putBoolean("seen", true).apply() },

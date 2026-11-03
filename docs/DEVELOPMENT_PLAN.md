@@ -17,7 +17,7 @@ Feature paths include filtered notifications, clipboard sharing, screen/control,
 
 ## Proposals, not working features
 
-Resumable transfers; guaranteed 100 GB throughput; automatic remote hotspot activation; unrestricted background Android clipboard capture; guaranteed 120 fps presentation; cloud or internet relays; production-ready calling. QR pairing is also pending.
+Resumable transfers; guaranteed 100 GB throughput; automatic remote hotspot activation; unrestricted background Android clipboard capture; guaranteed 120 fps presentation; cloud or internet relays; production-ready calling. QR pairing is implemented in 0.6.10; real camera/network acceptance is pending.
 
 ## Acceptance policy
 

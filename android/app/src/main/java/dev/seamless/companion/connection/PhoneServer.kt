@@ -75,7 +75,7 @@ class PhoneServer(private val context: Context) : AutoCloseable {
     }
 
     @Synchronized
-    fun createInvitation() {
+    fun createInvitation(): String {
         val secret = SecureIdentity.randomSecret()
         invitation = Invitation(secret, SystemClock.elapsedRealtime() + 300_000)
         val addresses = Collections.list(NetworkInterface.getNetworkInterfaces())
@@ -85,11 +85,33 @@ class PhoneServer(private val context: Context) : AutoCloseable {
             .filter { !it.isLoopbackAddress && !it.isLinkLocalAddress }
             .mapNotNull { it.hostAddress }
             .distinct()
+        require(addresses.isNotEmpty()) { "Connect your phone to Wi-Fi, then create a QR code again." }
         val code = JSONObject().put("version", 1).put("phoneID", identity.phoneID)
             .put("name", "${Build.MANUFACTURER} ${Build.MODEL}").put("addresses", JSONArray(addresses))
             .put("port", PORT).put("certificatePin", identity.certificatePin).put("secret", secret)
         val encoded = "seamless1:" + Base64.encodeToString(code.toString().toByteArray(), Base64.NO_WRAP)
-        ConnectionRuntime.update { it.copy(pairingCode = encoded, message = "Pairing code expires in five minutes. Share it only with your Mac.") }
+        ConnectionRuntime.update { it.copy(pairingCode = encoded, pairingExpiresAt = SystemClock.elapsedRealtime() + 300_000, isCreatingPairingCode = false, pairingError = null, message = "Pairing code expires in five minutes. Share it only with your Mac.") }
+        return encoded
+    }
+
+    fun pairUsingMacQr(text: String, onResult: (String?) -> Unit): dev.seamless.companion.features.MacQrPairingTask {
+        val task = dev.seamless.companion.features.MacQrPairingTask()
+        executor.execute {
+            try {
+                val offer = dev.seamless.companion.features.MacQrPairingOffer.parse(text)
+                val invitation = createInvitation()
+                task.send(offer, invitation)
+                ConnectionRuntime.update { it.copy(message = "QR sent to ${offer.name}. Approve the trust request on this phone.") }
+                mainHandler.post { onResult(null) }
+            } catch (exception: Exception) {
+                val error = exception.message ?: "Could not pair with this Mac"
+                if (!task.isCancelled) {
+                    ConnectionRuntime.update { it.copy(pairingError = error, message = error) }
+                    mainHandler.post { onResult(error) }
+                }
+            }
+        }
+        return task
     }
 
     @Synchronized
