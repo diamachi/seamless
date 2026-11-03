@@ -264,12 +264,32 @@ final class PhoneConnections: ObservableObject {
 
 
     func forget(phoneID: String) {
-        guard sessions.state(for: phoneID) == .connected else {
-            message = "Connect this phone before revoking trust on both devices."
-            return
+        if sessions.state(for: phoneID) == .connected {
+            pendingUnpair.insert(phoneID)
+            send(phoneID: phoneID, packet: ControlPacket(type: "unpair"))
+            Task { [weak self] in
+                try? await Task.sleep(for: .seconds(3))
+                guard let self, self.pendingUnpair.remove(phoneID) != nil else { return }
+                self.removeLocalPhone(phoneID, remoteRevocationConfirmed: false)
+            }
+        } else {
+            removeLocalPhone(phoneID, remoteRevocationConfirmed: false)
         }
-        pendingUnpair.insert(phoneID)
-        send(phoneID: phoneID, packet: ControlPacket(type: "unpair"))
+    }
+
+    private func removeLocalPhone(_ phoneID: String, remoteRevocationConfirmed: Bool) {
+        disconnect(phoneID: phoneID)
+        Task {
+            do {
+                try await credentials.remove(for: phoneID)
+                onForgotten?(phoneID)
+                if remoteRevocationConfirmed {
+                    message = "Phone trust revoked on both devices."
+                } else {
+                    message = "Phone removed from this Mac. Its old companion pairing may still need removal on Android."
+                }
+            } catch { message = error.localizedDescription }
+        }
     }
 
     func sendClipboard(phoneID: String) {
@@ -347,14 +367,10 @@ final class PhoneConnections: ObservableObject {
             storage.receive(packet, phoneID: phoneID)
         case "unpaired":
             guard pendingUnpair.remove(phoneID) != nil else { return }
+            removeLocalPhone(phoneID, remoteRevocationConfirmed: true)
+        case "disconnectRequested", "connectionPaused":
             disconnect(phoneID: phoneID)
-            Task {
-                do {
-                    try await credentials.remove(for: phoneID)
-                    onForgotten?(phoneID)
-                    message = "Phone trust revoked on both devices."
-                } catch { message = error.localizedDescription }
-            }
+            message = "Connection paused on the phone. Tap Reconnect in Android to resume."
         case "cameraEnded": camera.ended(phoneID: phoneID)
         case "cameraError":
             let description = packet.payload["message"].string ?? "Camera could not start."

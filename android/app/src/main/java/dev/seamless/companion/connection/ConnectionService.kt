@@ -55,6 +55,8 @@ class ConnectionService : Service() {
                     server = PhoneServer(applicationContext)
                     ConnectionRuntime.server = server
                     server.start(reconnectRequested = intent?.action == ACTION_RECONNECT)
+                } else if (intent?.action == ACTION_RECONNECT) {
+                    server.requestReconnect()
                 }
                 if (intent?.action == ACTION_PAIR) {
                     try {
@@ -114,28 +116,34 @@ class ConnectionService : Service() {
         const val ACTION_STOP = "dev.seamless.companion.STOP_CONNECTION"
         fun notifyCaptureRequest(context: android.content.Context, camera: Boolean = false) {
             notifyRequest(context, if (camera) "Your Mac requested the camera" else "Your Mac requested screen sharing",
-                if (camera) "Tap to review and approve camera sharing." else "Tap to open Android’s screen-sharing consent.", 12)
+                if (camera) "Tap to review and approve camera sharing." else "Tap to open Android’s screen-sharing consent.", 12, if (camera) "camera" else "screen")
         }
 
         fun notifyFileRequest(context: android.content.Context, name: String) {
-            notifyRequest(context, "File from your Mac", "Tap to accept $name", 13)
+            notifyRequest(context, "File from your Mac", "Tap to accept $name", 13, "file")
         }
 
-        private fun notifyRequest(context: android.content.Context, title: String, message: String, identifier: Int) {
-            if (ConnectionRuntime.isActivityVisible) return
+        fun notifyPairingRequest(context: android.content.Context, macName: String) {
+            notifyRequest(context, "Trust this Mac?", "Review the pairing request from $macName", 14, "pairing")
+        }
+
+        private fun notifyRequest(context: android.content.Context, title: String, message: String, identifier: Int, kind: String) {
             val manager = context.getSystemService(NotificationManager::class.java)
             // A new channel keeps previously low-importance service notifications separate.
-            val channel = "sharing_requests_v2"
+            val channel = dev.seamless.companion.features.AlertChannels.SHARING_REQUESTS
             if (Build.VERSION.SDK_INT >= 26) {
-                manager.createNotificationChannel(NotificationChannel(channel, "Sharing requests", NotificationManager.IMPORTANCE_HIGH))
+                dev.seamless.companion.features.AlertChannels.register(context, channel, "Sharing requests", NotificationManager.IMPORTANCE_HIGH)
             }
-            val open = PendingIntent.getActivity(context, identifier, Intent(context, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
+            val open = PendingIntent.getActivity(context, identifier, Intent(context, MainActivity::class.java).putExtra("sharing_request_kind", kind), PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
             val builder = if (Build.VERSION.SDK_INT >= 26) Notification.Builder(context, channel) else Notification.Builder(context)
             try {
                 manager.notify(identifier, builder.setSmallIcon(android.R.drawable.ic_menu_share)
                     .setContentTitle(title).setContentText(message).setContentIntent(open)
                     .setCategory(Notification.CATEGORY_EVENT).setPriority(Notification.PRIORITY_HIGH)
-                    .setDefaults(Notification.DEFAULT_ALL).setAutoCancel(true).build())
+                    .setSound(dev.seamless.companion.features.AlertChannels.sound(context))
+                    .setDefaults(Notification.DEFAULT_VIBRATE).setVisibility(Notification.VISIBILITY_PRIVATE)
+                    .addAction(Notification.Action.Builder(null, "Review & approve", open).build())
+                    .setAutoCancel(true).build())
             } catch (_: SecurityException) {
                 // Revoked display permission cannot interrupt the connection or transfer.
             }

@@ -40,12 +40,15 @@ internal fun ConnectionOverviewCards(state: CompanionConnectionState, onSetup: (
             Text(state.message, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text("Authenticated local connection · Wi-Fi or optional USB\nThe companion can stay connected in the background.", style = MaterialTheme.typography.bodySmall)
         }
-        if (state.connectedMacIDs.isEmpty()) {
-            TextButton(onClick = { startConnection(context, pairing = false, reconnect = true) }) { Text("Reconnect") }
-        }
+        TextButton(onClick = { startConnection(context, pairing = false, reconnect = true) }) { Text("Reconnect Macs") }
     }
     for ((index, macID) in state.connectedMacIDs.withIndex()) {
-        MacDetailsCard(state.connectedMacs.getOrNull(index) ?: "Mac", state.macDetails[macID])
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            MacDetailsCard(state.connectedMacs.getOrNull(index) ?: "Mac", state.macDetails[macID])
+            TextButton(onClick = { dev.seamless.companion.connection.ConnectionRuntime.server?.disconnectMac(macID) }) {
+                Text("Disconnect this Mac")
+            }
+        }
     }
     if (state.connectedMacIDs.isEmpty()) {
         CompanionCard("Connect your Mac") {

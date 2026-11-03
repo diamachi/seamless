@@ -18,8 +18,8 @@ import dev.seamless.companion.connection.ConnectionRuntime
 @Composable
 internal fun SharingRequestDialogs(state: CompanionConnectionState, onStartCamera: () -> Unit) {
     val offer = state.incomingFileOffer
-    var dismissedFile by rememberSaveable(offer?.transferID) { mutableStateOf(false) }
-    var dismissedCamera by rememberSaveable(state.cameraRequestID) { mutableStateOf(false) }
+    var dismissedFile by rememberSaveable(offer?.transferID, state.requestReviewSequence) { mutableStateOf(false) }
+    var dismissedCamera by rememberSaveable(state.cameraRequestID, state.requestReviewSequence) { mutableStateOf(false) }
     if (offer != null && !dismissedFile) {
         AlertDialog(
             onDismissRequest = { dismissedFile = true },

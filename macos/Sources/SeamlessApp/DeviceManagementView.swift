@@ -85,7 +85,7 @@ struct DeviceManagementView: View {
             }
             Button("Cancel", role: .cancel) { state.phoneToForget = nil }
         } message: {
-            Text("The phone must be connected to revoke this Mac’s access. You can pair again later.")
+            Text("Remove this phone and its saved credential from this Mac, even if offline. When connected, Seamless also asks the phone to revoke trust. An offline phone may retain its old pairing.")
         }
     }
 

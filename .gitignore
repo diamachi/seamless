@@ -26,3 +26,7 @@ dist/
 
 # Kotlin compiler session cache
 android/.kotlin/
+
+# Android distribution signing material is private and backed up separately.
+*.keystore
+*.jks

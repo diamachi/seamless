@@ -5,7 +5,7 @@ import Security
 import SeamlessCore
 
 enum PinnedTLSConnection {
-    static func make(profile: ConnectionProfile) throws -> NWConnection {
+    static func make(profile: ConnectionProfile, interactive: Bool = false) throws -> NWConnection {
         guard let port = NWEndpoint.Port(rawValue: profile.port), !profile.host.isEmpty,
               profile.certificatePin.count == 64 else { throw ConnectionProtocolError.invalidInvitation }
         let options = NWProtocolTLS.Options()
@@ -19,6 +19,8 @@ enum PinnedTLSConnection {
             let pin = SHA256.hash(data: bytes).map { String(format: "%02x", $0) }.joined()
             completion(pin == expectedPin)
         }, DispatchQueue.global(qos: .userInitiated))
-        return NWConnection(host: NWEndpoint.Host(profile.host), port: port, using: NWParameters(tls: options))
+        let tcpOptions = NWProtocolTCP.Options()
+        tcpOptions.noDelay = interactive
+        return NWConnection(host: NWEndpoint.Host(profile.host), port: port, using: NWParameters(tls: options, tcp: tcpOptions))
     }
 }

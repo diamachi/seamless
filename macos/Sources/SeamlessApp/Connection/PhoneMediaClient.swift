@@ -16,7 +16,7 @@ final class PhoneMediaClient {
         disconnect()
         let currentGeneration = UUID()
         generation = currentGeneration
-        let socket = try PinnedTLSConnection.make(profile: profile)
+        let socket = try PinnedTLSConnection.make(profile: profile, interactive: true)
         connection = socket
         var packet = try JSONEncoder().encode(authentication)
         packet.append(10)

@@ -17,6 +17,7 @@ import dev.seamless.companion.screen.ScreenBenchmarkService
 
 class MainActivity : ComponentActivity() {
     private val preferences by lazy { getSharedPreferences("seamless_preferences", MODE_PRIVATE) }
+    private var pendingRequestReview: String? = null
     private var lastCameraRequestID: String? = null
     private var lastScreenRequestID: String? = null
     private val clipboardListener = android.content.ClipboardManager.OnPrimaryClipChangedListener {
@@ -46,6 +47,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        pendingRequestReview = intent?.getStringExtra("sharing_request_kind")
         if (savedInstanceState == null) receiveSharedText(intent)
         setContent {
             dev.seamless.companion.ui.CompanionAppRoot(
@@ -83,6 +85,10 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         receiveSharedText(intent)
+        pendingRequestReview = intent.getStringExtra("sharing_request_kind")
+        if (lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED)) {
+            reviewRequestedSharing()
+        }
     }
 
     private fun receiveSharedText(intent: Intent?) {
@@ -132,8 +138,20 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        reviewRequestedSharing()
         maybeStartRemoteCapture()
         maybeStartRemoteCamera()
+    }
+
+    private fun reviewRequestedSharing() {
+        val kind = pendingRequestReview ?: return
+        pendingRequestReview = null
+        ConnectionRuntime.update { it.copy(requestReviewSequence = it.requestReviewSequence + 1) }
+        val state = ConnectionRuntime.state.value
+        if (kind == "screen" && state.screenRequestedBy != null) {
+            lastScreenRequestID = state.screenRequestID
+            approveRequestedScreen()
+        }
     }
 
     private fun maybeStartRemoteCamera() {
