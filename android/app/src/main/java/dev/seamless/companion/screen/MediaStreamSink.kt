@@ -7,10 +7,10 @@ import java.net.Socket
 import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.TimeUnit
 
-private data class EncodedFrame(val bytes: ByteArray, val presentationTimeMicroseconds: Long, val isKeyFrame: Boolean)
+private data class EncodedFrame(val bytes: ByteArray, val presentationTimeMicroseconds: Long, val isKeyFrame: Boolean, val queuedAtNanoseconds: Long = System.nanoTime())
 
 class MediaStreamSink : AutoCloseable {
-    private val frames = ArrayBlockingQueue<EncodedFrame>(4)
+    private val frames = ArrayBlockingQueue<EncodedFrame>(2)
     @Volatile private var format: ByteArray? = null
     @Volatile private var socket: Socket? = null
     @Volatile private var closed = false
@@ -26,6 +26,9 @@ class MediaStreamSink : AutoCloseable {
     fun attach(connection: Socket) {
         check(!closed)
         socket?.close()
+        // Keep TCP from hiding seconds of old video behind the bounded frame queue.
+        connection.tcpNoDelay = true
+        connection.sendBufferSize = 128 * 1024
         socket = connection
         frames.clear()
         awaitingKeyFrame = true
@@ -62,6 +65,14 @@ class MediaStreamSink : AutoCloseable {
             val output = DataOutputStream(BufferedOutputStream(connection.getOutputStream()))
             while (!closed && socket === connection && !connection.isClosed) {
                 val frame = frames.poll(1, TimeUnit.SECONDS) ?: continue
+                if (System.nanoTime() - frame.queuedAtNanoseconds > 150_000_000L) {
+                    synchronized(this) {
+                        frames.clear()
+                        awaitingKeyFrame = true
+                        requestKeyFrame?.invoke()
+                    }
+                    continue
+                }
                 if (frame.isKeyFrame) {
                     val description = format ?: continue
                     writeRecord(output, 0, 0, description)

@@ -21,6 +21,7 @@ final class PhoneVideoStreamController: ObservableObject {
     private var externalInput: ((String, [String: Double], String) -> Void)?
     private var formatDescription: CMVideoFormatDescription?
     private var waitingForKeyFrame = true
+    private var lastRecoveryRequest = Date.distantPast
     private var frameCounter = 0
     private var intervalStart = Date()
     private var statisticsTimer: Timer?
@@ -159,6 +160,7 @@ final class PhoneVideoStreamController: ObservableObject {
         if displayLayer.status == .failed || !displayLayer.isReadyForMoreMediaData {
             displayLayer.flushAndRemoveImage()
             waitingForKeyFrame = true
+            requestRecoveryFrame()
             if !isKeyFrame { return }
         }
         if isKeyFrame { waitingForKeyFrame = false }
@@ -171,6 +173,13 @@ final class PhoneVideoStreamController: ObservableObject {
             isStreaming = true
             message = "Video sharing is active."
         }
+    }
+
+    private func requestRecoveryFrame() {
+        guard externalInput == nil, let phoneID,
+              Date().timeIntervalSince(lastRecoveryRequest) >= 0.5 else { return }
+        lastRecoveryRequest = Date()
+        send?(phoneID, ControlPacket(type: "mediaKeyFrameRequest", payload: .object(["purpose": .string(purpose.rawValue)])))
     }
 
     private func configure(_ data: Data) throws {
@@ -204,7 +213,8 @@ final class PhoneVideoStreamController: ObservableObject {
         guard dimensions.width > 0, dimensions.height > 0, dimensions.width <= 4096, dimensions.height <= 4096 else {
             throw ConnectionProtocolError.invalidMessage
         }
-        videoSize = CGSize(width: Int(dimensions.width), height: Int(dimensions.height))
+        let updatedSize = CGSize(width: Int(dimensions.width), height: Int(dimensions.height))
+        if videoSize != updatedSize { videoSize = updatedSize }
     }
 
     private func makeSample(bytes: Data, timestamp: Int64, format: CMFormatDescription) throws -> CMSampleBuffer {

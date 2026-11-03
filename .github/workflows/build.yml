@@ -59,7 +59,7 @@ jobs:
           retention-days: 14
 
   android:
-    name: Android APK · development signing
+    name: Android APK · stable signing on main
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -81,7 +81,33 @@ jobs:
         run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;35.0.0"'
       - name: Check source privacy
         run: python3 scripts/check-source-privacy.py
-      - name: Build, test and lint companion
+      - name: Build signed companion on main
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        env:
+          SEAMLESS_ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          SEAMLESS_ANDROID_KEYSTORE: ${{ runner.temp }}/seamless-signing.p12
+          SEAMLESS_ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+          SEAMLESS_ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          SEAMLESS_ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          SEAMLESS_ANDROID_RELEASE: '1'
+        run: |
+          trap 'rm -f "$SEAMLESS_ANDROID_KEYSTORE"' EXIT
+          python3 - <<'PYTHON'
+          import base64
+          import os
+          from pathlib import Path
+          encoded = os.environ.get("SEAMLESS_ANDROID_KEYSTORE_BASE64", "")
+          if not encoded:
+              raise SystemExit("Distribution signing secrets are required for main builds")
+          destination = Path(os.environ["SEAMLESS_ANDROID_KEYSTORE"])
+          destination.write_bytes(base64.b64decode(encoded, validate=True))
+          destination.chmod(0o600)
+          PYTHON
+          sh scripts/build-android.sh
+      - name: Build debug companion without signing secrets
+        if: github.event_name == 'pull_request' || github.ref != 'refs/heads/main'
+        env:
+          SEAMLESS_ANDROID_RELEASE: '0'
         run: sh scripts/build-android.sh
       - name: Generate checksums
         working-directory: dist
@@ -89,7 +115,7 @@ jobs:
       - name: Upload APK and checksum
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
-          name: Seamless-android-debug
+          name: Seamless-android
           path: |
             dist/*.apk
             dist/SHA256SUMS-android.txt
@@ -103,6 +129,6 @@ jobs:
           name: Android-failure-reports
           path: |
             android/app/build/reports/tests/
-            android/app/build/reports/lint-results-debug.*
+            android/app/build/reports/lint-results-*.*
           if-no-files-found: ignore
           retention-days: 7

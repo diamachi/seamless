@@ -10,15 +10,19 @@ The resulting app is an Apple-silicon test build, not universal, Developer ID si
 
 ## Android
 
-The Ubuntu job installs Temurin JDK 21, SDK platform 36 and build tools 35.0.0. `scripts/build-android.sh` runs assembleDebug, JVM tests and lint, then copies the APK to dist with its configured versionName. Gradle dependency caching does not include an Android signing keystore. On failure, test/lint reports are available separately.
+The Ubuntu job installs Temurin JDK 21, SDK platform 36 and build tools 35.0.0. On main (push or manual dispatch), it restores the stable Android distribution key from encrypted repository Actions secrets into runner.temp, then builds/tests/lints the release variant. The key is removed by an EXIT trap and is never an artifact or Gradle cache input. Required secrets: ANDROID_KEYSTORE_BASE64, ANDROID_STORE_PASSWORD, ANDROID_KEY_PASSWORD and ANDROID_KEY_ALIAS. Missing secrets fail main builds instead of silently substituting another signer.
 
-The APK is debug-signed using the runner's generated development key. It is installable, but is not a stable update channel: another run or local build may have a different key. Preserve your data before replacing an existing differently signed development install. A dedicated release key and repository secrets are separate future setup; no local private signing key is uploaded by this workflow.
+Pull requests and non-main refs build/test/lint the debug variant without receiving signing secrets. Their APKs are development builds and cannot be treated as a stable update channel. Only the trusted main signing step receives secrets. Repository administrators and code merged into that step must be trusted with the key.
+
+Local builds use ignored `.tools/android-signing.properties` when present; SEAMLESS_ANDROID_RELEASE=0 explicitly selects debug. The release script verifies the APK with apksigner and compares its public certificate SHA-256 against `android/signing-certificate.sha256` before copying to dist. Version codes must increase for upgrades. Signing alone does not notarize macOS or publish a release.
+
+Earlier CI debug APKs used ephemeral signing keys. Moving to the distribution key may require one final uninstall/reinstall, resetting app data/pairings/permissions; subsequent main builds retain the same signer. Keep a protected backup of the private keystore and local properties/passwords. See DEVELOPMENT_SIGNING.md.
 
 ## Downloading
 
-Open Actions → Build test installers → a completed run. Download `Seamless-macos-arm64` or `Seamless-android-debug` from Artifacts and extract the archive. Each includes a SHA-256 checksum file. Installer artifacts expire after 14 days; failure reports after 7 days.
+Open Actions → Build test installers → a completed run. Download `Seamless-macos-arm64` or `Seamless-android` from Artifacts and extract the archive. Each includes a SHA-256 checksum file. Installer artifacts expire after 14 days; failure reports after 7 days.
 
-This build workflow does not automatically create a GitHub Release, and no installer is committed to Git. Maintainers can publish a separately reviewed preview release. Release publishing, stable signing and notarization remain separate. The workflow is implemented locally until a hosted run is recorded in VALIDATION.md.
+This build workflow does not automatically create a GitHub Release, and no installer is committed to Git. Maintainers can publish a separately reviewed preview release. Release publishing and notarization remain separate. Hosted acceptance of each signing change is recorded in VALIDATION.md.
 
 Native icon packaging: CI sets SEAMLESS_REQUIRE_NATIVE_ICON=1 and compiles the original layered Seamless.icon through Xcode actool. Local Command Line Tools builds have an explicit ICNS fallback and cannot establish native clear/tinted icon validation. The app does not override a compiled catalog's system-selected appearance.
 

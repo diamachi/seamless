@@ -35,6 +35,7 @@ data class CompanionConnectionState(
     val connectedMacs: List<String> = emptyList(),
     val macDetails: Map<String, ConnectedMacDetails> = emptyMap(),
     val pairingRequest: PairingRequest? = null,
+    val requestReviewSequence: Long = 0,
     val incomingClipboard: String = "",
     val incomingFileOffer: IncomingFileOffer? = null,
     val receivedFile: ReceivedFile? = null,

@@ -22,7 +22,12 @@ private final class ScreenLayerView: NSView {
     required init?(coder: NSCoder) { nil }
     override func layout() {
         super.layout()
-        videoLayer.frame = bounds
+        if videoLayer.frame != bounds {
+            CATransaction.begin()
+            CATransaction.setDisableActions(true)
+            videoLayer.frame = bounds
+            CATransaction.commit()
+        }
     }
     override var acceptsFirstResponder: Bool { true }
     override func mouseDown(with event: NSEvent) {

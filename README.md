@@ -52,7 +52,7 @@ Download the [0.6.10 preview from GitHub Releases](https://github.com/diamachi/s
 | macOS | `Seamless_<version>.dmg` | Open the image and drag Seamless into Applications. |
 | Android | `Seamless_<version>.apk` | Open the APK on Android and review the installation prompt. |
 
-Local DMGs are ad-hoc signed test packages, **not notarized releases**. Android builds use development signing. Preview installers are published through GitHub Releases. No Homebrew package or automatic updater is configured. macOS package minimum is 14; Android minimum is 7.0/API 24, with feature-specific gates. These build minimums do not establish physical compatibility across all versions. Initial physical tests use Android 17 and macOS 27.
+Local DMGs are ad-hoc signed test packages, **not notarized releases**. Android 0.6.12 onward uses stable distribution signing on main; PR/debug builds remain development-signed. Moving from older debug APKs may require one final reinstall. See [signing and backup notes](docs/DEVELOPMENT_SIGNING.md). Preview installers are published through GitHub Releases. No Homebrew package or automatic updater is configured. macOS package minimum is 14; Android minimum is 7.0/API 24, with feature-specific gates. These build minimums do not establish physical compatibility across all versions. Initial physical tests use Android 17 and macOS 27.
 
 ## macOS installation — unnotarized preview
 

@@ -61,11 +61,19 @@ class PhoneServer(private val context: Context) : AutoCloseable {
         reuseAddress = true
         bind(java.net.InetSocketAddress(PORT))
     }
+    private val pausedMacs = context.getSharedPreferences("connection_settings", Context.MODE_PRIVATE)
+        .getStringSet("paused_macs", emptySet()).orEmpty().toMutableSet()
     @Volatile private var closed = false
     private var invitation: Invitation? = null
     private var pendingApproval: PendingApproval? = null
 
     fun start(reconnectRequested: Boolean = false) {
+        if (reconnectRequested) {
+            synchronized(pausedMacs) {
+                pausedMacs.clear()
+                savePausedMacs()
+            }
+        }
         listener.enabledProtocols = listener.supportedProtocols.filter { it == "TLSv1.2" || it == "TLSv1.3" }.toTypedArray()
         ConnectionRuntime.update { it.copy(isListening = true, message = "Ready for a trusted Mac") }
         val reconnectRequest = if (reconnectRequested) java.util.UUID.randomUUID().toString() else null
@@ -143,6 +151,35 @@ class PhoneServer(private val context: Context) : AutoCloseable {
     fun revokeBrowserAccess() { storage.revoke() }
 
     fun offerFile(uri: Uri) { offerFiles(listOf(uri)) }
+
+    fun requestReconnect() {
+        synchronized(pausedMacs) {
+            pausedMacs.clear()
+            savePausedMacs()
+        }
+        advertisement.close()
+        advertisement.start(identity.phoneID, PORT, UUID.randomUUID().toString())
+    }
+
+    fun disconnectMac(macID: String) {
+        executor.execute {
+            val peer = peers[macID] ?: return@execute
+            synchronized(pausedMacs) {
+                pausedMacs.add(macID)
+                savePausedMacs()
+            }
+            try {
+                peer.channel.sendAndWait("disconnectRequested")
+            } finally {
+                peer.channel.close()
+            }
+        }
+    }
+
+    private fun savePausedMacs() {
+        context.getSharedPreferences("connection_settings", Context.MODE_PRIVATE).edit()
+            .putStringSet("paused_macs", pausedMacs.toSet()).apply()
+    }
 
     fun offerFiles(uris: List<Uri>, targetMacID: String? = null): Boolean {
         val peer = if (targetMacID == null) peers.values.singleOrNull() else peers[targetMacID]
@@ -313,6 +350,10 @@ class PhoneServer(private val context: Context) : AutoCloseable {
                     require(firstMessage.getString("type") == "authenticate")
                     val expected = identity.peerCredential(macID) ?: error("Mac is not paired")
                     require(SecureIdentity.secretsMatch(expected, payload.getString("credential")))
+                    if (synchronized(pausedMacs) { pausedMacs.contains(macID) }) {
+                        channel.sendAndWait("connectionPaused")
+                        return
+                    }
                     channel.send("authenticated", JSONObject().put("phoneID", identity.phoneID))
                 }
                 socket.soTimeout = 90_000
@@ -336,6 +377,16 @@ class PhoneServer(private val context: Context) : AutoCloseable {
                 files.disconnect(finishedPeer.id)
                 bulk.disconnect(finishedPeer.id)
                 storage.disconnected(finishedPeer.id)
+                ConnectionRuntime.update { state ->
+                    var updated = state
+                    if (state.screenRequestedBy == finishedPeer.id) {
+                        updated = updated.copy(screenRequestedBy = null, screenRequestID = null)
+                    }
+                    if (state.cameraRequestedBy == finishedPeer.id) {
+                        updated = updated.copy(cameraRequestedBy = null, cameraRequestID = null)
+                    }
+                    updated
+                }
                 if (screenStreams.remove(finishedPeer.id)?.also { it.close() } != null) {
                     context.stopService(Intent(context, ScreenBenchmarkService::class.java))
                 }
@@ -359,6 +410,7 @@ class PhoneServer(private val context: Context) : AutoCloseable {
         try {
             ConnectionRuntime.update { it.copy(pairingCode = "", pairingRequest = PairingRequest(macName, pending.requestID)) }
             if (BuildConfig.DEBUG) android.util.Log.i("SeamlessConnection", "Pairing approval requested")
+            ConnectionService.notifyPairingRequest(context, macName)
             channel.send("pairingPending")
             require(pending.latch.await(180, TimeUnit.SECONDS) && pending.approved) { "Pairing was not approved" }
             val credential = SecureIdentity.randomSecret()
@@ -412,6 +464,10 @@ class PhoneServer(private val context: Context) : AutoCloseable {
                     cameraTorch = payload.optBoolean("torch"), cameraWhiteBalance = payload.optString("whiteBalance", "auto").take(30), cameraFacing = facing,
                     cameraResolutionHeight = height, cameraFramesPerSecond = framesPerSecond) }
                 ConnectionService.notifyCaptureRequest(context, camera = true)
+            }
+            "mediaKeyFrameRequest" -> {
+                val stream = if (payload.optString("purpose") == "camera") cameraStreams[peer.id] else screenStreams[peer.id]
+                stream?.requestKeyFrame?.invoke()
             }
             "cameraControls" -> {
                 if (cameraStreams.containsKey(peer.id)) CameraStreamService.updateControls(peer.id, payload)

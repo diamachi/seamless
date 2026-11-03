@@ -16,7 +16,7 @@ internal class TransferNotifications(private val context: Context) {
     init {
         if (Build.VERSION.SDK_INT >= 26) {
             manager.deleteNotificationChannel("transfer-progress")
-            manager.createNotificationChannel(NotificationChannel("transfer-results", "Transfer results", NotificationManager.IMPORTANCE_DEFAULT))
+            AlertChannels.register(context, AlertChannels.TRANSFER_RESULTS, "Transfer results", NotificationManager.IMPORTANCE_DEFAULT)
         }
     }
 
@@ -27,10 +27,11 @@ internal class TransferNotifications(private val context: Context) {
 
     private fun post(id: String, name: String, text: String) {
         if (Build.VERSION.SDK_INT >= 33 && ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) return
-        val notification = NotificationCompat.Builder(context, "transfer-results")
+        val notification = NotificationCompat.Builder(context, AlertChannels.TRANSFER_RESULTS)
             .setSmallIcon(android.R.drawable.stat_sys_upload_done)
             .setContentTitle(name).setContentText(text)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setSound(AlertChannels.sound(context))
             .setAutoCancel(true)
         try {
             manager.notify(id, 2, notification.build())

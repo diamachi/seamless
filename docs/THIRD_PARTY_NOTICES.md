@@ -6,3 +6,5 @@ These are dependencies, not copied application code or branding.
 - [AndroidX CameraX](https://developer.android.com/jetpack/androidx/releases/camera), version 1.6.2: Android camera preview and analysis; Apache License 2.0. Copyright The Android Open Source Project. [AndroidX license](https://android.googlesource.com/platform/frameworks/support/+/androidx-main/LICENSE.txt).
 
 Other AndroidX, Kotlin and Android tooling dependencies retain their own upstream licensing. This notice does not select a license for Seamless's own source code.
+
+The short Seamless notification chime in Android res/raw is generated from decaying sine tones for this project; it is not a sampled third-party recording.

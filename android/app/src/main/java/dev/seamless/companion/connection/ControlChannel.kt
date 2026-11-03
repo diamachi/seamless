@@ -10,10 +10,16 @@ import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 
+private class ControlWriteCompletion {
+    val latch = java.util.concurrent.CountDownLatch(1)
+    @Volatile var successful = false
+}
+private data class QueuedControlWrite(val bytes: ByteArray, val completion: ControlWriteCompletion? = null)
+
 class ControlChannel(private val socket: Socket) : AutoCloseable {
     private val input = BufferedInputStream(socket.getInputStream())
     private val output = BufferedOutputStream(socket.getOutputStream())
-    private val outgoing = ArrayBlockingQueue<ByteArray>(64)
+    private val outgoing = ArrayBlockingQueue<QueuedControlWrite>(64)
     private val isClosed = AtomicBoolean(false)
     private val sender = Thread({ sendQueuedMessages() }, "SeamlessControlSender").apply { start() }
 
@@ -35,12 +41,25 @@ class ControlChannel(private val socket: Socket) : AutoCloseable {
     }
 
     fun send(type: String, payload: JSONObject = JSONObject(), requestID: String = UUID.randomUUID().toString(), waitForCapacity: Boolean = false) {
+        val bytes = encodePacket(type, payload, requestID)
+        check(!isClosed.get()) { "Connection is closed" }
+        val write = QueuedControlWrite(bytes)
+        val enqueued = if (waitForCapacity) outgoing.offer(write, 5, TimeUnit.SECONDS) else outgoing.offer(write)
+        check(enqueued) { "Connection is congested" }
+    }
+
+    fun sendAndWait(type: String) {
+        val completion = ControlWriteCompletion()
+        val write = QueuedControlWrite(encodePacket(type, JSONObject(), UUID.randomUUID().toString()), completion)
+        check(!isClosed.get() && outgoing.offer(write, 5, TimeUnit.SECONDS)) { "Connection is unavailable" }
+        check(completion.latch.await(5, TimeUnit.SECONDS) && completion.successful) { "Connection write did not complete" }
+    }
+
+    private fun encodePacket(type: String, payload: JSONObject, requestID: String): ByteArray {
         val packet = JSONObject().put("version", 1).put("id", requestID).put("type", type).put("payload", payload)
         val bytes = (packet.toString() + "\n").toByteArray(Charsets.UTF_8)
         check(bytes.size <= MAXIMUM_FRAME_BYTES) { "Control message is too large" }
-        check(!isClosed.get()) { "Connection is closed" }
-        val enqueued = if (waitForCapacity) outgoing.offer(bytes, 5, TimeUnit.SECONDS) else outgoing.offer(bytes)
-        check(enqueued) { "Connection is congested" }
+        return bytes
     }
 
     fun bulkInput(): java.io.InputStream = input
@@ -62,9 +81,14 @@ class ControlChannel(private val socket: Socket) : AutoCloseable {
     private fun sendQueuedMessages() {
         try {
             while (!isClosed.get()) {
-                val bytes = outgoing.poll(1, TimeUnit.SECONDS) ?: continue
-                output.write(bytes)
-                output.flush()
+                val write = outgoing.poll(1, TimeUnit.SECONDS) ?: continue
+                try {
+                    output.write(write.bytes)
+                    output.flush()
+                    write.completion?.successful = true
+                } finally {
+                    write.completion?.latch?.countDown()
+                }
             }
         } catch (_: Exception) {
             close()
