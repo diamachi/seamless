@@ -32,6 +32,7 @@ private enum Destination: String, CaseIterable, Identifiable {
 @MainActor
 private final class WindowNavigation: ObservableObject {
     @Published var destination: Destination? = .overview
+    @Published var columnVisibility = NavigationSplitViewVisibility.all
 }
 
 struct MainWindow: View {
@@ -43,13 +44,22 @@ struct MainWindow: View {
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        NavigationSplitView {
+        NavigationSplitView(columnVisibility: $navigation.columnVisibility) {
             sidebar
 
                 .navigationSplitViewColumnWidth(min: 230, ideal: sidebarWidth, max: 500)
         } detail: {
             VStack(alignment: .leading, spacing: 20) {
                 HStack {
+                    Button {
+                        if navigation.columnVisibility == .detailOnly {
+                            navigation.columnVisibility = .all
+                        } else {
+                            navigation.columnVisibility = .detailOnly
+                        }
+                    } label: {
+                        Image(systemName: "sidebar.left").frame(width: 32, height: 32).contentShape(Rectangle())
+                    }.buttonStyle(.plain).help("Toggle sidebar").accessibilityLabel("Toggle sidebar")
                     Text(preferencesStore.preferences.selectedPhone?.displayName ?? "Seamless")
                         .font(.subheadline.weight(.medium)).foregroundStyle(.secondary)
                     Spacer()
@@ -63,8 +73,9 @@ struct MainWindow: View {
                     .id(preferencesStore.preferences.selectedPhoneID)
             }
             .padding(24)
-            .background(TranslucentSurface(material: .underWindowBackground, tint: InterfacePalette(scheme: colorScheme).canvas))
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .background(TranslucentSurface(material: .underWindowBackground, tint: InterfacePalette(scheme: colorScheme).canvas)
+                .ignoresSafeArea(.container, edges: .top))
             .disabled(!preferencesStore.canSave)
             .tint(InterfacePalette(scheme: colorScheme).accent)
         }
@@ -91,8 +102,9 @@ struct MainWindow: View {
         }
         .modifier(FileDropTarget(phoneID: preferencesStore.preferences.selectedPhoneID, bulk: preferencesStore.connections.bulk))
         .accentColor(InterfacePalette(scheme: colorScheme).accent)
-        .toolbarBackground(InterfacePalette(scheme: colorScheme).canvas, for: .windowToolbar)
-        .toolbarBackground(.visible, for: .windowToolbar)
+        .toolbar(removing: .sidebarToggle)
+        .toolbar(.hidden, for: .windowToolbar)
+        .toolbarBackground(.hidden, for: .windowToolbar)
         .background(WindowSurfaceConfigurator())
         .task {
             let reopen = {
@@ -101,6 +113,11 @@ struct MainWindow: View {
                 NSApplication.shared.activate(ignoringOtherApps: true)
             }
             applicationDelegate.openMainWindow = reopen
+            preferencesStore.calls.openCalls = {
+                if let phoneID = preferencesStore.calls.activePhoneID { preferencesStore.selectPhone(id: phoneID) }
+                navigation.destination = .calls
+                reopen()
+            }
             MenuBarDashboard.shared.configure(preferencesStore: preferencesStore, openMainWindow: reopen)
         }
     }
@@ -149,7 +166,7 @@ struct MainWindow: View {
         }
         .padding(.horizontal, 18)
         .padding(.bottom, 20)
-        .background(TranslucentSurface(material: .sidebar, tint: palette.sidebar))
+        .background(TranslucentSurface(material: .sidebar, tint: palette.sidebar).ignoresSafeArea(.container, edges: .top))
         .foregroundStyle(palette.text)
     }
 

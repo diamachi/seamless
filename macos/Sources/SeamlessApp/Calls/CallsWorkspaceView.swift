@@ -5,6 +5,8 @@ import SeamlessCore
 @MainActor
 private final class CallDialEditor: ObservableObject {
     @Published var number = ""
+    @Published var contactName = ""
+    @Published var showContacts = false
 }
 
 struct CallsWorkspaceView: View {
@@ -15,12 +17,18 @@ struct CallsWorkspaceView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                WorkspaceHeading(title: "Calls", subtitle: "Your phone calls, within reach.")
+                WorkspaceHeading(title: "Calls", subtitle: "1 · Connect Bluetooth   2 · Choose audio   3 · Call or answer")
+                Text("Keep call controls connected to receive incoming calls on your Mac. Your phone keeps its SIM and mobile service.")
+                    .foregroundStyle(.secondary)
                 if let phone = preferencesStore.preferences.selectedPhone {
-                    connectionCard(phoneID: phone.id, name: phone.displayName)
                     if calls.activePhoneID == phone.id && calls.state.isConnected {
-                        callCard
+                        DisclosureGroup("Bluetooth setup · connected") { connectionCard(phoneID: phone.id, name: phone.displayName) }
+                    } else {
+                        connectionCard(phoneID: phone.id, name: phone.displayName)
+                    }
+                    if calls.activePhoneID == phone.id && calls.state.isConnected {
                         CallAudioControls(calls: calls, audio: calls.audio, devices: calls.devices, phoneID: phone.id)
+                        callCard
                     }
                 } else {
                     ContentUnavailableView("Choose a phone first", systemImage: "iphone")
@@ -29,6 +37,14 @@ struct CallsWorkspaceView: View {
         }
         .buttonStyle(WorkspaceButtonStyle())
         .task { calls.devices.start() }
+        .sheet(isPresented: $editor.showContacts) {
+            if let phoneID = preferencesStore.preferences.selectedPhoneID {
+                PhoneContactsPicker(contacts: preferencesStore.connections.phoneContacts, phoneID: phoneID) { contact in
+                    editor.number = contact.number
+                    editor.contactName = contact.name
+                }
+            }
+        }
     }
 
     private func connectionCard(phoneID: String, name: String) -> some View {
@@ -51,6 +67,11 @@ struct CallsWorkspaceView: View {
             WorkspaceMenuPicker(title: "Bluetooth phone", symbol: "iphone", selection: addressBinding(phoneID),
                                 choices: phoneChoices(phoneID: phoneID))
                 .disabled(calls.state.hasCall)
+            Button("Review incoming-call alerts") { MacNotificationDelivery.shared.reviewAccess() }
+            Toggle("Reconnect call controls when Seamless opens", isOn: Binding(
+                get: { calls.options(for: phoneID).reconnectOnLaunch },
+                set: { value in calls.updateOptions(phoneID: phoneID) { $0.reconnectOnLaunch = value } }
+            ))
             HStack {
                 Text(calls.message).font(.callout).foregroundStyle(.secondary)
                 Spacer()
@@ -75,7 +96,7 @@ struct CallsWorkspaceView: View {
             if calls.state.hasCall {
                 HStack(spacing: 12) {
                     if calls.state.canAnswer {
-                        Button("Answer") { calls.answer() }.buttonStyle(WorkspaceButtonStyle(prominent: true))
+                        Button("Answer on Mac") { calls.answer() }.buttonStyle(WorkspaceButtonStyle(prominent: true))
                     }
                     Button(calls.state.canAnswer ? "Decline" : "End call") { calls.end() }
                     Button("Use Mac audio") { calls.useMacAudio() }.disabled(calls.isAudioConnected)
@@ -89,8 +110,12 @@ struct CallsWorkspaceView: View {
                     }
                 }
             } else {
+                if !editor.contactName.isEmpty { Text(editor.contactName).font(.headline) }
                 HStack {
                     TextField("Phone number", text: $editor.number).textFieldStyle(WorkspaceTextFieldStyle())
+                    Button { editor.showContacts = true } label: { Label("Contacts", systemImage: "person.crop.circle") }
+                        .disabled(preferencesStore.sessions.state(for: preferencesStore.preferences.selectedPhoneID ?? "") != .connected)
+                        .help("Connect Seamless over Wi-Fi or USB to load Android contacts")
                     Button { calls.dial(editor.number) } label: { Label("Call", systemImage: "phone.fill") }
                         .buttonStyle(WorkspaceButtonStyle(prominent: true))
                         .disabled(PhoneCallState.dialNumber(editor.number) == nil)

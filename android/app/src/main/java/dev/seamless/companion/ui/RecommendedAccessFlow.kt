@@ -78,6 +78,6 @@ private fun accessIntent(context: Context, step: Int): Intent? = when (step) {
     0 -> Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
     1 -> Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
     2 -> if (Build.VERSION.SDK_INT >= 30) Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION, Uri.parse("package:" + context.packageName)) else null
-    3 -> Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
+    3 -> Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:" + context.packageName))
     else -> null
 }

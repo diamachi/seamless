@@ -15,6 +15,8 @@ data class ConnectedMacDetails(
     val storageUsedBytes: Long = 0
 )
 
+data class ContactsRequest(val macID: String, val token: String, val macName: String)
+
 data class PairingRequest(val macName: String, val requestID: String)
 data class IncomingFileOffer(val transferID: String, val name: String, val size: Long)
 data class TransferProgress(val id: String, val name: String, val completed: Long, val total: Long)
@@ -35,6 +37,7 @@ data class CompanionConnectionState(
     val connectedMacs: List<String> = emptyList(),
     val macDetails: Map<String, ConnectedMacDetails> = emptyMap(),
     val pairingRequest: PairingRequest? = null,
+    val contactsRequest: ContactsRequest? = null,
     val requestReviewSequence: Long = 0,
     val incomingClipboard: String = "",
     val incomingFileOffer: IncomingFileOffer? = null,

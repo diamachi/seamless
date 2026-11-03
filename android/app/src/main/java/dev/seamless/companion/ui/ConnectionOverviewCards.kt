@@ -37,6 +37,7 @@ internal fun ConnectionOverviewCards(state: CompanionConnectionState, onSetup: (
             TextButton(onClick = { showDetails = !showDetails }) { Text(if (showDetails) "Less" else "Details") }
         }
         if (showDetails) {
+            Text(dev.seamless.companion.features.BackgroundConnectionDiagnostics.summary(context), style = MaterialTheme.typography.bodySmall)
             Text(state.message, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text("Authenticated local connection · Wi-Fi or optional USB\nThe companion can stay connected in the background.", style = MaterialTheme.typography.bodySmall)
         }

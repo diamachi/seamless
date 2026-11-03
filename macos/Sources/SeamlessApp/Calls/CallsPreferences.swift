@@ -6,6 +6,21 @@ struct PhoneCallingOptions: Codable {
     var speakerUID = "system"
     var phoneInputUID = ""
     var phoneOutputUID = ""
+    var reconnectOnLaunch = false
+
+    private enum CodingKeys: String, CodingKey {
+        case bluetoothAddress, microphoneUID, speakerUID, phoneInputUID, phoneOutputUID, reconnectOnLaunch
+    }
+    init() {}
+    init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        bluetoothAddress = try values.decodeIfPresent(String.self, forKey: .bluetoothAddress) ?? ""
+        microphoneUID = try values.decodeIfPresent(String.self, forKey: .microphoneUID) ?? "system"
+        speakerUID = try values.decodeIfPresent(String.self, forKey: .speakerUID) ?? "system"
+        phoneInputUID = try values.decodeIfPresent(String.self, forKey: .phoneInputUID) ?? ""
+        phoneOutputUID = try values.decodeIfPresent(String.self, forKey: .phoneOutputUID) ?? ""
+        reconnectOnLaunch = try values.decodeIfPresent(Bool.self, forKey: .reconnectOnLaunch) ?? false
+    }
 }
 
 @MainActor

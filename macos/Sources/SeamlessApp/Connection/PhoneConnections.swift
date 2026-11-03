@@ -50,7 +50,11 @@ final class PhoneConnections: ObservableObject {
     let usb = USBConnectionController()
     let advancedMirroring = AdvancedMirroringController()
     private var usbProfiles: [String: ConnectionProfile] = [:]
+    let phoneContacts = PhoneContactsStore()
     let clipboardHistory = ClipboardHistory()
+    @Published private(set) var clipboardStatus: [String: String] = [:]
+    private var clipboardRequests: [String: String] = [:]
+    private var clipboardDeadlines: [String: Task<Void, Never>] = [:]
     let files = FileTransfers()
     let bulk = BulkTransfers()
     let storage = PhoneStorageBrowser()
@@ -106,6 +110,7 @@ final class PhoneConnections: ObservableObject {
                   self.sessions.state(for: phoneID) != .connected else { return }
             self.reconnect(phone)
         }
+        phoneContacts.send = { [weak self] phoneID, packet in self?.send(phoneID: phoneID, packet: packet) }
         screen.send = { [weak self] phoneID, packet in self?.send(phoneID: phoneID, packet: packet) }
         camera.send = { [weak self] phoneID, packet in self?.send(phoneID: phoneID, packet: packet) }
         bulk.automaticallyAccept = { [weak self] phoneID in self?.savedPhones[phoneID]?.preferences.automaticallyAcceptFiles == true }
@@ -127,9 +132,11 @@ final class PhoneConnections: ObservableObject {
             guard let client = self.clients[phoneID] else { throw ConnectionProtocolError.invalidMessage }
             try await client.sendAndWait(packet)
         }
-        clipboardTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
+        let timer = Timer(timeInterval: 1, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.pollClipboard() }
         }
+        clipboardTimer = timer
+        RunLoop.main.add(timer, forMode: .common)
     }
 
     func synchronize(with preferences: AppPreferences) {
@@ -211,6 +218,10 @@ final class PhoneConnections: ObservableObject {
     }
 
     func shutdown() {
+        phoneContacts.clear(phoneID: nil)
+        for deadline in clipboardDeadlines.values { deadline.cancel() }
+        clipboardDeadlines.removeAll()
+        clipboardRequests.removeAll()
         reconnectEnabled.removeAll()
         for task in reconnectTasks.values { task.cancel() }
         reconnectTasks.removeAll()
@@ -226,6 +237,10 @@ final class PhoneConnections: ObservableObject {
     }
 
     func disconnect(phoneID: String) {
+        phoneContacts.clear(phoneID: phoneID)
+        clipboardDeadlines.removeValue(forKey: phoneID)?.cancel()
+        clipboardRequests.removeValue(forKey: phoneID)
+        clipboardStatus[phoneID] = "Offline · connect this phone to send text"
         phonePermissions.removeValue(forKey: phoneID)
         metadataSentPhones.remove(phoneID)
         advancedMirroring.stop(phoneID: phoneID)
@@ -293,7 +308,7 @@ final class PhoneConnections: ObservableObject {
     }
 
     func sendClipboard(phoneID: String) {
-        guard let text = NSPasteboard.general.string(forType: .string), text.count <= 32_000 else {
+        guard let text = NSPasteboard.general.string(forType: .string), text.utf16.count <= 32_000 else {
             message = "Copy text of up to 32,000 characters first."
             return
         }
@@ -301,9 +316,27 @@ final class PhoneConnections: ObservableObject {
     }
 
     func sendText(_ text: String, phoneID: String) {
+        guard sessions.state(for: phoneID) == .connected else {
+            clipboardStatus[phoneID] = "Connect this phone before sending text"
+            return
+        }
+        guard !text.isEmpty, text.utf16.count <= 32_000 else {
+            clipboardStatus[phoneID] = "Send between 1 and 32,000 UTF-16 characters"
+            return
+        }
+        let packet = ControlPacket(type: "clipboard", payload: .object(["text": .string(text)]))
+        clipboardRequests[phoneID] = packet.id
+        clipboardStatus[phoneID] = "Sending to phone…"
+        clipboardDeadlines.removeValue(forKey: phoneID)?.cancel()
+        clipboardDeadlines[phoneID] = Task { [weak self] in
+            do { try await Task.sleep(for: .seconds(10)) } catch { return }
+            guard let self, self.clipboardRequests[phoneID] == packet.id else { return }
+            self.clipboardRequests.removeValue(forKey: phoneID)
+            self.clipboardDeadlines.removeValue(forKey: phoneID)
+            self.clipboardStatus[phoneID] = "No confirmation. Check the connection and update the companion."
+        }
         clipboardHistory.record(text: text, source: "Mac", phoneID: phoneID)
-        guard text.count <= 32_000 else { message = "Text exceeds 32,000 characters."; return }
-        send(phoneID: phoneID, packet: ControlPacket(type: "clipboard", payload: .object(["text": .string(text)])))
+        send(phoneID: phoneID, packet: packet)
     }
 
     func notificationAction(_ notification: RelayedNotification, index: Int? = nil, reply: String = "", dismiss: Bool = false) {
@@ -345,6 +378,10 @@ final class PhoneConnections: ObservableObject {
             if state == .disconnected { self.files.disconnected(phoneID: phoneID); self.bulk.disconnected(phoneID: phoneID); self.storage.disconnected(phoneID: phoneID) }
             if let error { self.message = "Could not connect to \(profile.host): \(error)" }
             if state == .disconnected {
+                self.phoneContacts.clear(phoneID: phoneID)
+                self.clipboardDeadlines.removeValue(forKey: phoneID)?.cancel()
+                self.clipboardRequests.removeValue(forKey: phoneID)
+                self.clipboardStatus[phoneID] = "Offline · connect this phone to send text"
                 self.phonePermissions.removeValue(forKey: phoneID)
                 self.metadataSentPhones.remove(phoneID)
                 self.advancedMirroring.stop(phoneID: phoneID)
@@ -410,13 +447,28 @@ final class PhoneConnections: ObservableObject {
         case "status": updateStatus(packet.payload, phoneID: phoneID)
         case "applications": updateApplications(packet.payload, phoneID: phoneID)
         case "notification": receiveNotification(packet.payload, phoneID: phoneID)
+        case "contactsRevoked":
+            phoneContacts.clear(phoneID: phoneID)
+        case "contactsPage", "contactsError":
+            guard sessions.state(for: phoneID) == .connected else { return }
+            phoneContacts.receive(packet, phoneID: phoneID)
+        case "clipboardResult":
+            guard clipboardRequests[phoneID] == packet.id else { return }
+            clipboardRequests.removeValue(forKey: phoneID)
+            clipboardDeadlines.removeValue(forKey: phoneID)?.cancel()
+            if packet.payload["copied"].boolean == true {
+                clipboardStatus[phoneID] = "Copied on phone · paste in any app"
+            } else {
+                clipboardStatus[phoneID] = "Phone saved the text. Open Seamless on Android and tap Copy received text."
+            }
         case "clipboard":
             guard sessions.state(for: phoneID) == .connected, activePhoneID == phoneID,
-                  let text = packet.payload["text"].string, text.count <= 32_000 else { return }
+                  let text = packet.payload["text"].string, text.utf16.count <= 32_000 else { return }
             clipboardHistory.record(text: text, source: savedPhones[phoneID]?.displayName ?? "Phone", phoneID: phoneID)
             NSPasteboard.general.clearContents()
             NSPasteboard.general.setString(text, forType: .string)
             lastPasteboardChange = NSPasteboard.general.changeCount
+            clipboardStatus[phoneID] = "Copied on Mac · paste in any app"
             message = "Text copied from \(savedPhones[phoneID]?.displayName ?? "phone")."
         case "error": message = packet.payload["message"].string ?? "Phone operation failed."
         default: break

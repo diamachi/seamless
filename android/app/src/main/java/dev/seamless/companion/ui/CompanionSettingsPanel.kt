@@ -81,12 +81,19 @@ private fun TrustedMacSettings(macID: String, name: String) {
     val context = LocalContext.current
     val preferences = context.getSharedPreferences("phone_policies", android.content.Context.MODE_PRIVATE)
     var automaticFiles by remember(macID) { mutableStateOf(preferences.getBoolean("file_auto.$macID", preferences.getBoolean("automatic_downloads", false))) }
+    var contactsAllowed by remember(macID) { mutableStateOf(preferences.getBoolean("contacts_allowed.$macID", false)) }
     var automaticCamera by remember(macID) { mutableStateOf(preferences.getBoolean("camera_auto.$macID", false)) }
     CompanionCard(name) {
             Text("Automatically accept files from this Mac into Downloads")
             Switch(checked = automaticFiles, onCheckedChange = { automaticFiles = it; preferences.edit().putBoolean("file_auto.$macID", it).apply() })
             Text("Allow this Mac to start the camera while Seamless is visible")
             Switch(checked = automaticCamera, onCheckedChange = { automaticCamera = it; preferences.edit().putBoolean("camera_auto.$macID", it).apply() })
+            Text("Allow this Mac to refresh phone contacts for calling")
+            Switch(checked = contactsAllowed, onCheckedChange = { allowed ->
+                contactsAllowed = allowed
+                preferences.edit().putBoolean("contacts_allowed.$macID", allowed).apply()
+                if (!allowed) dev.seamless.companion.connection.ConnectionRuntime.server?.revokeContacts(macID)
+            })
             Text("Android camera permission is requested once. Background startup still follows Android’s restrictions. Turn these off at any time.", style = MaterialTheme.typography.bodySmall)
     }
 }

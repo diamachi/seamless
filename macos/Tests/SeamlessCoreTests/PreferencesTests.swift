@@ -20,7 +20,7 @@ struct PreferencesTests {
         defer { try? FileManager.default.removeItem(at: directory) }
         let repository = PreferencesRepository(fileURL: directory.appending(path: "settings.json"))
         var preferences = AppPreferences()
-        preferences.defaultPhonePreferences.screenFramesPerSecond = 120
+        preferences.defaultPhonePreferences.screenFramesPerSecond = 60
         preferences.defaultPhonePreferences.camera.facing = .front
         preferences.defaultPhonePreferences.notifications.allowedApplications.insert(
             AndroidApplicationIdentity(packageName: "org.example.chat", profileIdentifier: "personal")

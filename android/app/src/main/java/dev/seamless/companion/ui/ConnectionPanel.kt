@@ -49,7 +49,7 @@ fun ConnectionPanel(state: CompanionConnectionState, onStartScreen: () -> Unit, 
         CompanionCard("Share with your Mac") {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 OutlinedButton(enabled = state.connectedMacs.size == 1, onClick = { chooseFile.launch(arrayOf("*/*")) }) { Text("Send files") }
-                OutlinedButton(enabled = state.connectedMacs.isNotEmpty(), onClick = { sendPhoneClipboard(context) }) { Text("Send clipboard") }
+                OutlinedButton(enabled = state.connectedMacs.size == 1, onClick = { sendPhoneClipboard(context) }) { Text("Send copied text") }
             }
             OutlinedButton(enabled = state.connectedMacs.size == 1 && !state.isPreparingFolder,
                 onClick = { chooseFolder.launch(null) }) { Text("Send folder as ZIP") }
@@ -131,11 +131,11 @@ private fun ClipboardCard(state: CompanionConnectionState) {
     val context = LocalContext.current
     CompanionCard("Clipboard") {
         Text("Send copied text while this app is open.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-        OutlinedButton(enabled = state.connectedMacs.isNotEmpty(), onClick = { sendPhoneClipboard(context) }) {
-            Text("Send phone clipboard")
+        OutlinedButton(enabled = state.connectedMacs.size == 1, onClick = { sendPhoneClipboard(context) }) {
+            Text("Send copied text to Mac")
         }
         if (state.sharedTextToSend.isNotEmpty()) {
-            Button(enabled = state.connectedMacs.isNotEmpty(), onClick = {
+            Button(enabled = state.connectedMacs.size == 1, onClick = {
                 ConnectionRuntime.server?.sendClipboard(state.sharedTextToSend)
                 ConnectionRuntime.update { it.copy(sharedTextToSend = "") }
             }) { Text("Send shared text") }

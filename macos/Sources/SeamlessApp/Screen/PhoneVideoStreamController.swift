@@ -48,7 +48,7 @@ final class PhoneVideoStreamController: ObservableObject {
     func request(phoneID: String, framesPerSecond: Int, application: PhoneApplication? = nil) {
         stop()
         self.phoneID = phoneID
-        send?(phoneID, ControlPacket(type: "screenRequest", payload: .object(["captureEntireDisplay": .bool(application == nil), "framesPerSecond": .number(Double(framesPerSecond)), "applicationName": .string(application?.name ?? ""), "applicationPackage": .string(application?.identity.packageName ?? "")])))
+        send?(phoneID, ControlPacket(type: "screenRequest", payload: .object(["captureEntireDisplay": .bool(application == nil), "framesPerSecond": .number(60), "applicationName": .string(application?.name ?? ""), "applicationPackage": .string(application?.identity.packageName ?? "")])))
         message = "On your phone, tap Approve screen sharing and confirm Android's sharing prompt."
     }
 

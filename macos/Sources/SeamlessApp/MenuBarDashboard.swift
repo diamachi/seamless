@@ -117,12 +117,15 @@ private struct MenuBarDashboardView: View {
                 }
                 HStack {
                     Button("Find phone") { connections.ring(phoneID: phoneID) }
-                    Button("Send clipboard") { connections.sendClipboard(phoneID: phoneID) }
+                    Button("Send copied text") { connections.sendClipboard(phoneID: phoneID) }
                 }.disabled(connections.sessions.state(for: phoneID) != .connected)
                 HStack {
                     TextField("Send text to phone", text: $editor.text).textFieldStyle(WorkspaceTextFieldStyle())
                     Button("Send") { connections.sendText(editor.text, phoneID: phoneID); editor.text = "" }
-                        .disabled(editor.text.isEmpty || editor.text.count > 32_000 || connections.sessions.state(for: phoneID) != .connected)
+                        .disabled(editor.text.isEmpty || editor.text.utf16.count > 32_000 || connections.sessions.state(for: phoneID) != .connected)
+                }
+                if let status = connections.clipboardStatus[phoneID] {
+                    Text(status).font(.caption).foregroundStyle(.secondary)
                 }
                 Text(bulk.message).font(.caption).foregroundStyle(.secondary).lineLimit(3)
             }

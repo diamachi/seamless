@@ -17,6 +17,20 @@ import dev.seamless.companion.screen.ScreenBenchmarkService
 
 class MainActivity : ComponentActivity() {
     private val preferences by lazy { getSharedPreferences("seamless_preferences", MODE_PRIVATE) }
+    private var pendingContactsRequest: dev.seamless.companion.connection.ContactsRequest? = null
+    private val contactsPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { allowed ->
+        pendingContactsRequest?.let { ConnectionRuntime.server?.shareContacts(it, allowed) }
+        pendingContactsRequest = null
+    }
+    private fun approveContacts() {
+        val request = ConnectionRuntime.state.value.contactsRequest ?: return
+        if (checkSelfPermission(Manifest.permission.READ_CONTACTS) == PackageManager.PERMISSION_GRANTED) {
+            ConnectionRuntime.server?.shareContacts(request, true)
+        } else {
+            pendingContactsRequest = request
+            contactsPermission.launch(Manifest.permission.READ_CONTACTS)
+        }
+    }
     private var pendingRequestReview: String? = null
     private var lastCameraRequestID: String? = null
     private var lastScreenRequestID: String? = null
@@ -46,6 +60,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        preferences.edit().putInt("screen_frame_rate", 60).apply()
         enableEdgeToEdge()
         pendingRequestReview = intent?.getStringExtra("sharing_request_kind")
         if (savedInstanceState == null) receiveSharedText(intent)
@@ -63,7 +78,8 @@ class MainActivity : ComponentActivity() {
                 onStartScreen = { approveRequestedScreen() },
                 onStartCamera = { approveRequestedCamera() },
                 onRemoteScreen = { maybeStartRemoteCapture() },
-                onRemoteCamera = { maybeStartRemoteCamera() }
+                onRemoteCamera = { maybeStartRemoteCamera() },
+                onReadContacts = { approveContacts() }
             )
         }
     }
