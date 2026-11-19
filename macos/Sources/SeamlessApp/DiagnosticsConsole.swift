@@ -17,6 +17,7 @@ final class DiagnosticsConsole: ObservableObject {
 
     func clear() { lines = [] }
 
+    /// Copies bounded diagnostic events plus version context. Event producers omit private payloads before recording.
     func copyReport() {
         let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown"
         let report = "Seamless " + version + "\n" + ProcessInfo.processInfo.operatingSystemVersionString

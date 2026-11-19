@@ -1,3 +1,5 @@
+// Defines observable companion state shared by services and Compose screens. Updates are synchronized so worker callbacks cannot overwrite unrelated state transitions.
+
 package dev.seamless.companion.connection
 
 import kotlinx.coroutines.flow.MutableStateFlow

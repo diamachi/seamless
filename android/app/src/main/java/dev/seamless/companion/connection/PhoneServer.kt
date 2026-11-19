@@ -1,3 +1,5 @@
+// Owns authenticated Mac peers, control-message dispatch and feature authorization. Media and file streams use separate authenticated sockets so control requests remain responsive.
+
 package dev.seamless.companion.connection
 
 import android.content.ClipData
@@ -614,6 +616,7 @@ class PhoneServer(private val context: Context) : AutoCloseable {
         while (socket.getInputStream().read() != -1) { /* Channel lifetime follows the authenticated receiver. */ }
     }
 
+    /// Retains incoming text and posts an actionable Copy notification, acknowledging delivery on the original control request.
     private fun receiveClipboard(peer: MacPeer, payload: JSONObject, requestID: String) {
         val text = payload.getString("text")
         require(text.length <= 32_000)

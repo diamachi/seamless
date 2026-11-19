@@ -1,3 +1,5 @@
+// Coordinates remembered-phone sessions and routes authenticated control messages to feature stores. UI actions enter here; binary file/video data uses separate transport channels.
+
 import Foundation
 import SwiftUI
 import AppKit
@@ -254,12 +256,14 @@ final class PhoneConnections: ObservableObject {
         sessions.update(.disconnected, for: phoneID)
     }
 
+    /// Clears local notification history and delivered Mac alerts without dismissing notifications on Android.
     func clearNotifications(phoneID: String) {
         let identifiers = notifications.filter { $0.phoneID == phoneID }.map { phoneID + $0.id }
         notifications.removeAll { $0.phoneID == phoneID }
         UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: identifiers)
     }
 
+    /// Sends a short-lived ring/stop command and updates shared UI state. The expiry bounds replay of delayed commands.
     func ring(phoneID: String, stop: Bool = false) {
         guard sessions.state(for: phoneID) == .connected else { return }
         ringTasks.removeValue(forKey: phoneID)?.cancel()

@@ -1,3 +1,5 @@
+// Receives H.264 records for screen/camera sessions and feeds the preview layer and optional webcam output. Session approval and media authentication precede frame decoding.
+
 import AVFoundation
 import CoreMedia
 import Foundation

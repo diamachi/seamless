@@ -1,3 +1,5 @@
+// Keeps the phone connection alive independently of the Activity task. The service owns its server instance, foreground notification and connection power lease.
+
 package dev.seamless.companion.connection
 
 import android.app.Notification
@@ -85,6 +87,7 @@ class ConnectionService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? = null
 
+    /// Retains service-owned sessions when the recent-app task is dismissed; manufacturer process killing remains outside this callback’s control.
     override fun onTaskRemoved(rootIntent: Intent?) {
         // Dismissing the UI task must not close the service-owned authenticated sockets.
         dev.seamless.companion.features.DebugEvents.record("Android task removed; connection service retained")

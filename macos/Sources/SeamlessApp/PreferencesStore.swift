@@ -1,3 +1,5 @@
+// Loads validated app preferences and bridges UI bindings to remembered-phone metadata and live connection policies. Persistence failures remain visible rather than silently overwriting settings.
+
 import Foundation
 import SwiftUI
 import SeamlessCore

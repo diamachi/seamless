@@ -1,3 +1,5 @@
+// Registers actionable notification categories with the bundled tone. Existing Android channel choices belong to the user and are preserved across updates.
+
 package dev.seamless.companion.features
 
 import android.app.NotificationChannel
@@ -11,6 +13,7 @@ internal object AlertChannels {
     const val SHARING_REQUESTS = "sharing_requests_v3"
     const val TRANSFER_RESULTS = "transfer_results_v2"
 
+    /// Creates the current actionable channels before setup tests or real alerts need them.
     fun registerAll(context: Context) {
         register(context, "received_text", "Received text", NotificationManager.IMPORTANCE_HIGH)
         register(context, SHARING_REQUESTS, "Sharing requests", NotificationManager.IMPORTANCE_HIGH)

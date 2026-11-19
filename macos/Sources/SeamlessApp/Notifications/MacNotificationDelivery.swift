@@ -20,6 +20,7 @@ final class MacNotificationDelivery: NSObject, ObservableObject, UNUserNotificat
         Task { await refresh() }
     }
 
+    /// Reads current OS notification authorization and presentation settings so UI guidance reflects actual access.
     func refresh() async {
         let settings = await UNUserNotificationCenter.current().notificationSettings()
         canShowBanners = settings.authorizationStatus == .authorized && settings.alertSetting == .enabled && settings.alertStyle != .none

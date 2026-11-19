@@ -1,3 +1,5 @@
+// Owns encrypted streaming file transfers, browser-download queues, destination staging and integrity verification. UI history is separate from files saved on disk.
+
 import AppKit
 import CryptoKit
 import Foundation
@@ -86,6 +88,7 @@ final class BulkTransfers: ObservableObject {
         }
     }
 
+    /// Removes received-file history for one phone while preserving downloaded files on disk.
     func clearDownloads(phoneID: String) { downloads.removeAll { $0.phoneID == phoneID } }
 
     func choose(phoneID: String) {
@@ -209,6 +212,7 @@ final class BulkTransfers: ObservableObject {
         cleanup(id: id)
     }
 
+    /// Drops session-bound state for this phone so a reconnect cannot reuse expired tokens or pending work.
     func disconnected(phoneID: String) {
         supportedPhones.remove(phoneID)
         browserQueue.removeAll { $0.phoneID == phoneID }

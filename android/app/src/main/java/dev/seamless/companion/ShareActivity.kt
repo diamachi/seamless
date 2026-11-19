@@ -1,3 +1,5 @@
+// Handles Android share-sheet intents without opening the main app. File URI contents are staged before this Activity finishes because source-app read grants can expire with its lifecycle.
+
 package dev.seamless.companion
 
 import android.app.AlertDialog
@@ -55,6 +57,7 @@ class ShareActivity : ComponentActivity() {
     }
 
 
+    /// Hands shared content to a selected authenticated peer, staging file bytes before releasing Activity-scoped URI access.
     private fun send(text: String?, files: List<android.net.Uri>, macID: String) {
         lifecycleScope.launch {
             try {

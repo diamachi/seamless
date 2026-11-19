@@ -1,3 +1,5 @@
+// Owns the status item, dashboard and incoming-share popovers. Staged files remain local until Send; transfer completion updates the dashboard without opening a window.
+
 import AppKit
 import SwiftUI
 import Combine

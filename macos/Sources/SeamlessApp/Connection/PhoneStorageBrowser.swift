@@ -1,3 +1,5 @@
+// Maintains the selected phone storage directory, pagination and thumbnail cache. Directory tokens belong to one authenticated connection and must be discarded on disconnect.
+
 import AppKit
 import Foundation
 import ImageIO
@@ -40,6 +42,7 @@ final class PhoneStorageBrowser: ObservableObject {
     private var selectingEntireFolder = false
     private var thumbnailRequests: Set<String> = []
 
+    /// Starts a scoped directory/media request and a bounded response deadline. Capability discovery may arrive after the view opens, so the selected phone is retained for retry.
     func load(phoneID: String, media: Bool, directory: String = "", append: Bool = false) {
         requestTimeout?.cancel()
         requestID = nil
@@ -81,6 +84,7 @@ final class PhoneStorageBrowser: ObservableObject {
         send?(phoneID, packet)
     }
 
+    /// Walks remaining pages before signalling selection, ensuring Select all includes entries beyond the visible page.
     func selectEntireFolder() {
         selectingEntireFolder = true
         if nextOffset >= 0 { more() }
@@ -157,6 +161,7 @@ final class PhoneStorageBrowser: ObservableObject {
         message = entries.isEmpty ? "No files here. Check storage access on the phone." : "\(entries.count) items"
     }
 
+    /// Drops session-bound state for this phone so a reconnect cannot reuse expired tokens or pending work.
     func disconnected(phoneID: String) {
         selectingEntireFolder = false
         folderDownloads.disconnected(phoneID: phoneID)

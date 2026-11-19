@@ -1,3 +1,5 @@
+// Tracks resumable Mac onboarding and system permission status. Restarting the guide preserves existing trust and OS grants.
+
 import AppKit
 import AVFoundation
 import Combine
@@ -15,6 +17,7 @@ final class SetupCoordinator: ObservableObject {
     @Published private(set) var isRequestingAccess = false
     private let defaults = UserDefaults.standard
 
+    /// Returns onboarding to Welcome without revoking trust, changing feature choices or resetting OS permissions.
     func restart() {
         step = 0
         isPresented = true
