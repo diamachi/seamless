@@ -234,3 +234,25 @@ Android ShareActivity now handles file shares without launching MainActivity. It
 0.6.22 Android Overview separates compact connection status from horizontally swipeable Mac cards. Sharing actions use a horizontal row and received text remains a horizontal card list. Notification setup moves to Settings. Camera stream metadata includes sensor rotation, applied by the Mac preview layer. This corrects sensor orientation in the preview; device rotation during capture and system-webcam pixel rotation require further work and physical validation.
 
 0.6.23 removes white-balance controls and sends Auto for compatibility with stored profiles. Camera actions combine Start/Stop, rename Pop out camera, observe rotation changes in the native surface and expose Rotate preview. Preview aspect swaps with quarter-turns. Overview adds a scrollbar gutter; semantic surfaces blend a small selected-phone accent tint. Android Overview includes an explicit text composer. System-webcam pixel rotation remains pending; physical orientation acceptance is required.
+
+
+Transfer outcomes now publish BulkTransfers.latestTransferResult and appear in the menu-bar dashboard. Completion does not schedule a system notification or main-window activity popup. The menu-bar popover presents the latest result without invoking the Open app closure. This avoids a notification-click/reopen route for routine transfer confirmation.
+
+
+Transfer results update the menu dashboard silently and never open its popover. Only new incoming offers/text and explicit menu/drag interactions present a panel. Incoming-file destination/decline controls form a padded horizontal action row.
+
+Menu popovers derive preferred size from their hosting views. Incoming shares use a bounded content-based height instead of reserving 420 points for every offer.
+
+
+## Diagnostics console
+Settings on each platform exposes an opt-in, memory-only debug console, limited to 500 timestamped events, with Copy report and Clear. Mac DiagnosticsConsole receives control packet types, connection state, video setup/stop and transfer outcomes. Android DebugEvents receives control operation types, peer-count changes and status transitions. Raw payloads, peer names/IDs, text, paths, credentials and contact data are excluded. This is an event console, not a complete packet or frame trace; it does not capture every OS/hardware error. Reports clear on process exit and recording defaults off.
+
+
+0.6.25 onboarding includes the existing per-Mac camera-start and contact-refresh consent toggles alongside OS permission review. Camera startup remains limited to the visible companion by Android restrictions. Notification checks now distinguish phone-local channel tests from the explicit phone-to-Mac test, gate blocked permissions/channels, request runtime permission and show post-test guidance. Previous channel tests were excluded by the self-notification relay filter, so they could not serve as mirroring tests; only the explicit TestNotification is relayed. Physical banner/audio delivery remains unverified.
+
+
+0.6.26 menu-bar Find phone toggles to Stop ringing using the existing shared ringer state. Android explicitly sets stopWithTask=false and records task removal/service destruction in debug mode; task removal leaves service-owned sockets intact. OEM process termination after recents dismissal cannot be prevented by this manifest flag and still requires device validation. Settings puts setup, background connection and trusted-Mac controls first, with diagnostics/reset collapsed under Advanced. Android surfaces use a restrained forest tint and mint actions.
+
+Mac onboarding includes a dedicated Choose apps step before verification, showing the selected phone’s existing notification allow-list and persisting changes through the normal notification-policy binding.
+
+Restart onboarding in Mac Settings calls SetupCoordinator.restart to return to Welcome without revoking permissions, deleting peers or changing notification choices.

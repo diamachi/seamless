@@ -6,7 +6,7 @@ struct SetupGuideView: View {
     @ObservedObject var setup: SetupCoordinator
     let openDevices: () -> Void
 
-    private let steps = ["Welcome", "Pair devices", "Permissions", "Verify", "Ready"]
+    private let steps = ["Welcome", "Pair devices", "Permissions", "Choose apps", "Verify", "Ready"]
     var body: some View {
         VStack(alignment: .leading, spacing: 24) {
             HStack {
@@ -14,12 +14,13 @@ struct SetupGuideView: View {
                 Spacer()
                 Button("Set up later") { setup.isPresented = false }
             }
-            HStack(spacing: 16) {
+            HStack(spacing: 10) {
                 ForEach(Array(steps.enumerated()), id: \.offset) { index, title in
                     Label(title, systemImage: index < setup.step ? "checkmark.circle.fill" : "\(index + 1).circle")
                         .font(.caption.weight(.medium)).foregroundStyle(index == setup.step ? InterfacePalette(scheme: colorScheme, colorName: phoneThemeColor).accent : InterfacePalette(scheme: colorScheme, colorName: phoneThemeColor).secondaryText)
                 }
             }
+            Text(steps[setup.step]).font(.title.weight(.semibold))
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) { stepContent }
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -28,7 +29,7 @@ struct SetupGuideView: View {
                 if setup.step > 0 { Button("Back") { setup.step -= 1 } }
                 Spacer()
                 Text("Optional features can be configured later.").font(.caption).foregroundStyle(.secondary)
-                if setup.step < 4 {
+                if setup.step < 5 {
                     Button("Continue") { setup.step += 1 }.buttonStyle(WorkspaceButtonStyle(prominent: true))
                         .disabled(setup.step == 1 && !preferencesStore.preferences.rememberedPhones.contains { preferencesStore.sessions.state(for: $0.id) == .connected })
                 } else {
@@ -68,12 +69,21 @@ struct SetupGuideView: View {
             phonePermissions
         case 3:
             WorkspaceCard {
-                Text("Verify both devices").font(.title2)
-                Text("1. On Android, use Check alert sounds and play each test.\n2. On this Mac, choose Android apps in the filter below.\n3. In Android Overview, post a test notification.\n4. Share a small file and text in each direction from Overview.")
-                Text("Android screen-sharing approval is required for each new session. Optional calls need Bluetooth pairing. The webcam driver is configured in Live camera.")
+                Text("Which phone apps may notify this Mac?").font(.title2.weight(.semibold))
+                Text("Choose the Android apps you want to hear from. Your selections are saved for this phone and can be changed later in Notifications.")
+                if let phone = preferencesStore.preferences.selectedPhone {
+                    Text("\(phone.preferences.notifications.allowedApplications.count) apps allowed")
+                        .font(.callout.weight(.medium)).foregroundStyle(.secondary)
+                }
             }
             NotificationSettingsView(preferencesStore: preferencesStore, connections: preferencesStore.connections, initiallyShowApplications: true)
                 .frame(height: 350)
+        case 4:
+            WorkspaceCard {
+                Text("Verify both devices").font(.title2)
+                Text("On Android, test alert sounds, then tap Send test in notification settings. Allow Seamless in the previous app-selection step to mirror that test. Share a small file and text in each direction.")
+                Text("Screen sharing needs approval for each session. Calls require Bluetooth pairing.")
+            }
         default:
             WorkspaceCard {
                 Text("Make it yours.").font(.title.weight(.semibold))

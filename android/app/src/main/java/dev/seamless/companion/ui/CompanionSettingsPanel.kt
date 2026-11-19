@@ -30,30 +30,38 @@ fun CompanionSettingsPanel(onPerformance: () -> Unit, onSetup: () -> Unit) {
     val context = LocalContext.current
     val connection by ConnectionRuntime.state.collectAsStateWithLifecycle()
     val preferences = context.getSharedPreferences("seamless_preferences", android.content.Context.MODE_PRIVATE)
+    var showAdvanced by remember { mutableStateOf(false) }
     var confirmForget by remember { mutableStateOf(false) }
     Column(Modifier.verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Text("Settings", style = MaterialTheme.typography.headlineMedium)
-        NotificationOverviewCard()
-        CompanionCard("Setup & permissions") {
+        CompanionCard("Get set up") {
             Text("Review access, pair another Mac and choose which features to use.", color = MaterialTheme.colorScheme.onSurfaceVariant)
             Button(shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp), onClick = onSetup) { Text("Open setup guide") }
         }
-        CompanionCard("Connection") {
-            Text("The background service keeps your trusted Macs within reach. Force stop, reboot and battery restrictions can interrupt it.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        CompanionCard("Stay connected") {
+            Text("Seamless stays connected when you leave this screen. If swiping it away disconnects your phone, allow background activity and lock Seamless in recent apps if your phone offers that option.", color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (connection.isListening) {
                 TextButton(onClick = { stopConnection(context) }) { Text("Pause connection") }
             } else {
                 Button(shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp), onClick = { startConnection(context, pairing = false) }) { Text("Reconnect saved Macs") }
             }
             TextButton(onClick = { openSetupSettings(context, Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)) }) { Text("Battery settings") }
-            TextButton(onClick = { confirmForget = true }) { Text("Forget trusted Macs…") }
+
         }
         for ((index, macID) in connection.connectedMacIDs.withIndex()) {
             TrustedMacSettings(macID, connection.connectedMacs.getOrNull(index) ?: "Mac")
         }
-        CompanionCard("Developer tools") {
+        NotificationOverviewCard()
+        CompanionCard("Advanced") {
+            TextButton(onClick = { showAdvanced = !showAdvanced }) { Text(if (showAdvanced) "Hide diagnostics" else "Diagnostics & reset") }
+        }
+        if (showAdvanced) {
+        DebugConsole()
+        CompanionCard("Troubleshooting") {
             TextButton(onClick = { dev.seamless.companion.features.TestNotification.post(context) }) { Text("Post a test notification") }
             TextButton(onClick = onPerformance) { Text("Performance lab") }
+            TextButton(onClick = { confirmForget = true }) { Text("Forget trusted Macs…") }
+        }
         }
     }
     if (confirmForget) {
@@ -67,7 +75,7 @@ fun CompanionSettingsPanel(onPerformance: () -> Unit, onSetup: () -> Unit) {
 }
 
 @Composable
-private fun TrustedMacSettings(macID: String, name: String) {
+internal fun TrustedMacSettings(macID: String, name: String) {
     val context = LocalContext.current
     val preferences = context.getSharedPreferences("phone_policies", android.content.Context.MODE_PRIVATE)
     var automaticFiles by remember(macID) { mutableStateOf(preferences.getBoolean("file_auto.$macID", preferences.getBoolean("automatic_downloads", false))) }

@@ -38,6 +38,7 @@ final class BulkTransfers: ObservableObject {
     @Published private(set) var offers: [BulkOffer] = []
     @Published private(set) var downloads: [ReceivedDownload] = []
     @Published var message = "Direct encrypted transfers. No fixed file-size cap."
+    @Published private(set) var latestTransferResult: String?
     var send: ((String, ControlPacket) -> Void)?
     var automaticallyAccept: ((String) -> Bool)?
     var authentication: ((String, String, String) throws -> (ConnectionProfile, ControlPacket))?
@@ -267,8 +268,8 @@ final class BulkTransfers: ObservableObject {
 
     private func notifyTransfer(id: String, title: String, detail: String, quiet: Bool = false) {
         guard let activity = activities.first(where: { $0.id == id }) else { return }
-        MacNotificationDelivery.shared.deliver(identifier: "transfer-" + id, title: title,
-                                               body: activity.name + " — " + detail, quiet: quiet)
+        DiagnosticsConsole.shared.record("Transfer: " + title)
+        latestTransferResult = activity.name + " · " + title + " · " + detail
     }
 
     private func cleanup(id: String) {

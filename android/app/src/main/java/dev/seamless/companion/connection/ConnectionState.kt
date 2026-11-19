@@ -71,6 +71,14 @@ object ConnectionRuntime {
 
     @Synchronized
     fun update(transform: (CompanionConnectionState) -> CompanionConnectionState) {
-        mutableState.value = transform(mutableState.value)
+        val previous = mutableState.value
+        val next = transform(previous)
+        if (previous.connectedMacIDs != next.connectedMacIDs) {
+            dev.seamless.companion.features.DebugEvents.record("Connection: " + next.connectedMacIDs.size + " Macs connected")
+        }
+        if (previous.message != next.message) {
+            dev.seamless.companion.features.DebugEvents.record("Operation status changed")
+        }
+        mutableState.value = next
     }
 }

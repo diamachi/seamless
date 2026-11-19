@@ -54,6 +54,7 @@
             android:foregroundServiceType="camera" />
         <service
             android:name=".connection.ConnectionService"
+            android:stopWithTask="false"
             android:exported="false"
             android:foregroundServiceType="connectedDevice" />
         <service android:name=".features.NotificationRelay" android:exported="true"

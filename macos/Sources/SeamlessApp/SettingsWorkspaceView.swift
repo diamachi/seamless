@@ -6,6 +6,7 @@ struct SettingsWorkspaceView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
+                DiagnosticsConsoleView()
                 WorkspaceHeading(title: "Settings", subtitle: "Make Seamless feel at home.")
                 WorkspaceCard {
                     HStack {
@@ -14,7 +15,11 @@ struct SettingsWorkspaceView: View {
                             Text("Pair devices and review optional access on both sides.").foregroundStyle(.secondary)
                         }
                         Spacer()
-                        Button("Open setup guide") { preferencesStore.setup.present() }
+                        VStack(alignment: .trailing, spacing: 8) {
+                            Button("Open setup guide") { preferencesStore.setup.present() }
+                            Button("Restart onboarding") { preferencesStore.setup.restart() }
+                                .help("Start at Welcome while keeping your paired devices and granted permissions")
+                        }
                             .buttonStyle(WorkspaceButtonStyle(prominent: true))
                     }
                 }

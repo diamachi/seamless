@@ -485,6 +485,7 @@ class PhoneServer(private val context: Context) : AutoCloseable {
         require(identity.hasPeer(peer.id)) { "Mac trust has been revoked" }
         val payload = packet.optJSONObject("payload") ?: JSONObject()
         val requestID = packet.getString("id")
+        dev.seamless.companion.features.DebugEvents.record("Control received: " + packet.getString("type"))
         when (packet.getString("type")) {
             "macDetails" -> {
                 peer.details = ConnectedMacDetails(

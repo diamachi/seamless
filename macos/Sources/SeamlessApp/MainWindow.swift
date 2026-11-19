@@ -95,7 +95,6 @@ struct MainWindow: View {
                           folders: preferencesStore.connections.storage.folderDownloads,
                           notices: notices)
         }
-        .onChange(of: preferencesStore.connections.bulk.message) { _, message in notices.show(message) }
         .onChange(of: preferencesStore.connections.files.message) { _, message in notices.show(message) }
         .onChange(of: preferencesStore.connections.storage.folderDownloads.message) { _, message in notices.show(message) }
         .onChange(of: preferencesStore.errorMessage) { _, message in

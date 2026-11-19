@@ -125,3 +125,5 @@ Final 0.6.17 native visual check confirmed device details inside the top phone c
 0.6.22 connection status notification names connected Macs and updates on peer changes. Mac tests and package verification passed; Android release tests/lint/signature checks passed. Carousel layout and camera sensor rotation are implemented but physically unverified. Webcam output pixel rotation remains pending.
 
 0.6.23 validation: Mac suites passed and DMG verified. Android release tests/lint/signature passed. Monochrome launcher assets generated for both platforms. Camera preview rotation remains unverified on a physical stream; system webcam pixel rotation remains pending.
+
+0.6.24 diagnostics console: Mac core/app tests passed; Android release assembly, unit tests, lint and stable signing passed; DMG verified. Console event coverage is implemented, with physical repro/report usability still pending.

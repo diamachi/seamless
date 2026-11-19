@@ -371,6 +371,7 @@ final class PhoneConnections: ObservableObject {
         let client = PhoneControlClient()
         client.onPacket = { [weak self] packet in self?.receive(packet, phoneID: phoneID, profile: profile) }
         client.onState = { [weak self] state, error in
+            DiagnosticsConsole.shared.record("Connection: " + String(describing: state) + (error == nil ? "" : " · transport error"))
             guard let self else { return }
             self.sessions.update(state, for: phoneID)
             if state == .disconnected { self.files.disconnected(phoneID: phoneID); self.bulk.disconnected(phoneID: phoneID); self.storage.disconnected(phoneID: phoneID) }
@@ -392,6 +393,7 @@ final class PhoneConnections: ObservableObject {
     }
 
     private func receive(_ packet: ControlPacket, phoneID: String, profile: ConnectionProfile) {
+        DiagnosticsConsole.shared.record("Control received: " + packet.type)
         activeProfiles[phoneID] = profile
         switch packet.type {
         case "bulkOffer", "bulkAccepted", "bulkCancel":
@@ -475,7 +477,9 @@ final class PhoneConnections: ObservableObject {
             clipboardStatus[phoneID] = "Text received · open Received text to copy it"
             message = "Text received from your phone."
 
-        case "error": message = packet.payload["message"].string ?? "Phone operation failed."
+        case "error":
+            DiagnosticsConsole.shared.record("Error: phone rejected an operation")
+            message = packet.payload["message"].string ?? "Phone operation failed."
         default: break
         }
     }
@@ -599,6 +603,7 @@ final class PhoneConnections: ObservableObject {
     }
 
     private func send(phoneID: String, packet: ControlPacket) {
+        DiagnosticsConsole.shared.record("Control send: " + packet.type)
         do {
             _ = try sessions.requireConnectedPhone(id: phoneID)
             clients[phoneID]?.send(packet)
@@ -607,6 +612,7 @@ final class PhoneConnections: ObservableObject {
 
     private func scheduleReconnect(phoneID: String) {
         guard reconnectEnabled.contains(phoneID), reconnectTasks[phoneID] == nil else { return }
+        DiagnosticsConsole.shared.record("Connection: reconnect scheduled")
         let attempt = min((reconnectAttempts[phoneID] ?? 0) + 1, 5)
         reconnectAttempts[phoneID] = attempt
         let delay = min(pow(2.0, Double(attempt)), 30) + Double.random(in: 0...1)

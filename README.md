@@ -45,7 +45,7 @@ Files, notifications, clipboard, phone screen and live camera, together in a nat
 
 ## Try it
 
-Download the [0.6.23 preview from GitHub Releases](https://github.com/diamachi/seamless/releases/tag/v0.6.23), or get CI packages from **Actions → Build test installers → a successful run → Artifacts**. See [CI setup and signing limits](docs/CI.md). Local build outputs are placed in `dist/`:
+Download the [0.6.26 preview from GitHub Releases](https://github.com/diamachi/seamless/releases/tag/v0.6.26), or get CI packages from **Actions → Build test installers → a successful run → Artifacts**. See [CI setup and signing limits](docs/CI.md). Local build outputs are placed in `dist/`:
 
 | Platform | Package | Install |
 | --- | --- | --- |
@@ -150,3 +150,12 @@ Clipboard: Mac → phone uses Send copied text (or optional auto-send) and confi
 ## Current preview limitations
 
 Camera preview orientation needs device validation. The Rotate preview control provides manual correction; rotation of system-webcam output remains pending. White-balance controls have been removed. Onboarding provides permission review and notification-sound diagnostics, while Android retains previously selected channel settings.
+
+
+## Troubleshooting
+
+Open Settings → Debug mode on either device, enable recording, reproduce the issue, then Copy report. The console keeps at most 500 timestamped events in memory and omits private payloads. Coverage includes connection/control events and selected transfer/video lifecycle events; it does not capture every OS or hardware failure.
+
+Mac Settings → Restart onboarding restarts the guide without forgetting paired devices or revoking permissions. The guide includes Android app notification selection. Android Settings groups background access and trusted-Mac permissions separately from diagnostics.
+
+Some Android devices terminate background apps when dismissed from Recents. Seamless keeps its connection service independent of the UI task, but manufacturer process management can still interrupt it. Debug mode records task removal and service destruction. Review background access and, where available, lock Seamless in Recents.

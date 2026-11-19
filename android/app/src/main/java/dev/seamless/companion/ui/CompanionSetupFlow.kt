@@ -36,8 +36,16 @@ fun CompanionSetupFlow(state: CompanionConnectionState, onScanMac: () -> Unit, o
             Text("Set up Seamless", style = MaterialTheme.typography.titleLarge)
             TextButton(onClick = { onFinish(false) }) { Text("Later") }
         }
+        Text(titles[step], style = MaterialTheme.typography.headlineSmall)
+        Text(when (step) {
+            0 -> "Bring your devices together."
+            1 -> "One scan, then approve your Mac."
+            2 -> "Choose what your trusted Mac can do."
+            3 -> "Confirm alerts and sharing before you finish."
+            else -> "Your devices are ready."
+        }, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         LinearProgressIndicator(progress = { (step + 1) / 5f }, modifier = Modifier.fillMaxWidth())
-        Text("${step + 1} of 5 · ${titles[step]}", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+        Text("Step ${step + 1} of 5", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             when (step) {
                 0 -> CompanionCard("Your phone, connected.") {
@@ -52,7 +60,12 @@ fun CompanionSetupFlow(state: CompanionConnectionState, onScanMac: () -> Unit, o
                         Text(if (state.connectedMacs.isNotEmpty()) "Connected to ${state.connectedMacs.joinToString()}" else "Waiting for your Mac", color = MaterialTheme.colorScheme.primary)
                     }
                 }
-                2 -> PermissionSetupPanel()
+                2 -> {
+                    PermissionSetupPanel()
+                    for ((index, macID) in state.connectedMacIDs.withIndex()) {
+                        TrustedMacSettings(macID, state.connectedMacs.getOrNull(index) ?: "Mac")
+                    }
+                }
                 3 -> {
                     NotificationSoundSetup()
                     CompanionCard("Finish on your Mac") {

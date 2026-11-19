@@ -99,6 +99,7 @@ final class PhoneVideoStreamController: ObservableObject {
     }
 
     func stop() {
+        DiagnosticsConsole.shared.record("Video: session stopped")
         whiteBalanceModes = nil
         let stopExternal = externalStop
         externalStop = nil
@@ -197,6 +198,7 @@ final class PhoneVideoStreamController: ObservableObject {
 
     private func configure(_ data: Data) throws {
         let value = try JSONDecoder().decode(JSONValue.self, from: data)
+        DiagnosticsConsole.shared.record("Video: decoder configuration received")
         rotationDegrees = purpose == .camera ? Int(value["rotationDegrees"].number ?? 0) : 0
         let reportedEncoder = value["encoder"].string ?? ""
         if encoderName != reportedEncoder { encoderName = reportedEncoder }

@@ -15,7 +15,13 @@ final class SetupCoordinator: ObservableObject {
     @Published private(set) var isRequestingAccess = false
     private let defaults = UserDefaults.standard
 
-    func present() { step = min(4, max(0, defaults.integer(forKey: "seamless.setup.step"))); isPresented = true; refresh() }
+    func restart() {
+        step = 0
+        isPresented = true
+        refresh()
+    }
+
+    func present() { step = min(5, max(0, defaults.integer(forKey: "seamless.setup.step"))); isPresented = true; refresh() }
     func offerFirstRun(hasSavedPhone: Bool) {
         if !hasSavedPhone && !defaults.bool(forKey: "seamless.setup.presented") {
             defaults.set(true, forKey: "seamless.setup.presented")

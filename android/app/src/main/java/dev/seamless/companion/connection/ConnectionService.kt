@@ -85,7 +85,15 @@ class ConnectionService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? = null
 
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        // Dismissing the UI task must not close the service-owned authenticated sockets.
+        dev.seamless.companion.features.DebugEvents.record("Android task removed; connection service retained")
+        if (!isDestroyed && ownedServer != null) showForegroundNotification()
+        super.onTaskRemoved(rootIntent)
+    }
+
     override fun onDestroy() {
+        dev.seamless.companion.features.DebugEvents.record("Android connection service destroyed")
         isDestroyed = true
         serviceScope.cancel()
         powerLease.close()

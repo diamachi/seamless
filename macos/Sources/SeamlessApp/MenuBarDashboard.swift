@@ -21,12 +21,14 @@ final class MenuBarDashboard {
         item.button?.image = symbol
         let popover = NSPopover()
         popover.behavior = .transient
-        popover.contentSize = NSSize(width: 440, height: 420)
         popover.contentViewController = NSHostingController(rootView: MenuBarDashboardView(preferencesStore: preferencesStore,
             connections: preferencesStore.connections, bulk: preferencesStore.connections.bulk, shelf: shelf, openMainWindow: { [weak popover] in
                 popover?.performClose(nil)
                 openMainWindow()
             }))
+        if let hosting = popover.contentViewController as? NSHostingController<MenuBarDashboardView> {
+            hosting.sizingOptions = [.preferredContentSize]
+        }
         let view = MenuBarDropView(frame: NSRect(x: 0, y: 0, width: 32, height: 24))
         view.open = { [weak popover, weak view] in
             guard let popover, let view else { return }
@@ -53,6 +55,9 @@ final class MenuBarDashboard {
         incoming.behavior = .transient
         incoming.contentViewController = NSHostingController(rootView: IncomingSharePopup(
             bulk: preferencesStore.connections.bulk, texts: preferencesStore.connections.clipboardHistory, dismiss: { [weak incoming] in incoming?.performClose(nil) }))
+        if let hosting = incoming.contentViewController as? NSHostingController<IncomingSharePopup> {
+            hosting.sizingOptions = [.preferredContentSize]
+        }
         incomingPopover = incoming
         view.open = { [weak popover, weak incoming, weak view] in
             guard let popover, let incoming, let view else { return }
@@ -164,7 +169,12 @@ private struct MenuBarDashboardView: View {
                 HStack {
                     ConnectionBadge(isConnected: connections.sessions.state(for: phoneID) == .connected)
                     Spacer()
-                    Button { connections.ring(phoneID: phoneID) } label: { Image(systemName: "bell") }.help("Find phone")
+                    Button {
+                        connections.ring(phoneID: phoneID, stop: connections.ringingPhones.contains(phoneID))
+                    } label: {
+                        Label(connections.ringingPhones.contains(phoneID) ? "Stop ringing" : "Find phone",
+                              systemImage: connections.ringingPhones.contains(phoneID) ? "bell.slash" : "bell")
+                    }.disabled(connections.sessions.state(for: phoneID) != .connected)
                     if let status = connections.statuses[phoneID] { Label("\(status.batteryPercent)%", systemImage: "battery.100percent") }
                 }
                 MenuBarFileShelfView(shelf: shelf, bulk: bulk, phoneID: phoneID)
@@ -178,6 +188,10 @@ private struct MenuBarDashboardView: View {
                     TextField("Send text to phone", text: $editor.text).textFieldStyle(WorkspaceTextFieldStyle())
                     Button("Send") { connections.sendText(editor.text, phoneID: phoneID); editor.text = "" }
                         .disabled(editor.text.isEmpty || editor.text.utf16.count > 32_000 || connections.sessions.state(for: phoneID) != .connected)
+                }
+                if let result = bulk.latestTransferResult {
+                    Label(result, systemImage: "checkmark.circle")
+                        .font(.caption).lineLimit(3)
                 }
                 LatestReceivedText(history: connections.clipboardHistory, phoneID: phoneID)
                 if let status = connections.clipboardStatus[phoneID] {
@@ -229,8 +243,9 @@ private struct IncomingSharePopup: View {
                     VStack(alignment: .leading, spacing: 10) {
                         Label(offer.name, systemImage: "doc.fill").font(.callout.weight(.medium)).lineLimit(2)
                         Text(ByteCountFormatter.string(fromByteCount: offer.size, countStyle: .file)).font(.caption).foregroundStyle(.secondary)
-                        Button("Save to Downloads") { bulk.accept(offer); if bulk.offers.isEmpty { dismiss() } }
-                        Button("Save to a folder…") {
+                        HStack(spacing: 12) {
+                        Button("Downloads") { bulk.accept(offer); if bulk.offers.isEmpty { dismiss() } }
+                        Button("Choose folder…") {
                             let panel = NSOpenPanel()
                             panel.canChooseDirectories = true
                             panel.canChooseFiles = false
@@ -240,7 +255,11 @@ private struct IncomingSharePopup: View {
                                 if bulk.offers.isEmpty { dismiss() }
                             }
                         }
-                        Button("Decline") { bulk.reject(id: offer.id, phoneID: offer.phoneID) }
+                        Button("Decline") {
+                            bulk.reject(id: offer.id, phoneID: offer.phoneID)
+                            if bulk.offers.isEmpty { dismiss() }
+                        }
+                        }.frame(maxWidth: .infinity, alignment: .leading).padding(.top, 8).padding(.bottom, 6)
                     }
                     Divider()
                 }
@@ -253,13 +272,12 @@ private struct IncomingSharePopup: View {
                             Button("Delete") { texts.delete(item) }
                         }
                     }
-                    Divider()
                 }
                 if bulk.offers.isEmpty && texts.items.isEmpty {
                     Text("No incoming shares")
                 }
             }.padding(20)
-        }.frame(width: 390).frame(maxHeight: 420)
+        }.frame(width: 440, height: min(420, CGFloat(72 + bulk.offers.count * 140 + min(5, texts.items.count) * 150)))
             .buttonStyle(WorkspaceButtonStyle(compact: true))
     }
 }

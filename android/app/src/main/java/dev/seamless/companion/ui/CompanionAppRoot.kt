@@ -141,17 +141,17 @@ fun CompanionAppRoot(
 
 @Composable
 private fun companionColors(dark: Boolean) = if (dark) {
-    darkColorScheme(primary = Color(0xFFC4D8D1), onPrimary = Color(0xFF20252B),
-        background = Color(0xFF1D1F22), onBackground = Color(0xFFF1F3F5),
-        surface = Color(0xFF1D1F22), onSurface = Color(0xFFF1F3F5), onSurfaceVariant = Color(0xFFB9C0C8),
-        surfaceContainerLow = Color(0xFF272A2E), surfaceContainer = Color(0xFF32363B),
+    darkColorScheme(primary = Color(0xFFABDCC9), onPrimary = Color(0xFF20252B),
+        background = Color(0xFF18221F), onBackground = Color(0xFFF1F3F5),
+        surface = Color(0xFF18221F), onSurface = Color(0xFFF1F3F5), onSurfaceVariant = Color(0xFFB9C0C8),
+        surfaceContainerLow = Color(0xFF22312B), surfaceContainer = Color(0xFF2C3E35),
         outline = Color(0xFFB9C0C8), outlineVariant = Color(0xFF41464D),
-        secondaryContainer = Color(0xFF353A40), onSecondaryContainer = Color(0xFFC4D8D1))
+        secondaryContainer = Color(0xFF314B3E), onSecondaryContainer = Color(0xFFABDCC9))
 } else {
-    lightColorScheme(primary = Color(0xFF435D53), onPrimary = Color.White,
-        background = Color(0xFFF6F7F8), onBackground = Color(0xFF20252B),
-        surface = Color(0xFFF6F7F8), onSurface = Color(0xFF20252B), onSurfaceVariant = Color(0xFF58616B),
-        surfaceContainerLow = Color(0xFFFFFFFF), surfaceContainer = Color(0xFFC4D8D1),
+    lightColorScheme(primary = Color(0xFF32624F), onPrimary = Color.White,
+        background = Color(0xFFF3F7F2), onBackground = Color(0xFF20252B),
+        surface = Color(0xFFF3F7F2), onSurface = Color(0xFF20252B), onSurfaceVariant = Color(0xFF58616B),
+        surfaceContainerLow = Color(0xFFFFFFFF), surfaceContainer = Color(0xFFABDCC9),
         outline = Color(0xFF68737D), outlineVariant = Color(0xFFD7DCE1),
-        secondaryContainer = Color(0xFFE9ECEF), onSecondaryContainer = Color(0xFF435D53))
+        secondaryContainer = Color(0xFFE2EDE3), onSecondaryContainer = Color(0xFF32624F))
 }

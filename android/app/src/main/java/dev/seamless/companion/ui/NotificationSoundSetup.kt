@@ -17,6 +17,10 @@ import dev.seamless.companion.features.AlertChannels
 internal fun NotificationSoundSetup() {
     val context = LocalContext.current
     val manager = context.getSystemService(NotificationManager::class.java)
+    var feedback by remember { mutableStateOf("") }
+    val permission = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+    ) { allowed -> feedback = if (allowed) "Notifications allowed. Tap a test again." else "Notifications blocked. Open app notification settings to allow alerts." }
     var revision by remember { mutableIntStateOf(0) }
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { revision += 1 }
     val channels = listOf(
@@ -27,7 +31,15 @@ internal fun NotificationSoundSetup() {
     )
     LaunchedEffect(Unit) { AlertChannels.registerAll(context); revision += 1 }
     CompanionCard("Check alert sounds") {
-        Text("Each alert category has its own Android sound setting. Review any category marked Silent or Blocked.")
+        Text("These tests appear on this phone. Use Test phone → Mac below to check mirroring.", style = androidx.compose.material3.MaterialTheme.typography.bodySmall)
+        if (!manager.areNotificationsEnabled()) {
+            TextButton(onClick = {
+                if (Build.VERSION.SDK_INT >= 33) permission.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                else context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, android.net.Uri.parse("package:" + context.packageName)))
+            }) { Text("Allow notifications") }
+        }
+        if (feedback.isNotEmpty()) Text(feedback)
+
         for ((identifier, title) in channels) {
             val channel = remember(revision, identifier) {
                 if (Build.VERSION.SDK_INT >= 26) manager.getNotificationChannel(identifier) else null
@@ -47,12 +59,30 @@ internal fun NotificationSoundSetup() {
                 }
             }) { Text("Review sound") }
             TextButton(onClick = {
+                if (!manager.areNotificationsEnabled()) {
+                    feedback = "Notifications are blocked. Allow notifications first."
+                    return@TextButton
+                }
+                val current = if (Build.VERSION.SDK_INT >= 26) manager.getNotificationChannel(identifier) else null
+                if (Build.VERSION.SDK_INT >= 26 && current?.importance == NotificationManager.IMPORTANCE_NONE) {
+                    feedback = title + " is blocked. Tap Review sound."
+                    return@TextButton
+                }
                 val builder = if (Build.VERSION.SDK_INT >= 26) Notification.Builder(context, identifier)
                     else Notification.Builder(context).setSound(AlertChannels.sound(context))
+                manager.cancel(identifier.hashCode())
                 manager.notify(identifier.hashCode(), builder.setSmallIcon(android.R.drawable.ic_dialog_info)
                     .setContentTitle(title + " test").setContentText("Check that you heard this alert.").setAutoCancel(true).build())
+                feedback = "Posted " + title + ". Check this phone’s notification shade. If silent, review sound, volume and Do Not Disturb."
             }) { Text("Play test notification") }
         }
+        TextButton(onClick = {
+            if (!manager.areNotificationsEnabled()) feedback = "Allow notifications first."
+            else {
+                dev.seamless.companion.features.TestNotification.post(context)
+                feedback = "Posted mirroring test. On Mac, allow Seamless in Choose apps and ensure Android notification access is enabled."
+            }
+        }) { Text("Test phone → Mac") }
         Text("Connection, camera and screen-in-use indicators stay quiet. Sound also depends on notification volume and Do Not Disturb.")
     }
 }
