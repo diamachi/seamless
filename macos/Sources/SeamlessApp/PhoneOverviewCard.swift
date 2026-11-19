@@ -17,10 +17,10 @@ struct PhoneOverviewCard: View {
 
     var body: some View {
         WorkspaceCard {
-            HStack(spacing: 28) {
-                PhoneIllustration(wallpaper: nil, colorName: colorName).frame(width: 88, height: 188)
+            HStack(spacing: 20) {
+                PhoneIllustration(wallpaper: nil, colorName: colorName).frame(width: 58, height: 124)
                 VStack(alignment: .leading, spacing: 16) {
-                    Text(phone.displayName).font(.system(size: 26, weight: .semibold, design: .rounded)).lineLimit(2)
+                    Text(phone.displayName).font(.system(size: 23, weight: .semibold)).lineLimit(2)
                     if let status {
                         Label("Android \(status.androidVersion)", systemImage: "square.stack.3d.up")
                             .foregroundStyle(.secondary)
@@ -43,7 +43,7 @@ struct PhoneOverviewCard: View {
                         }
                     }
                 }
-                Spacer(minLength: 0)
+                Spacer(minLength: 16)
                 VStack(alignment: .leading, spacing: 18) {
                     if let status {
                         batterySummary(status)
@@ -54,14 +54,16 @@ struct PhoneOverviewCard: View {
                     } else {
                         Button("Reconnect", action: reconnect).buttonStyle(WorkspaceButtonStyle(prominent: true))
                     }
-                }.frame(maxWidth: 220, alignment: .leading)
+                }.frame(width: 160, alignment: .leading)
             }
+            Divider().padding(.vertical, 4)
+            DeviceDetailsSummary(status: status)
         }
     }
     private func batterySummary(_ status: ConnectedPhoneStatus) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
-                Text("\(status.batteryPercent)%").font(.system(size: 30, weight: .medium, design: .rounded))
+                Text("\(status.batteryPercent)%").font(.system(size: 23, weight: .medium))
                 Text(status.isCharging ? "Charging" : "Battery").font(.caption).foregroundStyle(.secondary)
             }
             ProgressView(value: Double(status.batteryPercent), total: 100)

@@ -2,9 +2,10 @@ import SwiftUI
 
 struct WorkspaceTextFieldStyle: TextFieldStyle {
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.phoneThemeColor) private var phoneThemeColor
 
     func _body(configuration: TextField<Self._Label>) -> some View {
-        let palette = InterfacePalette(scheme: colorScheme)
+        let palette = InterfacePalette(scheme: colorScheme, colorName: phoneThemeColor)
         configuration
             .textFieldStyle(.plain)
             .font(.system(size: 14))

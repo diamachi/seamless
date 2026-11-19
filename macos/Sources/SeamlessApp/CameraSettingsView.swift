@@ -4,6 +4,8 @@ import SeamlessCore
 struct CameraSettingsView: View {
     @Binding var preferences: CameraPreferences
 
+    let supportedModes: [String]?
+
     var body: some View {
         WorkspaceCard {
             Label("Camera profile", systemImage: "slider.horizontal.3").font(.headline)
@@ -19,7 +21,7 @@ struct CameraSettingsView: View {
                     liveControls
                 }
             }
-            Text("Saved for this phone. Android limits controls to the selected camera’s supported range. Front cameras usually have no torch; unsupported white-balance modes use Auto.")
+            Text("Saved for this phone. Android limits controls to the selected camera’s supported range. Front cameras usually have no torch.")
                 .font(.caption).foregroundStyle(.secondary)
         }
     }
@@ -53,8 +55,6 @@ struct CameraSettingsView: View {
                     .frame(maxWidth: .infinity, minHeight: 24)
             }
             .buttonStyle(WorkspaceButtonStyle(prominent: preferences.torch))
-            WorkspaceMenuPicker(title: "White balance", symbol: "sun.max", selection: $preferences.whiteBalance,
-                                choices: ["auto", "daylight", "cloudy", "incandescent", "fluorescent"].map { ($0, $0.capitalized) })
         }
     }
 }

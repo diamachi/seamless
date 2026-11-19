@@ -23,9 +23,10 @@ import androidx.compose.ui.unit.dp
 import dev.seamless.companion.connection.ConnectedMacDetails
 
 @Composable
-internal fun MacDetailsCard(name: String, details: ConnectedMacDetails?) {
+internal fun MacDetailsContent(name: String, details: ConnectedMacDetails?) {
     val context = LocalContext.current
-    CompanionCard(name) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (name.isNotEmpty()) Text(name, style = MaterialTheme.typography.titleSmall)
         Row(horizontalArrangement = Arrangement.spacedBy(18.dp)) {
             MacBookIllustration()
             Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {

@@ -12,10 +12,10 @@ object TestNotification {
         val manager = context.getSystemService(NotificationManager::class.java)
         val channelID = "sharing_test"
         if (Build.VERSION.SDK_INT >= 26) {
-            manager.createNotificationChannel(NotificationChannel(channelID, "Sharing test", NotificationManager.IMPORTANCE_DEFAULT))
+            AlertChannels.register(context, channelID, "Notification test", NotificationManager.IMPORTANCE_DEFAULT)
         }
         val builder = if (Build.VERSION.SDK_INT >= 26) Notification.Builder(context, channelID) else Notification.Builder(context)
         manager.notify(100, builder.setSmallIcon(android.R.drawable.ic_dialog_info).setContentTitle("Seamless test notification")
-            .setContentText("This notification tests your selected-app filter. No message was sent to anyone.").build())
+            .setSound(AlertChannels.sound(context)).setContentText("This notification tests your selected-app filter. No message was sent to anyone.").build())
     }
 }

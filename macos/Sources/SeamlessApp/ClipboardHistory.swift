@@ -11,14 +11,15 @@ struct ClipboardHistoryItem: Identifiable {
 
 @MainActor
 final class ClipboardHistory: ObservableObject {
-    @Published var isEnabled = false
     @Published private(set) var items: [ClipboardHistoryItem] = []
     func record(text: String, source: String, phoneID: String) {
-        guard isEnabled, !text.isEmpty, text.count <= 32_000 else { return }
+        guard !text.isEmpty, text.count <= 32_000 else { return }
         guard items.first?.text != text || items.first?.phoneID != phoneID else { return }
         items.insert(ClipboardHistoryItem(text: text, source: source, phoneID: phoneID), at: 0)
         items = Array(items.prefix(30))
     }
+    func delete(_ item: ClipboardHistoryItem) { items.removeAll { $0.id == item.id } }
+    func clear(phoneID: String?) { items.removeAll { $0.phoneID == phoneID } }
     func clear() { items = [] }
     func copy(_ item: ClipboardHistoryItem) {
         NSPasteboard.general.clearContents()

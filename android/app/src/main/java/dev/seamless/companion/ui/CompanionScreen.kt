@@ -91,9 +91,9 @@ fun CompanionScreen(
                 }
             }
             if (benchmark.isRunning) {
-                OutlinedButton(onClick = onStopBenchmark) { Text("Stop benchmark") }
+                OutlinedButton(shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp), onClick = onStopBenchmark) { Text("Stop benchmark") }
             } else {
-                Button(onClick = onStartBenchmark) { Text("Start screen benchmark") }
+                Button(shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp), onClick = onStartBenchmark) { Text("Start screen benchmark") }
             }
             BenchmarkResults(benchmark)
             Text("For a useful result, approve sharing your entire screen, then scroll or play an animation in another app. Static screens naturally produce fewer frames. Return here to inspect results; stop from the notification or Android sharing indicator.")

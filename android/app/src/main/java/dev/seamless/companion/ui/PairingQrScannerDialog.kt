@@ -58,7 +58,7 @@ internal fun PairingQrScannerDialog(onClose: () -> Unit) {
                 Text("On your Mac, open Connect new phone → Create pairing QR. Point this camera at that QR. Images are processed on this phone and are not saved or sent.")
                 if (!allowed) {
                     Text("Camera permission is needed to scan. You can cancel and use the full-code fallback instead.")
-                    Button(onClick = { permission.launch(Manifest.permission.CAMERA) }) { Text("Allow camera") }
+                    Button(shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp), onClick = { permission.launch(Manifest.permission.CAMERA) }) { Text("Allow camera") }
                     TextButton(onClick = {
                         openSetupSettings(context, android.content.Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
                             android.net.Uri.parse("package:${context.packageName}")))
@@ -68,7 +68,7 @@ internal fun PairingQrScannerDialog(onClose: () -> Unit) {
                     Text("Connecting to your Mac… Keep its QR page open.")
                 } else if (error != null) {
                     Text(requireNotNull(error), color = MaterialTheme.colorScheme.error)
-                    Button(onClick = { error = null }) { Text("Scan again") }
+                    Button(shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp), onClick = { error = null }) { Text("Scan again") }
                 } else {
                     PairingQrCameraPreview(Modifier.fillMaxWidth().weight(1f), onCode = { code ->
                         val server = ConnectionRuntime.server

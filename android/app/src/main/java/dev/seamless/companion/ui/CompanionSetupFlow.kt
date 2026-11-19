@@ -25,15 +25,19 @@ import dev.seamless.companion.connection.CompanionConnectionState
 
 @Composable
 fun CompanionSetupFlow(state: CompanionConnectionState, onScanMac: () -> Unit, onFinish: (Boolean) -> Unit) {
-    var step by rememberSaveable { mutableIntStateOf(0) }
-    val titles = listOf("Welcome", "Pair your Mac", "Choose permissions", "You're ready")
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val saved = context.getSharedPreferences("onboarding", android.content.Context.MODE_PRIVATE)
+    var step by rememberSaveable { mutableIntStateOf(saved.getInt("setup_step", 0).coerceIn(0, 4)) }
+    androidx.compose.runtime.LaunchedEffect(step) { saved.edit().putInt("setup_step", step).apply() }
+
+    val titles = listOf("Welcome", "Pair your Mac", "Choose permissions", "Check both devices", "Ready")
     Column(Modifier.fillMaxSize().padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text("Set up Seamless", style = MaterialTheme.typography.titleLarge)
             TextButton(onClick = { onFinish(false) }) { Text("Later") }
         }
-        LinearProgressIndicator(progress = { (step + 1) / 4f }, modifier = Modifier.fillMaxWidth())
-        Text("${step + 1} of 4 · ${titles[step]}", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+        LinearProgressIndicator(progress = { (step + 1) / 5f }, modifier = Modifier.fillMaxWidth())
+        Text("${step + 1} of 5 · ${titles[step]}", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             when (step) {
                 0 -> CompanionCard("Your phone, connected.") {
@@ -49,6 +53,14 @@ fun CompanionSetupFlow(state: CompanionConnectionState, onScanMac: () -> Unit, o
                     }
                 }
                 2 -> PermissionSetupPanel()
+                3 -> {
+                    NotificationSoundSetup()
+                    CompanionCard("Finish on your Mac") {
+                        Text("In Mac setup, review notification and Downloads access. Choose Android apps to mirror in Overview → Choose apps.")
+                        Text("Send text from Mac to phone, then Share text → Seamless on Android. Send a small file in each direction and confirm the destination.")
+                        Text("Screen sharing needs approval for each session. Calls and the optional webcam driver have their own setup.")
+                    }
+                }
                 else -> CompanionCard("Make yourself at home") {
                     Text("Overview keeps connection details and your Macs in one place. Requests appear only when something needs your attention.")
                     Text("You can close the companion screen while its connection service runs. Battery restrictions, force stop and reboot can interrupt it.", color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -57,12 +69,12 @@ fun CompanionSetupFlow(state: CompanionConnectionState, onScanMac: () -> Unit, o
             }
         }
         Row(Modifier.fillMaxWidth().padding(bottom = 16.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-            if (step > 0) OutlinedButton(onClick = { step -= 1 }) { Text("Back") }
+            if (step > 0) OutlinedButton(shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp), onClick = { step -= 1 }) { Text("Back") }
             else Text("")
-            Button(onClick = {
-                if (step < 3) step += 1
+            Button(shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp), enabled = step != 1 || state.connectedMacIDs.isNotEmpty(), onClick = {
+                if (step < 4) step += 1
                 else onFinish(true)
-            }) { Text(if (step < 3) "Continue" else "Go to overview") }
+            }) { Text(if (step < 4) "Continue" else "Go to overview") }
         }
     }
 }

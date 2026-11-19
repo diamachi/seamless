@@ -21,6 +21,8 @@ data class PairingRequest(val macName: String, val requestID: String)
 data class IncomingFileOffer(val transferID: String, val name: String, val size: Long)
 data class TransferProgress(val id: String, val name: String, val completed: Long, val total: Long)
 
+data class ReceivedText(val id: String = java.util.UUID.randomUUID().toString(), val text: String)
+
 data class ReceivedFile(val path: String, val name: String)
 
 data class CompanionConnectionState(
@@ -39,6 +41,7 @@ data class CompanionConnectionState(
     val pairingRequest: PairingRequest? = null,
     val contactsRequest: ContactsRequest? = null,
     val requestReviewSequence: Long = 0,
+    val receivedTexts: List<ReceivedText> = emptyList(),
     val incomingClipboard: String = "",
     val incomingFileOffer: IncomingFileOffer? = null,
     val receivedFile: ReceivedFile? = null,

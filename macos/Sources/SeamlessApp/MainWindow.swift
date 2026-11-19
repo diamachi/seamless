@@ -42,6 +42,7 @@ struct MainWindow: View {
     @StateObject private var navigation = WindowNavigation()
     @StateObject private var notices = AppNotices()
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.phoneThemeColor) private var phoneThemeColor
 
     var body: some View {
         NavigationSplitView(columnVisibility: $navigation.columnVisibility) {
@@ -74,10 +75,10 @@ struct MainWindow: View {
             }
             .padding(24)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            .background(TranslucentSurface(material: .underWindowBackground, tint: InterfacePalette(scheme: colorScheme).canvas)
+            .background(TranslucentSurface(material: .underWindowBackground, tint: InterfacePalette(scheme: colorScheme, colorName: phoneThemeColor).canvas)
                 .ignoresSafeArea(.container, edges: .top))
             .disabled(!preferencesStore.canSave)
-            .tint(InterfacePalette(scheme: colorScheme).accent)
+            .tint(InterfacePalette(scheme: colorScheme, colorName: phoneThemeColor).accent)
         }
         .modifier(SetupPresentation(preferencesStore: preferencesStore, setup: preferencesStore.setup) {
             navigation.destination = .devices
@@ -101,7 +102,7 @@ struct MainWindow: View {
             if let message { notices.show(message) }
         }
         .modifier(FileDropTarget(phoneID: preferencesStore.preferences.selectedPhoneID, bulk: preferencesStore.connections.bulk))
-        .accentColor(InterfacePalette(scheme: colorScheme).accent)
+        .accentColor(InterfacePalette(scheme: colorScheme, colorName: phoneThemeColor).accent)
         .toolbar(removing: .sidebarToggle)
         .toolbar(.hidden, for: .windowToolbar)
         .toolbarBackground(.hidden, for: .windowToolbar)
@@ -129,7 +130,7 @@ struct MainWindow: View {
     }
 
     private var sidebar: some View {
-        let palette = InterfacePalette(scheme: colorScheme)
+        let palette = InterfacePalette(scheme: colorScheme, colorName: phoneThemeColor)
         return VStack(alignment: .leading, spacing: 24) {
             HStack(spacing: 10) {
                 Image(systemName: "point.3.connected.trianglepath.dotted")
@@ -172,12 +173,12 @@ struct MainWindow: View {
 
     private func sidebarCaption(_ title: String) -> some View {
         Text(title).font(.system(size: 9, weight: .semibold)).tracking(1.3)
-            .foregroundStyle(InterfacePalette(scheme: colorScheme).secondaryText)
+            .foregroundStyle(InterfacePalette(scheme: colorScheme, colorName: phoneThemeColor).secondaryText)
             .padding(.horizontal, 12).padding(.bottom, 8)
     }
 
     private func sidebarItem(_ destination: Destination) -> some View {
-        let palette = InterfacePalette(scheme: colorScheme)
+        let palette = InterfacePalette(scheme: colorScheme, colorName: phoneThemeColor)
         let isSelected = navigation.destination == destination
         return Button {
             navigation.destination = destination
@@ -223,12 +224,19 @@ struct MainWindow: View {
             ScrollView {
                 OverviewView(preferencesStore: preferencesStore, openDestination: { navigation.destination = $0 })
                     .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.trailing, 14)
             }
         }
     }
 }
 
+@MainActor
+private final class OverviewLayoutState: ObservableObject {
+    @Published var width: CGFloat = 0
+}
+
 private struct OverviewView: View {
+    @StateObject private var layout = OverviewLayoutState()
     @ObservedObject var preferencesStore: PreferencesStore
     let openDestination: (Destination) -> Void
 
@@ -244,8 +252,18 @@ private struct OverviewView: View {
                         preferencesStore.connections.ring(phoneID: phone.id,
                             stop: preferencesStore.connections.ringingPhones.contains(phone.id))
                     }, colorName: preferencesStore.featurePreferences.previewColor)
-                deviceAndQuickAccess(status: preferencesStore.connections.statuses[phone.id])
-                ClipboardSharingView(preferencesStore: preferencesStore)
+                if layout.width >= 850 {
+                    HStack(alignment: .top, spacing: 20) {
+                        overviewContent.frame(maxWidth: .infinity)
+                        OverviewNotifications(preferencesStore: preferencesStore, connections: preferencesStore.connections)
+                            .frame(width: 310)
+                    }
+                } else {
+                    VStack(alignment: .leading, spacing: 20) {
+                        overviewContent
+                        OverviewNotifications(preferencesStore: preferencesStore, connections: preferencesStore.connections)
+                    }
+                }
 
             } else {
                 WorkspaceCard {
@@ -254,19 +272,16 @@ private struct OverviewView: View {
                 }
             }
         }
+        .onGeometryChange(for: CGFloat.self) { geometry in geometry.size.width } action: { width in
+            layout.width = width
+        }
     }
 
-    private func deviceAndQuickAccess(status: ConnectedPhoneStatus?) -> some View {
-        ViewThatFits(in: .horizontal) {
-            HStack(alignment: .center, spacing: 16) {
-                DeviceDetailsCard(status: status).frame(minWidth: 500, maxWidth: .infinity)
-                quickAccessCards.frame(width: 560)
-            }
-            VStack(spacing: 16) {
-                DeviceDetailsCard(status: status)
-                quickAccessCards
-            }
-        }.frame(maxWidth: .infinity)
+    private var overviewContent: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            quickAccessCards
+            ClipboardSharingView(preferencesStore: preferencesStore)
+        }
     }
 
     private var quickAccessCards: some View {

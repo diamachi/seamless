@@ -4,9 +4,10 @@ import SeamlessCore
 struct AppearanceSelector: View {
     @ObservedObject var preferencesStore: PreferencesStore
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.phoneThemeColor) private var phoneThemeColor
 
     var body: some View {
-        let palette = InterfacePalette(scheme: colorScheme)
+        let palette = InterfacePalette(scheme: colorScheme, colorName: phoneThemeColor)
         HStack(spacing: 4) {
             appearanceButton(.system, title: "System", symbol: "circle.lefthalf.filled")
             appearanceButton(.light, title: "Light", symbol: "sun.max")
@@ -20,7 +21,7 @@ struct AppearanceSelector: View {
 
     private func appearanceButton(_ appearance: AppAppearance, title: String, symbol: String) -> some View {
         let isSelected = preferencesStore.preferences.appearance == appearance
-        let palette = InterfacePalette(scheme: colorScheme)
+        let palette = InterfacePalette(scheme: colorScheme, colorName: phoneThemeColor)
         return Button {
             preferencesStore.setAppearance(appearance)
         } label: {

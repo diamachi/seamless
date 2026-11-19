@@ -17,11 +17,11 @@ for (size, scale) in sizes {
     let backgroundColor: NSColor
     let symbolColor: NSColor
     if isLight {
-        backgroundColor = NSColor(srgbRed: 0.96, green: 0.94, blue: 0.89, alpha: 1)
-        symbolColor = NSColor(srgbRed: 0.42, green: 0.31, blue: 0.15, alpha: 1)
+        backgroundColor = NSColor(srgbRed: 0.95, green: 0.95, blue: 0.95, alpha: 1)
+        symbolColor = NSColor(srgbRed: 0.20, green: 0.20, blue: 0.20, alpha: 1)
     } else {
-        backgroundColor = NSColor(srgbRed: 0.13, green: 0.13, blue: 0.12, alpha: 1)
-        symbolColor = NSColor(srgbRed: 0.89, green: 0.74, blue: 0.48, alpha: 1)
+        backgroundColor = NSColor(srgbRed: 0.13, green: 0.13, blue: 0.13, alpha: 1)
+        symbolColor = NSColor(srgbRed: 0.92, green: 0.92, blue: 0.92, alpha: 1)
     }
     backgroundColor.setFill()
     NSBezierPath(roundedRect: background, xRadius: bounds.width * 0.19, yRadius: bounds.height * 0.19).fill()

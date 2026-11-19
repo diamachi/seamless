@@ -1,19 +1,15 @@
 import SwiftUI
 import SeamlessCore
 
-struct DeviceDetailsCard: View {
+struct DeviceDetailsSummary: View {
     let status: ConnectedPhoneStatus?
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.phoneThemeColor) private var phoneThemeColor
 
-    var body: some View {
-        WorkspaceCard {
-            Text("Device details").font(.system(size: 14, weight: .semibold))
-            detailsGrid
-        }
-    }
+    var body: some View { detailsGrid }
 
     private var detailsGrid: some View {
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: 110), alignment: .leading)], alignment: .leading, spacing: 20) {
+        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), alignment: .leading), count: 4), alignment: .leading, spacing: 20) {
             detail("Processor", value: status?.deviceDetails.processorName ?? "Unavailable", symbol: "cpu")
             detail("Software", value: softwareName, symbol: "square.stack.3d.up")
             detail("RAM", value: memoryText, symbol: "memorychip")
@@ -38,7 +34,7 @@ struct DeviceDetailsCard: View {
             if let details = status?.deviceDetails, let total = details.storageTotalBytes, let used = details.storageUsedBytes {
                 detail(details.storageLabel, value: "\(storageSize(used)) of \(storageSize(total)) used", symbol: "internaldrive")
                 ProgressView(value: Double(used), total: Double(total))
-                    .tint(InterfacePalette(scheme: colorScheme).accent)
+                    .tint(InterfacePalette(scheme: colorScheme, colorName: phoneThemeColor).accent)
                     .accessibilityLabel("Storage used")
             } else {
                 detail("Internal storage", value: "Unavailable", symbol: "internaldrive")

@@ -24,8 +24,7 @@ struct SettingsWorkspaceView: View {
                 }
                 WorkspaceCard {
                     Text("Incoming files").font(.headline)
-                    Toggle("Automatically save files from this phone to Downloads", isOn: preferencesStore.featurePreferences.automaticallyAcceptFiles)
-                    Text("Received files go to Downloads with unique names. Turn this on once for a trusted phone to skip per-file acceptance. It is off by default.").font(.caption).foregroundStyle(.secondary)
+                    Text("Incoming files appear in the menu-bar popup. Choose Downloads, another folder, or Decline. Saved files use unique names.").font(.caption).foregroundStyle(.secondary)
                 }
                 WorkspaceCard {
                     HStack {

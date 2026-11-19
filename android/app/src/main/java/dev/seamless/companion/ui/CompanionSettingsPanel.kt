@@ -30,33 +30,23 @@ fun CompanionSettingsPanel(onPerformance: () -> Unit, onSetup: () -> Unit) {
     val context = LocalContext.current
     val connection by ConnectionRuntime.state.collectAsStateWithLifecycle()
     val preferences = context.getSharedPreferences("seamless_preferences", android.content.Context.MODE_PRIVATE)
-    var syncClipboard by remember { mutableStateOf(preferences.getBoolean("foreground_clipboard_sync", false)) }
     var confirmForget by remember { mutableStateOf(false) }
     Column(Modifier.verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Text("Settings", style = MaterialTheme.typography.headlineMedium)
+        NotificationOverviewCard()
         CompanionCard("Setup & permissions") {
             Text("Review access, pair another Mac and choose which features to use.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Button(onClick = onSetup) { Text("Open setup guide") }
+            Button(shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp), onClick = onSetup) { Text("Open setup guide") }
         }
         CompanionCard("Connection") {
             Text("The background service keeps your trusted Macs within reach. Force stop, reboot and battery restrictions can interrupt it.", color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (connection.isListening) {
                 TextButton(onClick = { stopConnection(context) }) { Text("Pause connection") }
             } else {
-                Button(onClick = { startConnection(context, pairing = false) }) { Text("Reconnect saved Macs") }
+                Button(shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp), onClick = { startConnection(context, pairing = false) }) { Text("Reconnect saved Macs") }
             }
             TextButton(onClick = { openSetupSettings(context, Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)) }) { Text("Battery settings") }
             TextButton(onClick = { confirmForget = true }) { Text("Forget trusted Macs…") }
-        }
-        CompanionCard("Phone clipboard") {
-            Text("Automatically send copied text while Seamless is visible. When another app is in front, use Share → Seamless.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            androidx.compose.foundation.layout.Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("Sync while visible", style = MaterialTheme.typography.bodyMedium)
-                Switch(checked = syncClipboard, onCheckedChange = {
-                    syncClipboard = it
-                    preferences.edit().putBoolean("foreground_clipboard_sync", it).apply()
-                })
-            }
         }
         for ((index, macID) in connection.connectedMacIDs.withIndex()) {
             TrustedMacSettings(macID, connection.connectedMacs.getOrNull(index) ?: "Mac")

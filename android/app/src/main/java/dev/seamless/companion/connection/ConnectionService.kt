@@ -28,7 +28,14 @@ class ConnectionService : Service() {
         super.onCreate()
         powerLease = ConnectionPowerLease(this)
         serviceScope.launch {
-            ConnectionRuntime.state.collect { state -> powerLease.setConnected(state.connectedMacIDs.isNotEmpty()) }
+            var previousNames: List<String>? = null
+            ConnectionRuntime.state.collect { state ->
+                powerLease.setConnected(state.connectedMacIDs.isNotEmpty())
+                if (previousNames != state.connectedMacs) {
+                    previousNames = state.connectedMacs
+                    if (ownedServer != null && !isDestroyed) showForegroundNotification()
+                }
+            }
         }
     }
 
@@ -105,8 +112,11 @@ class ConnectionService : Service() {
         val open = PendingIntent.getActivity(this, 10, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE)
         val stop = PendingIntent.getService(this, 11, Intent(this, ConnectionService::class.java).setAction(ACTION_STOP), PendingIntent.FLAG_IMMUTABLE)
         val builder = if (Build.VERSION.SDK_INT >= 26) Notification.Builder(this, CHANNEL) else Notification.Builder(this)
-        val notification = builder.setSmallIcon(android.R.drawable.ic_menu_share).setContentTitle("Seamless is ready for your Mac")
-            .setContentText("Only paired Macs can connect. Tap to manage.").setContentIntent(open).setOngoing(true)
+        val names = ConnectionRuntime.state.value.connectedMacs
+        val title = if (names.isEmpty()) "Waiting for your Mac" else if (names.size == 1) "Connected to " + names.first() else "Connected to " + names.size + " Macs"
+        val detail = if (names.isEmpty()) "Open Seamless on your paired Mac to connect." else names.joinToString(", ") + " · Tap to manage"
+        val notification = builder.setSmallIcon(android.R.drawable.ic_menu_share).setContentTitle(title)
+            .setContentText(detail).setOnlyAlertOnce(true).setContentIntent(open).setOngoing(true)
             .addAction(Notification.Action.Builder(null, "Stop", stop).build()).build()
         if (Build.VERSION.SDK_INT >= 29) {
             startForeground(2, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE)

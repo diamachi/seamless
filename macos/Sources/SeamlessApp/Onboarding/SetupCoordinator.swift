@@ -7,7 +7,7 @@ import UserNotifications
 @MainActor
 final class SetupCoordinator: ObservableObject {
     @Published var isPresented = false
-    @Published var step = 0
+    @Published var step = 0 { didSet { defaults.set(step, forKey: "seamless.setup.step") } }
     @Published private(set) var microphoneStatus = "Not requested"
     @Published private(set) var bluetoothStatus = "Not requested"
     @Published private(set) var notificationStatus = "Checking…"
@@ -15,7 +15,7 @@ final class SetupCoordinator: ObservableObject {
     @Published private(set) var isRequestingAccess = false
     private let defaults = UserDefaults.standard
 
-    func present() { step = 0; isPresented = true; refresh() }
+    func present() { step = min(4, max(0, defaults.integer(forKey: "seamless.setup.step"))); isPresented = true; refresh() }
     func offerFirstRun(hasSavedPhone: Bool) {
         if !hasSavedPhone && !defaults.bool(forKey: "seamless.setup.presented") {
             defaults.set(true, forKey: "seamless.setup.presented")
@@ -24,6 +24,7 @@ final class SetupCoordinator: ObservableObject {
     }
     func finish() {
         defaults.set(true, forKey: "seamless.setup.completed")
+        defaults.set(0, forKey: "seamless.setup.step")
         isPresented = false
     }
 

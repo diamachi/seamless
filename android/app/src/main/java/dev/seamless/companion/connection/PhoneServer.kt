@@ -130,8 +130,8 @@ class PhoneServer(private val context: Context) : AutoCloseable {
         pending.latch.countDown()
     }
 
-    fun sendClipboard(text: String): Boolean {
-        val peer = peers.values.singleOrNull()
+    fun sendClipboard(text: String, macID: String? = null): Boolean {
+        val peer = if (macID == null) peers.values.singleOrNull() else peers[macID]
         if (peer == null || text.isEmpty() || text.length > 32_000) {
             ConnectionRuntime.update { it.copy(message = "Connect exactly one Mac and choose text up to 32,000 characters") }
             return false
@@ -223,13 +223,21 @@ class PhoneServer(private val context: Context) : AutoCloseable {
             .putStringSet("paused_macs", pausedMacs.toSet()).apply()
     }
 
-    fun offerFiles(uris: List<Uri>, targetMacID: String? = null): Boolean {
+    fun offerFiles(uris: List<Uri>, targetMacID: String? = null, temporary: Boolean = false): Boolean {
         val peer = if (targetMacID == null) peers.values.singleOrNull() else peers[targetMacID]
         if (peer == null) {
             ConnectionRuntime.update { it.copy(message = "Connect exactly one Mac before sending files") }
             return false
         }
-        bulk.enqueue(uris, peer)
+        if (temporary) {
+            for (uri in uris) {
+                val file = java.io.File(requireNotNull(uri.path))
+                require(file.canonicalPath.startsWith(context.cacheDir.canonicalPath + java.io.File.separator))
+                bulk.enqueue(listOf(uri), peer, file)
+            }
+        } else {
+            bulk.enqueue(uris, peer)
+        }
         return true
     }
 
@@ -286,6 +294,10 @@ class PhoneServer(private val context: Context) : AutoCloseable {
     fun cameraCaptureEnded(macID: String) {
         cameraStreams.remove(macID)?.close()
         peers[macID]?.let { safeSend(it, "cameraEnded", JSONObject()) }
+    }
+
+    fun reportWhiteBalanceModes(macID: String, modes: List<String>) {
+        peers[macID]?.let { safeSend(it, "cameraWhiteBalanceModes", JSONObject().put("modes", modes.joinToString(","))) }
     }
 
     fun reportCameraError(macID: String, message: String) {
@@ -531,7 +543,7 @@ class PhoneServer(private val context: Context) : AutoCloseable {
             "screenRequest" -> {
                 val frameRate = payload.getInt("framesPerSecond")
                 require(frameRate == 60 || frameRate == 120)
-                ConnectionRuntime.update { it.copy(screenRequestedBy = peer.id, screenRequestID = requestID, screenRequestedApplication = payload.optString("applicationName").take(120), screenCaptureEntireDisplay = payload.optBoolean("captureEntireDisplay", false), screenRequestedFramesPerSecond = 60) }
+                ConnectionRuntime.update { it.copy(screenRequestedBy = peer.id, screenRequestID = requestID, screenRequestedApplication = payload.optString("applicationName").take(120), screenCaptureEntireDisplay = payload.optBoolean("captureEntireDisplay", false), screenRequestedFramesPerSecond = frameRate) }
                 ConnectionService.notifyCaptureRequest(context)
             }
             "screenStop" -> {
@@ -556,7 +568,9 @@ class PhoneServer(private val context: Context) : AutoCloseable {
             "ring" -> {
                 val expiresAt = payload.getLong("expiresAt")
                 require(expiresAt >= System.currentTimeMillis() && expiresAt <= System.currentTimeMillis() + 60_000)
-                ringer.ring()
+                ringer.ring { playing ->
+                    safeSend(peer, "ringResult", JSONObject().put("playing", playing))
+                }
                 peer.channel.send("ack", requestID = requestID)
             }
             "stopRing" -> mainHandler.post { ringer.stop() }
@@ -602,13 +616,12 @@ class PhoneServer(private val context: Context) : AutoCloseable {
     private fun receiveClipboard(peer: MacPeer, payload: JSONObject, requestID: String) {
         val text = payload.getString("text")
         require(text.length <= 32_000)
-        ConnectionRuntime.update { it.copy(incomingClipboard = text) }
+        ConnectionRuntime.update { it.copy(incomingClipboard = text, receivedTexts = (listOf(ReceivedText(text = text)) + it.receivedTexts).take(30)) }
         mainHandler.post {
             try {
-                context.getSystemService(ClipboardManager::class.java)
-                    .setPrimaryClip(ClipData.newPlainText("From your Mac", text))
+                dev.seamless.companion.features.ReceivedTextNotification.show(context, text)
                 peer.channel.send("clipboardResult", JSONObject().put("copied", true), requestID)
-                ConnectionRuntime.update { it.copy(message = "Copied from Mac · paste in any app") }
+                ConnectionRuntime.update { it.copy(message = "Text received · tap Copy in the notification") }
             } catch (_: Exception) {
                 try { peer.channel.send("clipboardResult", JSONObject().put("copied", false), requestID) }
                 catch (_: Exception) { peer.channel.close() }

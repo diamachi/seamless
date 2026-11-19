@@ -29,20 +29,20 @@ final class PhoneStorageBrowser: ObservableObject {
     @Published private(set) var nextOffset = -1
     @Published private(set) var breadcrumbs: [(String, String)] = [("", "Phone storage")]
     let folderDownloads = FolderDownloads()
-    var supportedPhones: Set<String> = []
+    @Published var supportedPhones: Set<String> = []
     var send: ((String, ControlPacket) -> Void)?
     private var phoneID: String?
     private var requestID: String?
+    private var requestTimeout: Task<Void, Never>?
     private var media = false
     private var appendResults = false
+    @Published private(set) var selectionRequest = 0
+    private var selectingEntireFolder = false
     private var thumbnailRequests: Set<String> = []
 
     func load(phoneID: String, media: Bool, directory: String = "", append: Bool = false) {
-        guard supportedPhones.contains(phoneID) else {
-            message = "Install the latest companion to browse phone storage."
-            isLoading = false
-            return
-        }
+        requestTimeout?.cancel()
+        requestID = nil
         if !append {
             thumbnails = [:]
             thumbnailRequests = []
@@ -55,6 +55,11 @@ final class PhoneStorageBrowser: ObservableObject {
         }
         self.phoneID = phoneID
         self.media = media
+        guard supportedPhones.contains(phoneID) else {
+            message = "Install the latest companion to browse phone storage."
+            isLoading = false
+            return
+        }
         appendResults = append
         let packet = ControlPacket(type: "browseList", payload: .object([
             "directory": .string(directory), "media": .bool(media), "offset": .number(Double(append ? max(0, nextOffset) : 0))
@@ -62,7 +67,24 @@ final class PhoneStorageBrowser: ObservableObject {
         requestID = packet.id
         isLoading = true
         message = "Loading…"
+        requestTimeout = Task { [weak self] in
+            do {
+                try await Task.sleep(for: .seconds(15))
+            } catch {
+                return
+            }
+            guard let self, self.requestID == packet.id else { return }
+            self.requestID = nil
+            self.isLoading = false
+            self.message = "The phone did not respond. Open Seamless on your phone and try Refresh."
+        }
         send?(phoneID, packet)
+    }
+
+    func selectEntireFolder() {
+        selectingEntireFolder = true
+        if nextOffset >= 0 { more() }
+        else { selectionRequest += 1; selectingEntireFolder = false }
     }
 
     func open(_ entry: PhoneStorageEntry) {
@@ -121,19 +143,29 @@ final class PhoneStorageBrowser: ObservableObject {
             return
         }
         guard packet.id == requestID else { return }
+        requestTimeout?.cancel()
+        requestID = nil
         isLoading = false
-        if packet.type == "browseError" { message = packet.payload["message"].string ?? "Storage unavailable"; return }
+        if packet.type == "browseError" { selectingEntireFolder = false; message = packet.payload["message"].string ?? "Storage unavailable"; return }
         let page = PhoneStorageEntry.decode(packet.payload["entries"])
         if appendResults { entries.append(contentsOf: page) } else { entries = page }
         nextOffset = Int(packet.payload["nextOffset"].number ?? -1)
+        if selectingEntireFolder {
+            if nextOffset >= 0 { more() }
+            else { selectingEntireFolder = false; selectionRequest += 1 }
+        }
         message = entries.isEmpty ? "No files here. Check storage access on the phone." : "\(entries.count) items"
     }
 
     func disconnected(phoneID: String) {
+        selectingEntireFolder = false
         folderDownloads.disconnected(phoneID: phoneID)
         supportedPhones.remove(phoneID)
         guard self.phoneID == phoneID else { return }
+        requestTimeout?.cancel()
         requestID = nil
+        breadcrumbs = [("", media ? "Photos and videos" : "Phone storage")]
+        nextOffset = -1
         isLoading = false
         entries = []
         thumbnails = [:]

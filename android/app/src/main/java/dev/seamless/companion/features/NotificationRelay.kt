@@ -28,7 +28,7 @@ class NotificationRelay : NotificationListenerService() {
 
     override fun onNotificationPosted(notification: StatusBarNotification) {
         val content = notification.notification
-        if (notification.packageName == packageName && content.flags and Notification.FLAG_FOREGROUND_SERVICE != 0) return
+        if (notification.packageName == packageName && notification.id != 100) return
         val notificationProfile = notification.user.hashCode().toString()
         val payload = JSONObject().put("packageName", notification.packageName)
             .put("profileIdentifier", notificationProfile).put("notificationKey", notification.key)

@@ -85,6 +85,8 @@ final class BulkTransfers: ObservableObject {
         }
     }
 
+    func clearDownloads(phoneID: String) { downloads.removeAll { $0.phoneID == phoneID } }
+
     func choose(phoneID: String) {
         let panel = NSOpenPanel()
         panel.allowsMultipleSelection = true

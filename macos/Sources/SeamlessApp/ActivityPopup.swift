@@ -39,6 +39,7 @@ struct ActivityPopup: View {
     @ObservedObject var notices: AppNotices
     @StateObject private var state = ActivityPopupState()
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.phoneThemeColor) private var phoneThemeColor
 
     private var transferCount: Int {
         bulk.activities.count + bulk.offers.count + legacy.activities.count + legacy.offers.count
@@ -117,8 +118,8 @@ struct ActivityPopup: View {
             }
             .padding(18)
             .frame(maxWidth: 460)
-            .background(InterfacePalette(scheme: colorScheme).surface, in: RoundedRectangle(cornerRadius: 18))
-            .overlay(RoundedRectangle(cornerRadius: 18).stroke(InterfacePalette(scheme: colorScheme).border))
+            .background(InterfacePalette(scheme: colorScheme, colorName: phoneThemeColor).surface, in: RoundedRectangle(cornerRadius: 18))
+            .overlay(RoundedRectangle(cornerRadius: 18).stroke(InterfacePalette(scheme: colorScheme, colorName: phoneThemeColor).border))
             .shadow(color: .black.opacity(0.15), radius: 18, y: 6)
             .buttonStyle(WorkspaceButtonStyle())
             .padding(20)

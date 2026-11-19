@@ -71,8 +71,6 @@ final class PhoneConnections: ObservableObject {
     private var reconnectAttempts: [String: Int] = [:]
     private var reconnectEnabled: Set<String> = []
     private var activePhoneID: String?
-    private var clipboardTimer: Timer?
-    private var lastPasteboardChange = NSPasteboard.general.changeCount
     private var pendingUnpair: Set<String> = []
     private var sessionCredentials: [String: String] = [:]
     private var authenticationAttempts: [String: UUID] = [:]
@@ -113,7 +111,7 @@ final class PhoneConnections: ObservableObject {
         phoneContacts.send = { [weak self] phoneID, packet in self?.send(phoneID: phoneID, packet: packet) }
         screen.send = { [weak self] phoneID, packet in self?.send(phoneID: phoneID, packet: packet) }
         camera.send = { [weak self] phoneID, packet in self?.send(phoneID: phoneID, packet: packet) }
-        bulk.automaticallyAccept = { [weak self] phoneID in self?.savedPhones[phoneID]?.preferences.automaticallyAcceptFiles == true }
+        bulk.automaticallyAccept = { _ in false }
         bulk.send = { [weak self] phoneID, packet in self?.send(phoneID: phoneID, packet: packet) }
         storage.folderDownloads.send = { [weak self] phoneID, packet in self?.send(phoneID: phoneID, packet: packet) }
         storage.send = { [weak self] phoneID, packet in self?.send(phoneID: phoneID, packet: packet) }
@@ -132,11 +130,7 @@ final class PhoneConnections: ObservableObject {
             guard let client = self.clients[phoneID] else { throw ConnectionProtocolError.invalidMessage }
             try await client.sendAndWait(packet)
         }
-        let timer = Timer(timeInterval: 1, repeats: true) { [weak self] _ in
-            Task { @MainActor in self?.pollClipboard() }
-        }
-        clipboardTimer = timer
-        RunLoop.main.add(timer, forMode: .common)
+
     }
 
     func synchronize(with preferences: AppPreferences) {
@@ -145,7 +139,6 @@ final class PhoneConnections: ObservableObject {
         discovery.start(knownPhoneIDs: Set(savedPhones.keys))
         if activePhoneID != preferences.selectedPhoneID {
             screen.stop()
-            lastPasteboardChange = NSPasteboard.general.changeCount
         }
         activePhoneID = preferences.selectedPhoneID
         for phone in preferences.rememberedPhones {
@@ -261,6 +254,12 @@ final class PhoneConnections: ObservableObject {
         sessions.update(.disconnected, for: phoneID)
     }
 
+    func clearNotifications(phoneID: String) {
+        let identifiers = notifications.filter { $0.phoneID == phoneID }.map { phoneID + $0.id }
+        notifications.removeAll { $0.phoneID == phoneID }
+        UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: identifiers)
+    }
+
     func ring(phoneID: String, stop: Bool = false) {
         guard sessions.state(for: phoneID) == .connected else { return }
         ringTasks.removeValue(forKey: phoneID)?.cancel()
@@ -335,7 +334,6 @@ final class PhoneConnections: ObservableObject {
             self.clipboardDeadlines.removeValue(forKey: phoneID)
             self.clipboardStatus[phoneID] = "No confirmation. Check the connection and update the companion."
         }
-        clipboardHistory.record(text: text, source: "Mac", phoneID: phoneID)
         send(phoneID: phoneID, packet: packet)
     }
 
@@ -408,6 +406,10 @@ final class PhoneConnections: ObservableObject {
         case "disconnectRequested", "connectionPaused":
             disconnect(phoneID: phoneID)
             message = "Connection paused on the phone. Tap Reconnect in Android to resume."
+        case "cameraWhiteBalanceModes":
+            if let modes = packet.payload["modes"].string {
+                camera.receiveWhiteBalanceModes(phoneID: phoneID, modes: modes)
+            }
         case "cameraEnded": camera.ended(phoneID: phoneID)
         case "cameraError":
             let description = packet.payload["message"].string ?? "Camera could not start."
@@ -452,24 +454,27 @@ final class PhoneConnections: ObservableObject {
         case "contactsPage", "contactsError":
             guard sessions.state(for: phoneID) == .connected else { return }
             phoneContacts.receive(packet, phoneID: phoneID)
+        case "ringResult":
+            if packet.payload["playing"].boolean != true {
+                ringingPhones.remove(phoneID)
+                message = "Phone could not play its alarm. Check alarm volume and Do Not Disturb on the phone."
+            }
         case "clipboardResult":
             guard clipboardRequests[phoneID] == packet.id else { return }
             clipboardRequests.removeValue(forKey: phoneID)
             clipboardDeadlines.removeValue(forKey: phoneID)?.cancel()
             if packet.payload["copied"].boolean == true {
-                clipboardStatus[phoneID] = "Copied on phone · paste in any app"
+                clipboardStatus[phoneID] = "Text delivered · tap Copy in the phone notification"
             } else {
                 clipboardStatus[phoneID] = "Phone saved the text. Open Seamless on Android and tap Copy received text."
             }
         case "clipboard":
-            guard sessions.state(for: phoneID) == .connected, activePhoneID == phoneID,
+            guard sessions.state(for: phoneID) == .connected,
                   let text = packet.payload["text"].string, text.utf16.count <= 32_000 else { return }
             clipboardHistory.record(text: text, source: savedPhones[phoneID]?.displayName ?? "Phone", phoneID: phoneID)
-            NSPasteboard.general.clearContents()
-            NSPasteboard.general.setString(text, forType: .string)
-            lastPasteboardChange = NSPasteboard.general.changeCount
-            clipboardStatus[phoneID] = "Copied on Mac · paste in any app"
-            message = "Text copied from \(savedPhones[phoneID]?.displayName ?? "phone")."
+            clipboardStatus[phoneID] = "Text received · open Received text to copy it"
+            message = "Text received from your phone."
+
         case "error": message = packet.payload["message"].string ?? "Phone operation failed."
         default: break
         }
@@ -613,14 +618,5 @@ final class PhoneConnections: ObservableObject {
         }
     }
 
-    private func pollClipboard() {
-        let change = NSPasteboard.general.changeCount
-        guard change != lastPasteboardChange else { return }
-        lastPasteboardChange = change
-        let pasteboardTypes = NSPasteboard.general.types ?? []
-        guard let phoneID = activePhoneID, savedPhones[phoneID]?.preferences.automaticallyShareMacClipboard == true,
-              sessions.state(for: phoneID) == .connected,
-              !pasteboardTypes.contains(NSPasteboard.PasteboardType("org.nspasteboard.ConcealedType")) else { return }
-        sendClipboard(phoneID: phoneID)
-    }
+
 }

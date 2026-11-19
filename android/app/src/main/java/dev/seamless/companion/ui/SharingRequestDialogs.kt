@@ -63,3 +63,28 @@ internal fun SharedFilesDestinationDialog(state: CompanionConnectionState) {
         confirmButton = { TextButton(onClick = { ConnectionRuntime.update { it.copy(sharedFilesToSend = emptyList()) } }) { Text("Cancel") } }
     )
 }
+
+
+@Composable
+internal fun SharedTextDestinationDialog(state: CompanionConnectionState) {
+    if (state.sharedTextToSend.isEmpty() || state.connectedMacIDs.size == 1) return
+    AlertDialog(
+        onDismissRequest = { ConnectionRuntime.update { it.copy(sharedTextToSend = "") } },
+        title = { Text("Send text to your Mac") },
+        text = {
+            Column {
+                if (state.connectedMacIDs.isEmpty()) Text("Waiting for your Mac to connect…")
+                for ((index, macID) in state.connectedMacIDs.withIndex()) {
+                    TextButton(onClick = {
+                        if (ConnectionRuntime.server?.sendClipboard(state.sharedTextToSend, macID) == true) {
+                            ConnectionRuntime.update { it.copy(sharedTextToSend = "") }
+                        }
+                    }) { Text(state.connectedMacs.getOrNull(index) ?: "Mac") }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { ConnectionRuntime.update { it.copy(sharedTextToSend = "") } }) { Text("Cancel") }
+        }
+    )
+}

@@ -10,9 +10,11 @@ private final class NotificationViewState: ObservableObject {
 struct NotificationSettingsView: View {
     @ObservedObject var preferencesStore: PreferencesStore
     @ObservedObject var connections: PhoneConnections
+    var initiallyShowApplications = false
     @StateObject private var viewState = NotificationViewState()
 
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.phoneThemeColor) private var phoneThemeColor
 
     var body: some View {
         ScrollView {
@@ -20,6 +22,10 @@ struct NotificationSettingsView: View {
                 WorkspaceHeading(title: "Notifications", subtitle: "Stay in touch, without the noise.")
                 if let phoneID = preferencesStore.preferences.selectedPhoneID {
                     NotificationDeliveryCard()
+                    HStack {
+                        Spacer()
+                        Button("Clear recent notifications") { connections.clearNotifications(phoneID: phoneID) }
+                    }
                     notificationControls
                     if viewState.showApplications {
                         applicationSettings(phoneID: phoneID)
@@ -31,6 +37,7 @@ struct NotificationSettingsView: View {
                 }
             }
             .padding(.bottom, 24)
+            .onAppear { viewState.showApplications = initiallyShowApplications }
         }
     }
 
@@ -122,7 +129,7 @@ private final class NotificationReplyDraft: ObservableObject {
     @Published var text = ""
 }
 
-private struct NotificationRow: View {
+struct NotificationRow: View {
     let notification: RelayedNotification
     @ObservedObject var connections: PhoneConnections
     @StateObject private var draft = NotificationReplyDraft()
@@ -171,10 +178,11 @@ private struct NotificationRow: View {
     }
 }
 
-private struct ApplicationIcon: View {
+struct ApplicationIcon: View {
     let image: NSImage?
     let name: String
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.phoneThemeColor) private var phoneThemeColor
 
     var body: some View {
         Group {
@@ -183,12 +191,17 @@ private struct ApplicationIcon: View {
             } else {
                 Text(String(name.prefix(1)).uppercased())
                     .font(.system(size: 19, weight: .semibold, design: .rounded))
-                    .foregroundStyle(InterfacePalette(scheme: colorScheme).accent)
+                    .foregroundStyle(InterfacePalette(scheme: colorScheme, colorName: phoneThemeColor).accent)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(InterfacePalette(scheme: colorScheme).accentWash)
+                    .background(InterfacePalette(scheme: colorScheme, colorName: phoneThemeColor).accentWash)
             }
         }
-        .frame(width: 38, height: 38)
+        .frame(width: 36, height: 36)
+        .padding(5)
+        .background(InterfacePalette(scheme: colorScheme, colorName: phoneThemeColor).raisedSurface,
+                    in: RoundedRectangle(cornerRadius: 11))
+        .overlay(RoundedRectangle(cornerRadius: 11)
+            .stroke(InterfacePalette(scheme: colorScheme, colorName: phoneThemeColor).border, lineWidth: 1))
         .clipShape(RoundedRectangle(cornerRadius: 10))
         .accessibilityHidden(true)
     }

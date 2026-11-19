@@ -30,7 +30,14 @@ struct FilesWorkspaceView: View {
             }.padding(.bottom, 24)
         }
         .buttonStyle(WorkspaceButtonStyle())
+        .onChange(of: browser.selectionRequest) { _, _ in state.selected = Set(browser.entries.map(\.id)) }
         .onChange(of: browser.entries.map(\.id)) { _, ids in state.selected.formIntersection(Set(ids)) }
+        .onChange(of: browser.supportedPhones) { previous, current in
+            if let phoneID = preferencesStore.preferences.selectedPhoneID,
+               current.contains(phoneID), !previous.contains(phoneID) {
+                browser.load(phoneID: phoneID, media: false)
+            }
+        }
         .task(id: phoneID) {
             if let phoneID { browser.load(phoneID: phoneID, media: false) }
         }
@@ -63,7 +70,11 @@ struct FilesWorkspaceView: View {
                 }
             }
             if !bulk.downloads.filter({ $0.phoneID == phoneID }).isEmpty {
-                Text("Received on this Mac").font(.headline)
+                HStack {
+                    Text("Received on this Mac").font(.headline)
+                    Spacer()
+                    Button("Clear list") { if let phoneID { bulk.clearDownloads(phoneID: phoneID) } }
+                }
                 ForEach(bulk.downloads.filter { $0.phoneID == phoneID }) { download in
                     WorkspaceCard {
                         HStack {
@@ -86,7 +97,8 @@ struct FilesWorkspaceView: View {
                 Text(browser.breadcrumbs.last?.1 ?? "Phone storage").font(.headline).lineLimit(1)
                 Spacer()
                 if browser.isLoading { ProgressView().controlSize(.small) }
-                Button("Select loaded") { state.selected = Set(browser.entries.map(\.id)) }
+                Button("Select all") { browser.selectEntireFolder() }
+                Button("Unselect all") { state.selected = [] }
                 if !state.selected.isEmpty {
                     Button("Save \(state.selected.count) to Downloads") {
                         browser.saveToDownloads(browser.entries.filter { state.selected.contains($0.id) }, bulk: bulk)

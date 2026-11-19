@@ -34,13 +34,6 @@ class MainActivity : ComponentActivity() {
     private var pendingRequestReview: String? = null
     private var lastCameraRequestID: String? = null
     private var lastScreenRequestID: String? = null
-    private val clipboardListener = android.content.ClipboardManager.OnPrimaryClipChangedListener {
-        if (ConnectionRuntime.isActivityVisible && preferences.getBoolean("foreground_clipboard_sync", false) && ConnectionRuntime.state.value.connectedMacs.size == 1) {
-            val manager = getSystemService(android.content.ClipboardManager::class.java)
-            val text = manager.primaryClip?.getItemAt(0)?.coerceToText(this)?.toString().orEmpty()
-            if (text.isNotEmpty() && text != ConnectionRuntime.state.value.incomingClipboard) ConnectionRuntime.server?.sendClipboard(text.take(32_000))
-        }
-    }
     private var targetScreenMacID: String? = null
     private var targetScreenFrameRate = 60
     private var pendingCameraRequest: dev.seamless.companion.connection.CompanionConnectionState? = null
@@ -48,6 +41,7 @@ class MainActivity : ComponentActivity() {
         if (allowed) startCameraStream()
         else ConnectionRuntime.update { it.copy(message = "Camera permission is needed for live camera sharing") }
     }
+    private val setupNotificationPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
     private val notificationPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) {
         launchScreenConsent()
     }
@@ -62,6 +56,11 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         preferences.edit().putInt("screen_frame_rate", 60).apply()
         enableEdgeToEdge()
+        dev.seamless.companion.features.AlertChannels.registerAll(this)
+        if (Build.VERSION.SDK_INT >= 33 && !preferences.getBoolean("notification_prompt_requested", false)) {
+            preferences.edit().putBoolean("notification_prompt_requested", true).apply()
+            setupNotificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
         pendingRequestReview = intent?.getStringExtra("sharing_request_kind")
         if (savedInstanceState == null) receiveSharedText(intent)
         setContent {
@@ -128,7 +127,7 @@ class MainActivity : ComponentActivity() {
             val files = uris.filter { it.scheme == "content" }.distinct().map { it.toString() }
             if (files.isNotEmpty()) ConnectionRuntime.update { it.copy(sharedFilesToSend = files) }
         }
-        if (intent?.action == Intent.ACTION_SEND && intent.type == "text/plain") {
+        if (intent?.action == Intent.ACTION_SEND && intent.hasExtra(Intent.EXTRA_TEXT)) {
             val text = intent.getCharSequenceExtra(Intent.EXTRA_TEXT)?.toString()?.take(32_000) ?: return
             ConnectionRuntime.update { it.copy(sharedTextToSend = text) }
         }
@@ -137,7 +136,6 @@ class MainActivity : ComponentActivity() {
     override fun onStart() {
         super.onStart()
         ConnectionRuntime.isActivityVisible = true
-        getSystemService(android.content.ClipboardManager::class.java).addPrimaryClipChangedListener(clipboardListener)
         val hasSavedMac = getSharedPreferences("connection_identity", MODE_PRIVATE).all.keys.any { it.startsWith("peer.") }
         val reconnectOnLaunch = getSharedPreferences("connection_settings", MODE_PRIVATE).getBoolean("reconnect_on_launch", true)
         if (hasSavedMac && reconnectOnLaunch && ConnectionRuntime.server == null) {
@@ -147,7 +145,6 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onStop() {
-        getSystemService(android.content.ClipboardManager::class.java).removePrimaryClipChangedListener(clipboardListener)
         ConnectionRuntime.isActivityVisible = false
         super.onStop()
     }

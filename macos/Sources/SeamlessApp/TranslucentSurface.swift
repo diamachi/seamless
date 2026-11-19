@@ -48,5 +48,8 @@ final class WindowSurfaceView: NSView {
         window?.titleVisibility = .hidden
         window?.titlebarSeparatorStyle = .none
         window?.styleMask.insert(.fullSizeContentView)
+        for button in [NSWindow.ButtonType.closeButton, .miniaturizeButton, .zoomButton] {
+            window?.standardWindowButton(button)?.isHidden = false
+        }
     }
 }

@@ -18,19 +18,19 @@ Files, notifications, clipboard, phone screen and live camera, together in a nat
 - Send files in either direction, or drop them into the Mac window or menu bar.
 - Select multiple files on Android; send a selected folder as a ZIP with its structure preserved.
 - Browse authorized phone storage and a resizable photo/video grid. Save selected items or folder trees to your Mac.
-- Receive into Downloads by default, with unique names for duplicates and per-phone automatic receiving settings.
+- Incoming Mac transfers offer Save to Downloads, Save to a folder, or Decline. Saved files use unique names.
 - Follow progress inside the app and receive completion/failure notifications. File data streams through encrypted connections and is SHA-256 checked; large-file resume is still planned.
 
-### Notifications and clipboard
+### Notifications and text sharing
 
 - Choose which Android apps can relay notifications to the Mac. Supported alerts offer reply or dismiss actions.
-- Send text and links between devices, use Android's Share menu, and keep an optional in-memory clipboard shelf.
-- Enable automatic Mac-to-phone text sharing. Android restricts unattended background clipboard access, so phone-to-Mac sharing requires a supported foreground/share action.
+- Send text and links explicitly between devices. Received text appears in session-only cards with Copy, Delete and Clear.
+- Share text or files through Android’s Share menu. Mac text delivery offers an Android notification Copy action.
 
 ### Phone screen and camera
 
 - Mirror your phone inside the Mac app or pop it into a separate window, with optional Accessibility-based control.
-- Screen sharing targets 60 fps. Device, network and workload determine actual performance.
+- Screen sharing targets 60 fps, with an optional 120 fps target over verified USB. Device, network and workload determine actual performance.
 - Use optional ADB/scrcpy integration for direct single-app windows and USB transport. USB debugging must remain enabled for that mode.
 - Stream the phone camera with supported quality/frame-rate controls. An experimental OBS virtual-camera bridge has been tested in local preview and browser camera selection; it requires the OBS driver. A standalone native camera extension is not shipped.
 
@@ -45,7 +45,7 @@ Files, notifications, clipboard, phone screen and live camera, together in a nat
 
 ## Try it
 
-Download the [0.6.10 preview from GitHub Releases](https://github.com/diamachi/seamless/releases/tag/v0.6.10), or get CI packages from **Actions → Build test installers → a successful run → Artifacts**. See [CI setup and signing limits](docs/CI.md). Local build outputs are placed in `dist/`:
+Download the [0.6.23 preview from GitHub Releases](https://github.com/diamachi/seamless/releases/tag/v0.6.23), or get CI packages from **Actions → Build test installers → a successful run → Artifacts**. See [CI setup and signing limits](docs/CI.md). Local build outputs are placed in `dist/`:
 
 | Platform | Package | Install |
 | --- | --- | --- |
@@ -145,3 +145,8 @@ UI observes feature state; connection and platform services own the behavior. Co
 A source license has not been selected in this workspace. Public release licensing, distribution signing and notarization remain release tasks.
 
 Clipboard: Mac → phone uses Send copied text (or optional auto-send) and confirms when Android copies it. Phone → Mac uses Android Share → Seamless, then paste on the Mac. Merely copying in another Android app does not provide reliable background sync. Clipboard history is optional and stays in memory.
+
+
+## Current preview limitations
+
+Camera preview orientation needs device validation. The Rotate preview control provides manual correction; rotation of system-webcam output remains pending. White-balance controls have been removed. Onboarding provides permission review and notification-sound diagnostics, while Android retains previously selected channel settings.

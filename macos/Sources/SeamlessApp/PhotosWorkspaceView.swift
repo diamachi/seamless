@@ -14,6 +14,7 @@ struct PhotosWorkspaceView: View {
     @ObservedObject var bulk: BulkTransfers
     @StateObject private var state = PhotosWorkspaceState()
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.phoneThemeColor) private var phoneThemeColor
 
     private var media: [PhoneStorageEntry] {
         browser.entries.filter {
@@ -38,14 +39,14 @@ struct PhotosWorkspaceView: View {
                 Spacer()
                 Image(systemName: "square.grid.3x3")
                 Slider(value: $state.cellSize, in: 110...300).frame(width: 140).accessibilityLabel("Thumbnail size")
-                Button(state.selected.count == media.count && !media.isEmpty ? "Deselect all" : "Select loaded") {
+                Button(state.selected.count == media.count && !media.isEmpty ? "Unselect all" : "Select all") {
                     if state.selected.count == media.count { state.selected = [] }
-                    else { state.selected = Set(media.map(\.id)) }
+                    else { browser.selectEntireFolder() }
                 }
             }
             Text(browser.message).font(.caption).foregroundStyle(.secondary)
             ScrollView {
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: state.cellSize), spacing: 16)], spacing: 16) {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: state.cellSize, maximum: state.cellSize), spacing: 16)], spacing: 16) {
                     ForEach(media) { entry in
                         Button {
                             if state.selected.contains(entry.id) { state.selected.remove(entry.id) }
@@ -59,7 +60,7 @@ struct PhotosWorkspaceView: View {
                                             if let image = browser.thumbnails[entry.id] {
                                                 Image(nsImage: image).resizable().scaledToFill()
                                             } else {
-                                                Rectangle().fill(InterfacePalette(scheme: colorScheme).raisedSurface)
+                                                Rectangle().fill(InterfacePalette(scheme: colorScheme, colorName: phoneThemeColor).raisedSurface)
                                                     .overlay {
                                                         Image(systemName: entry.mime.hasPrefix("video/") ? "play.rectangle" : "photo").font(.title)
                                                     }
@@ -68,14 +69,16 @@ struct PhotosWorkspaceView: View {
                                         .frame(width: geometry.size.width, height: geometry.size.height)
                                         .clipped()
                                     }.frame(height: state.cellSize * 0.75)
-                                    Image(systemName: state.selected.contains(entry.id) ? "checkmark.circle.fill" : "circle")
-                                        .foregroundStyle(state.selected.contains(entry.id) ? .yellow : .white).font(.title3).padding(10)
                                 }.clipShape(RoundedRectangle(cornerRadius: 14))
-                                Label(entry.name, systemImage: entry.mime.hasPrefix("video/") ? "video" : "photo")
-                                    .font(.caption).lineLimit(1)
-                            }.padding(6)
-                                .background(InterfacePalette(scheme: colorScheme).surface, in: RoundedRectangle(cornerRadius: 16))
-                        }.buttonStyle(.plain).task(id: entry.id) { browser.thumbnail(entry) }
+                                HStack(alignment: .top, spacing: 8) {
+                                    Image(systemName: state.selected.contains(entry.id) ? "checkmark.square.fill" : "square")
+                                        .foregroundStyle(.tint)
+                                    Text(entry.name).font(.caption).lineLimit(2)
+                                }.padding(.horizontal, 10).padding(.vertical, 8)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            }.frame(maxWidth: .infinity).contentShape(Rectangle()).padding(6)
+                                .background(InterfacePalette(scheme: colorScheme, colorName: phoneThemeColor).surface, in: RoundedRectangle(cornerRadius: 16))
+                        }.frame(width: state.cellSize).contentShape(Rectangle()).buttonStyle(.plain).task(id: entry.id) { browser.thumbnail(entry) }
                     }
                 }
                 if browser.nextOffset >= 0 { Button("Load more") { browser.more() }.padding() }
@@ -86,6 +89,13 @@ struct PhotosWorkspaceView: View {
             }
         }
         .buttonStyle(WorkspaceButtonStyle())
+        .onChange(of: browser.selectionRequest) { _, _ in state.selected = Set(media.map(\.id)) }
+        .onChange(of: browser.supportedPhones) { previous, current in
+            if let phoneID = preferencesStore.preferences.selectedPhoneID,
+               current.contains(phoneID), !previous.contains(phoneID) {
+                browser.load(phoneID: phoneID, media: true)
+            }
+        }
         .task(id: preferencesStore.preferences.selectedPhoneID) {
             if let phoneID = preferencesStore.preferences.selectedPhoneID { browser.load(phoneID: phoneID, media: true) }
         }

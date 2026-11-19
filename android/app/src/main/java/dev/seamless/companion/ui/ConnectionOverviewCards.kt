@@ -29,32 +29,31 @@ internal fun ConnectionOverviewCards(state: CompanionConnectionState, onSetup: (
         state.isListening -> "Ready for your Mac"
         else -> "Connection paused"
     }
-    CompanionCard(title) {
-        Text("${Build.MANUFACTURER.replaceFirstChar { it.uppercase() }} ${Build.MODEL}", style = MaterialTheme.typography.headlineSmall)
-        Text("Android ${Build.VERSION.RELEASE}", color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(if (state.connectedMacs.isNotEmpty()) "${state.connectedMacs.size} Mac connected" else "Local connection", color = MaterialTheme.colorScheme.primary)
-            TextButton(onClick = { showDetails = !showDetails }) { Text(if (showDetails) "Less" else "Details") }
-        }
-        if (showDetails) {
-            Text(dev.seamless.companion.features.BackgroundConnectionDiagnostics.summary(context), style = MaterialTheme.typography.bodySmall)
-            Text(state.message, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text("Authenticated local connection · Wi-Fi or optional USB\nThe companion can stay connected in the background.", style = MaterialTheme.typography.bodySmall)
-        }
-        TextButton(onClick = { startConnection(context, pairing = false, reconnect = true) }) { Text("Reconnect Macs") }
+
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        Text(title, style = MaterialTheme.typography.titleSmall)
+        TextButton(onClick = { showDetails = !showDetails }) { Text(if (showDetails) "Less" else "Details") }
     }
-    for ((index, macID) in state.connectedMacIDs.withIndex()) {
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            MacDetailsCard(state.connectedMacs.getOrNull(index) ?: "Mac", state.macDetails[macID])
-            TextButton(onClick = { dev.seamless.companion.connection.ConnectionRuntime.server?.disconnectMac(macID) }) {
-                Text("Disconnect this Mac")
-            }
-        }
+    if (showDetails) {
+        Text(Build.MODEL + " · Android " + Build.VERSION.RELEASE, style = MaterialTheme.typography.bodySmall)
+        Text(dev.seamless.companion.features.BackgroundConnectionDiagnostics.summary(context), style = MaterialTheme.typography.bodySmall)
     }
     if (state.connectedMacIDs.isEmpty()) {
         CompanionCard("Connect your Mac") {
-            Text("Pair once to bring your devices together.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            TextButton(onClick = onSetup) { Text("Open setup") }
+            TextButton(onClick = { startConnection(context, pairing = false, reconnect = true) }) { Text("Reconnect") }
+            TextButton(onClick = onSetup) { Text("Pair a Mac") }
+        }
+    } else {
+        androidx.compose.foundation.lazy.LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            items(state.connectedMacIDs.size) { index ->
+                val macID = state.connectedMacIDs[index]
+                androidx.compose.foundation.layout.Box(Modifier.fillParentMaxWidth(if (state.connectedMacIDs.size > 1) 0.9f else 1f)) {
+                    CompanionCard(state.connectedMacs.getOrNull(index) ?: "Mac") {
+                        MacDetailsContent("", state.macDetails[macID])
+                        if (showDetails) TextButton(onClick = { dev.seamless.companion.connection.ConnectionRuntime.server?.disconnectMac(macID) }) { Text("Disconnect") }
+                    }
+                }
+            }
         }
     }
 }

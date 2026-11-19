@@ -11,6 +11,13 @@ internal object AlertChannels {
     const val SHARING_REQUESTS = "sharing_requests_v3"
     const val TRANSFER_RESULTS = "transfer_results_v2"
 
+    fun registerAll(context: Context) {
+        register(context, "received_text", "Received text", NotificationManager.IMPORTANCE_HIGH)
+        register(context, SHARING_REQUESTS, "Sharing requests", NotificationManager.IMPORTANCE_HIGH)
+        register(context, TRANSFER_RESULTS, "Transfer results", NotificationManager.IMPORTANCE_DEFAULT)
+        register(context, "sharing_test", "Notification test", NotificationManager.IMPORTANCE_DEFAULT)
+    }
+
     fun sound(context: Context): Uri {
         return Uri.parse("android.resource://${context.packageName}/raw/seamless_notification")
     }

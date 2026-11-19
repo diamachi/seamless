@@ -22,10 +22,18 @@ private final class ScreenLayerView: NSView {
     required init?(coder: NSCoder) { nil }
     override func layout() {
         super.layout()
-        if videoLayer.frame != bounds {
+        if videoLayer.frame != bounds || controller.purpose == .camera {
             CATransaction.begin()
             CATransaction.setDisableActions(true)
-            videoLayer.frame = bounds
+            let rotated = controller.rotationDegrees == 90 || controller.rotationDegrees == 270
+            videoLayer.setAffineTransform(.identity)
+            if rotated {
+                videoLayer.bounds = CGRect(x: 0, y: 0, width: bounds.height, height: bounds.width)
+                videoLayer.position = CGPoint(x: bounds.midX, y: bounds.midY)
+            } else {
+                videoLayer.frame = bounds
+            }
+            videoLayer.setAffineTransform(CGAffineTransform(rotationAngle: -Double(controller.rotationDegrees) * .pi / 180))
             CATransaction.commit()
         }
     }
@@ -95,15 +103,16 @@ private final class ScreenLayerView: NSView {
 }
 
 struct PhoneVideoSurface: NSViewRepresentable {
-    let controller: PhoneVideoStreamController
+    @ObservedObject var controller: PhoneVideoStreamController
     func makeNSView(context: Context) -> NSView { ScreenLayerView(controller: controller) }
-    func updateNSView(_ nsView: NSView, context: Context) {}
+    func updateNSView(_ nsView: NSView, context: Context) { nsView.needsLayout = true }
 }
 
 @MainActor
 private final class PhoneScreenState: ObservableObject {
     @Published var search = ""
     @Published var selectedApplication: String?
+    @Published var usbFrameRate = 60
     @Published var previewScale = 1.0
 }
 
@@ -111,6 +120,11 @@ struct PhoneScreenView: View {
     @ObservedObject var preferencesStore: PreferencesStore
     @ObservedObject var controller: PhoneVideoStreamController
     @StateObject private var state = PhoneScreenState()
+
+    private var usesVerifiedUSB: Bool {
+        guard let phoneID = preferencesStore.preferences.selectedPhoneID else { return false }
+        return preferencesStore.connections.usb.verifiedSerial(phoneID: phoneID) != nil
+    }
 
     private var applications: [PhoneApplication] {
         guard let phoneID = preferencesStore.preferences.selectedPhoneID else { return [] }
@@ -127,18 +141,23 @@ struct PhoneScreenView: View {
                 WorkspaceHeading(title: "Phone screen", subtitle: "Your apps, with room for everything else.")
                 Spacer()
                 VStack(alignment: .trailing, spacing: 12) {
-                    Text("60 fps").font(.caption.weight(.medium)).foregroundStyle(.secondary)
+                    if usesVerifiedUSB {
+                        WorkspaceSegments(options: [(60, "60 fps"), (120, "120 fps")], selection: $state.usbFrameRate)
+                            .help("Maximum frame rate for the next USB session")
+                    } else {
+                        Text("60 fps").font(.caption.weight(.medium)).foregroundStyle(.secondary)
+                    }
                     Button {
                         if let phone = preferencesStore.preferences.selectedPhone {
                             if let application = selectedApplication, let serial = preferencesStore.connections.usb.verifiedSerial(phoneID: phone.id) {
                                 preferencesStore.connections.advancedMirroring.open(application: application, phoneID: phone.id,
-                                    serial: serial, framesPerSecond: phone.preferences.screenFramesPerSecond)
+                                    serial: serial, framesPerSecond: state.usbFrameRate)
                             } else {
-                                controller.request(phoneID: phone.id, framesPerSecond: phone.preferences.screenFramesPerSecond, application: selectedApplication)
+                                controller.request(phoneID: phone.id, framesPerSecond: usesVerifiedUSB ? state.usbFrameRate : 60, application: selectedApplication)
                             }
                         }
                     } label: { Label(shareButtonTitle, systemImage: "play.rectangle.fill") }
-                        .buttonStyle(WorkspaceButtonStyle(prominent: true)).disabled(!isConnected)
+                        .buttonStyle(WorkspaceButtonStyle(prominent: true)).disabled(!canShareSelection)
                 }
             }
             HStack(alignment: .top, spacing: 24) {
@@ -151,8 +170,7 @@ struct PhoneScreenView: View {
                             ForEach(applications) { application in
                                 Button { state.selectedApplication = application.id } label: {
                                     HStack(spacing: 12) {
-                                        if let icon = application.icon { Image(nsImage: icon).resizable().frame(width: 28, height: 28) }
-                                        else { Image(systemName: "app").frame(width: 28, height: 28) }
+                                        ApplicationIcon(image: application.icon, name: application.name)
                                         Text(application.name).lineLimit(2)
                                         Spacer()
                                         if state.selectedApplication == application.id { Image(systemName: "checkmark.circle.fill").foregroundStyle(.tint) }
@@ -193,7 +211,7 @@ struct PhoneScreenView: View {
            preferencesStore.connections.usb.verifiedSerial(phoneID: phoneID) != nil {
             return "Select an app and choose Share app over ADB to open it here. USB debugging must stay enabled during this session."
         }
-        return "Without ADB, Android asks you to choose the app on your phone for each new sharing session. Open a missing app first so Android can offer it among recent apps."
+        return "A named app requires USB debugging so Seamless can isolate that app. Choose Entire phone screen for Android’s standard screen-sharing consent."
     }
 
     private var shareButtonTitle: String {
@@ -202,7 +220,12 @@ struct PhoneScreenView: View {
            preferencesStore.connections.usb.verifiedSerial(phoneID: phoneID) != nil {
             return "Share app over ADB"
         }
-        return "Choose app on phone…"
+        return "Connect USB to share this app"
+    }
+
+    private var canShareSelection: Bool {
+        if selectedApplication != nil && !usesVerifiedUSB { return false }
+        return isConnected
     }
 
     private var isConnected: Bool {
@@ -305,6 +328,7 @@ final class ScreenPopout: NSObject, NSWindowDelegate {
 
 private struct CompactStreamPopout: View {
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.phoneThemeColor) private var phoneThemeColor
     @ObservedObject var controller: PhoneVideoStreamController
     var body: some View {
         VStack(spacing: 4) {
@@ -315,7 +339,7 @@ private struct CompactStreamPopout: View {
                 navigationButton("Home", symbol: "circle", command: "home")
                 navigationButton("Recent apps", symbol: "square", command: "recents")
             }.frame(height: 48)
-        }.padding(4).background(InterfacePalette(scheme: colorScheme).canvas)
+        }.padding(4).background(InterfacePalette(scheme: colorScheme, colorName: phoneThemeColor).canvas)
     }
     private func navigationButton(_ title: String, symbol: String, command: String) -> some View {
         Button { controller.input(kind: command) } label: {
@@ -326,8 +350,9 @@ private struct CompactStreamPopout: View {
 
 private struct ScreenNavigationButtonStyle: ButtonStyle {
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.phoneThemeColor) private var phoneThemeColor
     func makeBody(configuration: Configuration) -> some View {
-        let palette = InterfacePalette(scheme: colorScheme)
+        let palette = InterfacePalette(scheme: colorScheme, colorName: phoneThemeColor)
         configuration.label
             .foregroundStyle(palette.accent)
             .background(configuration.isPressed ? palette.raisedSurface : palette.accentWash,

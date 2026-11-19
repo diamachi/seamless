@@ -8,9 +8,10 @@ struct PhoneSwitcherView: View {
     @ObservedObject var preferencesStore: PreferencesStore
     @StateObject private var state = PhonePickerState()
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.phoneThemeColor) private var phoneThemeColor
 
     var body: some View {
-        let palette = InterfacePalette(scheme: colorScheme)
+        let palette = InterfacePalette(scheme: colorScheme, colorName: phoneThemeColor)
         Button { state.isPresented.toggle() } label: {
             VStack(alignment: .leading, spacing: 14) {
                 Text("SELECTED PHONE").font(.system(size: 9, weight: .semibold)).tracking(1.2).foregroundStyle(palette.secondaryText)

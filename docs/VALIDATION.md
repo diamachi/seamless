@@ -105,3 +105,23 @@ Local tests cover contact request/phone isolation, contact clearing and legacy 1
 Local 0.6.13 checks: 32 core tests plus 13 app tests pass, including contacts phone/request isolation, cleanup and older Bluetooth-options decoding. Android release assemble, nine JVM tests, lint and approved-signer verification pass. Source privacy/diff checks and actionlint pass. The title-bar material/sidebar-control change is being visually checked separately; no physical background-survival or call-audio acceptance is implied by compilation.
 
 Native 0.6.13 UI acceptance: visually confirmed the right dashboard material continues through the title-bar area with no separate dark strip. The duplicate native toolbar/sidebar button is gone; the in-content visibility button collapses and restores the sidebar. Calls setup displays its three-step explanation and optional reconnect/alert controls. Phone screen exposes 60 fps only. No real contact request, call or phone-control session was initiated during these checks.
+
+Storage browser follow-up: 32 core and 15 app tests passed, including late capability discovery followed by Refresh and resetting folder tokens after disconnect. Physical browsing on the owner’s phone remains unverified.
+
+0.6.15 explicit-sharing checks: Mac core and app suites passed (32 core, 15 app tests). Android release assembly, JVM tests, lint and stable-signer verification passed. UI popup interaction, physical ringing and notification Copy still need acceptance on a phone.
+
+0.6.16 validation: 32 Mac core and 15 app tests pass. Android release assembly, JVM tests, lint and stable signing verification pass. Share-sheet return behavior, first-install notification permission, carousel interaction and layout still require physical acceptance.
+
+0.6.17 checks: Mac core/app suites passed (32 core and 15 app tests). Android release assembly, JVM tests, lint and stable signing verification passed, including the sound/setup additions. The bundled WAV is valid non-silent PCM. Android sound audibility, onboarding permissions and Finder drag-hover behavior still require physical acceptance.
+
+Final 0.6.17 native visual check confirmed device details inside the top phone card and the compact notification card beside the main content in a wide window. Android sound output and Finder drag-hover remain unverified on hardware.
+
+0.6.18: Mac core/app tests passed, Android release tests/lint/stable-signature checks passed and the DMG verified. Folder pagination selection, maximum photo-grid hit targets, menu drag staging and app isolation still require physical acceptance. Clear list actions preserve actual downloaded files.
+
+0.6.20 Mac tests and packaging passed. App icons now share a larger padded, outlined tile in notifications and the app-sharing list. Latest text and compact Quit are implemented; visual acceptance remains pending.
+
+0.6.21 validation: Mac tests passed and DMG verified. Android release tests, lint and stable signing passed after the final cache-source cleanup change. Share-source return, popup dismissal and revised layouts require physical/UI acceptance.
+
+0.6.22 connection status notification names connected Macs and updates on peer changes. Mac tests and package verification passed; Android release tests/lint/signature checks passed. Carousel layout and camera sensor rotation are implemented but physically unverified. Webcam output pixel rotation remains pending.
+
+0.6.23 validation: Mac suites passed and DMG verified. Android release tests/lint/signature passed. Monochrome launcher assets generated for both platforms. Camera preview rotation remains unverified on a physical stream; system webcam pixel rotation remains pending.

@@ -1,5 +1,6 @@
 package dev.seamless.companion.ui
 
+import androidx.compose.ui.unit.dp
 import android.Manifest
 import android.content.Context
 import android.content.Intent
@@ -40,15 +41,16 @@ internal fun RecommendedAccessFlow(onChanged: () -> Unit) {
         if (stage in accessSteps.indices && SetupAccessPolicy.isAllowed(CompanionPermissions.read(context), stage)) stage = next(stage + 1)
     }
     val runtime = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { onChanged(); stage = next(0) }
-    Button(onClick = {
+    Button(shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp), onClick = {
         val access = CompanionPermissions.read(context)
         val permissions = mutableListOf<String>()
+        if (!access.contacts) permissions.add(Manifest.permission.READ_CONTACTS)
         if (!access.camera) permissions.add(Manifest.permission.CAMERA)
         if (Build.VERSION.SDK_INT >= 33 && !access.notifications) permissions.add(Manifest.permission.POST_NOTIFICATIONS)
         if (permissions.isEmpty()) stage = next(0)
         else runtime.launch(permissions.toTypedArray())
     }) { Text("Set up recommended access") }
-    Text("Requests camera and notification prompts, then guides you through remaining special access. Already allowed steps are skipped. You can skip any optional feature.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    Text("Requests camera, contacts and notification prompts, then guides you through remaining special access. Already allowed steps are skipped. You can skip any optional feature.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     if (stage in accessSteps.indices) {
         val step = accessSteps[stage]
         AlertDialog(onDismissRequest = { stage = -1 }, title = { Text(step.title) },

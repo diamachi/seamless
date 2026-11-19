@@ -19,11 +19,12 @@ data class CompanionPermissions(
     val notificationSharing: Boolean,
     val phoneControl: Boolean,
     val storage: Boolean,
-    val battery: Boolean
+    val battery: Boolean,
+    val contacts: Boolean = false
 ) {
     fun toJson(): JSONObject = JSONObject().put("camera", camera).put("notifications", notifications)
         .put("notificationSharing", notificationSharing).put("phoneControl", phoneControl)
-        .put("storage", storage).put("battery", battery)
+        .put("storage", storage).put("battery", battery).put("contacts", contacts)
 
     companion object {
         fun read(context: Context): CompanionPermissions {
@@ -43,7 +44,8 @@ data class CompanionPermissions(
                 notificationSharing = listeners.any { it.packageName == context.packageName },
                 phoneControl = control,
                 storage = fullStorage || context.contentResolver.persistedUriPermissions.any { it.isReadPermission },
-                battery = context.getSystemService(PowerManager::class.java).isIgnoringBatteryOptimizations(context.packageName)
+                battery = context.getSystemService(PowerManager::class.java).isIgnoringBatteryOptimizations(context.packageName),
+                contacts = context.checkSelfPermission(Manifest.permission.READ_CONTACTS) == PackageManager.PERMISSION_GRANTED
             )
         }
     }

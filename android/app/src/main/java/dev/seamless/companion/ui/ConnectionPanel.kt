@@ -39,21 +39,22 @@ fun ConnectionPanel(state: CompanionConnectionState, onStartScreen: () -> Unit, 
         }
     }
     Column(
-        Modifier.verticalScroll(rememberScrollState()).padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        Modifier.verticalScroll(rememberScrollState()).padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Text("Overview", style = MaterialTheme.typography.headlineMedium)
+        Text("Your Mac", style = MaterialTheme.typography.titleLarge)
         ConnectionOverviewCards(state, onSetup)
         if (state.connectedMacs.isEmpty()) PairingCard(state, onScanMac)
         SharingRequests(state, onStartScreen, onStartCamera)
         CompanionCard("Share with your Mac") {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedButton(enabled = state.connectedMacs.size == 1, onClick = { chooseFile.launch(arrayOf("*/*")) }) { Text("Send files") }
-                OutlinedButton(enabled = state.connectedMacs.size == 1, onClick = { sendPhoneClipboard(context) }) { Text("Send copied text") }
+
+            androidx.compose.foundation.lazy.LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                item { OutlinedButton(shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp), enabled = state.connectedMacs.size == 1, onClick = { chooseFile.launch(arrayOf("*/*")) }) { Text("Files") } }
+                item { OutlinedButton(shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp), enabled = state.connectedMacs.size == 1, onClick = { sendPhoneClipboard(context) }) { Text("Copied text") } }
+                item { OutlinedButton(shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp), enabled = state.connectedMacs.size == 1 && !state.isPreparingFolder, onClick = { chooseFolder.launch(null) }) { Text("Folder ZIP") } }
             }
-            OutlinedButton(enabled = state.connectedMacs.size == 1 && !state.isPreparingFolder,
-                onClick = { chooseFolder.launch(null) }) { Text("Send folder as ZIP") }
         }
+
         if (state.isPreparingFolder) {
             CompanionCard("Preparing folder") {
                 Text("Creating a ZIP before sending. Free phone storage is required.")
@@ -74,12 +75,11 @@ fun ConnectionPanel(state: CompanionConnectionState, onStartScreen: () -> Unit, 
         if (state.incomingFileOffer != null || state.receivedFile != null || state.sharedFilesToSend.isNotEmpty()) {
             FileSharingCard(state, chooseFile = { chooseFile.launch(arrayOf("*/*")) }, saveFile = { name -> saveFile.launch(name) })
         }
-        if (state.sharedTextToSend.isNotEmpty() || state.incomingClipboard.isNotEmpty()) ClipboardCard(state)
-        if (state.connectedMacs.isNotEmpty() && state.pairingCode.isNotEmpty()) PairingCard(state, onScanMac)
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            TextButton(onClick = onSetup) { Text("Pair a Mac") }
-            TextButton(onClick = onSettings) { Text("Settings") }
-        }
+        SendTextComposer(state)
+        ReceivedTextCards(state)
+
+
+
     }
 }
 
@@ -88,13 +88,13 @@ private fun SharingRequests(state: CompanionConnectionState, onStartScreen: () -
     if (state.screenRequestedBy != null) {
         CompanionCard("Screen sharing request") {
             Text("Your Mac requested ${state.screenRequestedFramesPerSecond} fps. Android will ask which screen to share.")
-            Button(onClick = onStartScreen) { Text("Approve screen sharing…") }
+            Button(shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp), onClick = onStartScreen) { Text("Approve screen sharing…") }
         }
     }
     if (state.cameraRequestedBy != null) {
         CompanionCard("Camera request") {
             Text("${state.cameraFacing.replaceFirstChar { it.uppercase() }} camera · ${state.cameraResolutionHeight}p · ${state.cameraFramesPerSecond} fps")
-            Button(onClick = onStartCamera) { Text("Approve camera sharing…") }
+            Button(shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp), onClick = onStartCamera) { Text("Approve camera sharing…") }
         }
     }
 }
@@ -103,9 +103,9 @@ private fun SharingRequests(state: CompanionConnectionState, onStartScreen: () -
 private fun FileSharingCard(state: CompanionConnectionState, chooseFile: () -> Unit, saveFile: (String) -> Unit) {
     CompanionCard("Files") {
         Text("Send a file to your Mac, or accept one here. No fixed file-size cap; available storage applies.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-        OutlinedButton(enabled = state.connectedMacs.size == 1, onClick = chooseFile) { Text("Choose files to send") }
+        OutlinedButton(shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp), enabled = state.connectedMacs.size == 1, onClick = chooseFile) { Text("Choose files to send") }
         if (state.sharedFilesToSend.isNotEmpty()) {
-            Button(enabled = state.connectedMacs.size == 1, onClick = {
+            Button(shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp), enabled = state.connectedMacs.size == 1, onClick = {
                 ConnectionRuntime.server?.offerFiles(state.sharedFilesToSend.map { android.net.Uri.parse(it) })
                 ConnectionRuntime.update { it.copy(sharedFilesToSend = emptyList()) }
             }) { Text("Send ${state.sharedFilesToSend.size} shared files to Mac") }
@@ -115,13 +115,13 @@ private fun FileSharingCard(state: CompanionConnectionState, chooseFile: () -> U
             Text(offer.name, style = MaterialTheme.typography.titleSmall)
             Text(android.text.format.Formatter.formatFileSize(LocalContext.current, offer.size))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = { ConnectionRuntime.server?.acceptFile(offer.transferID, true) }) { Text("Accept") }
+                Button(shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp), onClick = { ConnectionRuntime.server?.acceptFile(offer.transferID, true) }) { Text("Accept") }
                 TextButton(onClick = { ConnectionRuntime.server?.acceptFile(offer.transferID, false) }) { Text("Decline") }
             }
         }
         val received = state.receivedFile
         if (received != null) {
-            Button(onClick = { saveFile(received.name) }) { Text("Save ${received.name}") }
+            Button(shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp), onClick = { saveFile(received.name) }) { Text("Save ${received.name}") }
         }
     }
 }
@@ -131,18 +131,18 @@ private fun ClipboardCard(state: CompanionConnectionState) {
     val context = LocalContext.current
     CompanionCard("Clipboard") {
         Text("Send copied text while this app is open.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-        OutlinedButton(enabled = state.connectedMacs.size == 1, onClick = { sendPhoneClipboard(context) }) {
+        OutlinedButton(shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp), enabled = state.connectedMacs.size == 1, onClick = { sendPhoneClipboard(context) }) {
             Text("Send copied text to Mac")
         }
         if (state.sharedTextToSend.isNotEmpty()) {
-            Button(enabled = state.connectedMacs.size == 1, onClick = {
+            Button(shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp), enabled = state.connectedMacs.size == 1, onClick = {
                 ConnectionRuntime.server?.sendClipboard(state.sharedTextToSend)
                 ConnectionRuntime.update { it.copy(sharedTextToSend = "") }
             }) { Text("Send shared text") }
         }
         if (state.incomingClipboard.isNotEmpty()) {
             Text("Text from your Mac is ready.", style = MaterialTheme.typography.bodyMedium)
-            OutlinedButton(onClick = { copyText(context, "From Mac", state.incomingClipboard) }) { Text("Copy received text") }
+            OutlinedButton(shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp), onClick = { copyText(context, "From Mac", state.incomingClipboard) }) { Text("Copy received text") }
         }
     }
 }

@@ -37,11 +37,20 @@ internal fun PermissionSetupPanel() {
     var access by remember { mutableStateOf(CompanionPermissions.read(context)) }
     val refresh = { access = CompanionPermissions.read(context) }
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { refresh() }
+    val requestContacts = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { refresh() }
     val requestCamera = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { refresh() }
     val requestNotifications = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { refresh() }
     CompanionCard("Choose your features") {
         Text("Set up once, then use your chosen features. Setup never starts your camera or screen sharing.", color = MaterialTheme.colorScheme.onSurfaceVariant)
         RecommendedAccessFlow(onChanged = refresh)
+        PermissionRow("Contacts", "Optional Android contacts picker on your Mac", access.contacts) {
+            if (access.contacts) {
+                openSetupSettings(context, Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + context.packageName)))
+            } else {
+                requestContacts.launch(Manifest.permission.READ_CONTACTS)
+            }
+        }
+        HorizontalDivider()
         PermissionRow("Camera", "Live camera for your Mac", access.camera) {
             val requested = context.getSharedPreferences("onboarding", Context.MODE_PRIVATE).getBoolean("camera_requested", false)
             val canExplain = (context as? android.app.Activity)?.shouldShowRequestPermissionRationale(Manifest.permission.CAMERA) == true
@@ -81,13 +90,14 @@ internal fun PermissionSetupPanel() {
         Text(if (access.battery) "Android battery exemption is active" else "Android battery exemption is not active", color = MaterialTheme.colorScheme.primary)
         Text("If the persistent Seamless notification disappears, the service has stopped. Review background activity and Auto start in your phone’s app settings if available. Reconnect pauses that you chose yourself stay paused.", style = MaterialTheme.typography.bodySmall)
         Text(dev.seamless.companion.features.BackgroundConnectionDiagnostics.summary(context), style = MaterialTheme.typography.bodySmall)
-        OutlinedButton(onClick = { openSetupSettings(context, Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + context.packageName))) }) { Text("Review app background settings") }
+        OutlinedButton(shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp), onClick = { openSetupSettings(context, Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + context.packageName))) }) { Text("Review app background settings") }
     }
     AutomaticDownloadsSetupCard()
     StorageSetupCard(access.storage, onChanged = refresh)
     CompanionCard("Screen sharing & calls") {
         Text("Android asks for screen-sharing consent for every new session. This cannot be pre-approved during setup.")
-        Text("Bluetooth call pairing is done in the phone and Mac Bluetooth settings. Call audio does not need Android microphone access. The optional contacts picker requests Contacts access separately.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        TextButton(onClick = { openSetupSettings(context, Intent(Settings.ACTION_BLUETOOTH_SETTINGS)) }) { Text("Pair Bluetooth for calls") }
+        Text("Bluetooth call pairing is done in the phone and Mac Bluetooth settings. Call audio does not need Android microphone access. You can grant optional Contacts access above; each Mac still needs your sharing approval.", color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
@@ -99,7 +109,7 @@ private fun PermissionRow(title: String, purpose: String, allowed: Boolean, acti
             Text(purpose, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(if (allowed) "Allowed" else "Not allowed", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
         }
-        OutlinedButton(onClick = action) { Text(if (allowed) "Review" else "Set up") }
+        OutlinedButton(shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp), onClick = action) { Text(if (allowed) "Review" else "Set up") }
     }
 }
 
@@ -130,13 +140,13 @@ private fun StorageSetupCard(allowed: Boolean, onChanged: () -> Unit) {
         Text(if (allowed) "Shared access is available" else "No storage is shared yet", color = MaterialTheme.colorScheme.primary)
         Text("Share your phone's shared storage, or choose specific folders and media. Private app data remains protected.", style = MaterialTheme.typography.bodySmall)
         if (Build.VERSION.SDK_INT >= 30) {
-            Button(onClick = {
+            Button(shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp), onClick = {
                 context.getSharedPreferences("shared_storage", Context.MODE_PRIVATE).edit().putBoolean("full_access_enabled", true).apply()
                 openSetupSettings(context, Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION, Uri.parse("package:" + context.packageName)))
             }) { Text("Review all-files access") }
         }
-        OutlinedButton(onClick = { chooseFolder.launch(null) }) { Text("Choose a shared folder") }
-        OutlinedButton(onClick = { chooseMedia.launch(arrayOf("image/*", "video/*")) }) { Text("Choose photos and videos") }
+        OutlinedButton(shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp), onClick = { chooseFolder.launch(null) }) { Text("Choose a shared folder") }
+        OutlinedButton(shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp), onClick = { chooseMedia.launch(arrayOf("image/*", "video/*")) }) { Text("Choose photos and videos") }
         TextButton(onClick = {
             context.getSharedPreferences("shared_storage", Context.MODE_PRIVATE).edit().clear().apply()
             for (permission in context.contentResolver.persistedUriPermissions) {

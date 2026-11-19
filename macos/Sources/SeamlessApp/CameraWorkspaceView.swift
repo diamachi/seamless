@@ -10,11 +10,13 @@ struct CameraWorkspaceView: View {
             HStack(alignment: .top) {
                 WorkspaceHeading(title: "Live camera", subtitle: "A camera that travels with you.")
                 Spacer()
-                Button(action: startCamera) {
-                    Label("Start camera", systemImage: "video.fill")
+                Button {
+                    if controller.isStreaming { controller.stop() } else { startCamera() }
+                } label: {
+                    Label(controller.isStreaming ? "Stop camera" : "Start camera", systemImage: controller.isStreaming ? "stop.fill" : "video.fill")
                 }
                 .buttonStyle(WorkspaceButtonStyle(prominent: true))
-                .disabled(!isConnected || controller.isStreaming)
+                .disabled(!isConnected && !controller.isStreaming)
             }
             HStack(alignment: .top, spacing: 24) {
                 ScrollView {
@@ -23,7 +25,7 @@ struct CameraWorkspaceView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 20) {
                         previewCard
-                        CameraSettingsView(preferences: preferencesStore.featurePreferences.camera)
+                        CameraSettingsView(preferences: preferencesStore.featurePreferences.camera, supportedModes: controller.whiteBalanceModes)
                     }.frame(maxWidth: .infinity)
                 }
             }
@@ -69,9 +71,9 @@ struct CameraWorkspaceView: View {
             HStack {
                 Button {
                     CameraOutputWindow.shared.show(controller: controller)
-                } label: { Label("Clean output", systemImage: "macwindow") }
+                } label: { Label("Pop out camera", systemImage: "macwindow") }
                 Spacer()
-                Button { controller.stop() } label: { Label("Stop camera", systemImage: "stop.fill") }
+                Button { controller.rotateCameraPreview() } label: { Label("Rotate preview", systemImage: "rotate.right") }
                     .disabled(!controller.isStreaming)
             }
             Text(controller.message).font(.caption).foregroundStyle(.secondary)
@@ -85,6 +87,9 @@ struct CameraWorkspaceView: View {
 
     private var previewRatio: CGFloat {
         if controller.videoSize.height > 1 {
+            if controller.rotationDegrees == 90 || controller.rotationDegrees == 270 {
+                return controller.videoSize.height / controller.videoSize.width
+            }
             return controller.videoSize.width / controller.videoSize.height
         }
         return 16.0 / 9.0

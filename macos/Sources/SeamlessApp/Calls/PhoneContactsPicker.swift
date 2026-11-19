@@ -89,6 +89,7 @@ struct PhoneContactsPicker: View {
     let choose: (CallingContact) -> Void
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.phoneThemeColor) private var phoneThemeColor
     @StateObject private var search = ContactSearch()
 
     var body: some View {
@@ -129,7 +130,7 @@ struct PhoneContactsPicker: View {
             Text("Selecting a contact fills the dial field. Press Call to place the call.")
                 .font(.caption).foregroundStyle(.secondary)
         }.padding(24).frame(width: 520, height: 560)
-            .background(InterfacePalette(scheme: colorScheme).canvas)
+            .background(InterfacePalette(scheme: colorScheme, colorName: phoneThemeColor).canvas)
             .task(id: phoneID) {
                 if contacts.sourcePhoneID != phoneID || contacts.contacts.isEmpty { contacts.load(phoneID: phoneID) }
             }

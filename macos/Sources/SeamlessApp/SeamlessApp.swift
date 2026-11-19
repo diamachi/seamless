@@ -9,6 +9,7 @@ struct SeamlessApp: App {
     var body: some Scene {
         Window("Seamless", id: "main") {
             MainWindow(preferencesStore: preferencesStore, applicationDelegate: applicationDelegate)
+                .environment(\.phoneThemeColor, preferencesStore.preferences.selectedPhone?.preferences.previewColor ?? "sage")
                 .frame(minWidth: 860, minHeight: 620)
                 .task {
                     applicationDelegate.preferencesStore = preferencesStore
@@ -18,7 +19,7 @@ struct SeamlessApp: App {
                 }
         }
         .defaultSize(width: 1160, height: 820)
-        .windowStyle(.hiddenTitleBar)
+        .windowStyle(.titleBar)
 
 
     }

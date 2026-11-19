@@ -26,6 +26,7 @@ final class PhoneVideoStreamController: ObservableObject {
     private var intervalStart = Date()
     private var statisticsTimer: Timer?
     @Published var isDetached = false
+    @Published private(set) var rotationDegrees = 0
     @Published private(set) var videoSize = CGSize(width: 1, height: 1)
     let purpose: VideoStreamPurpose
     var sourcePhoneID: String? { phoneID }
@@ -48,8 +49,12 @@ final class PhoneVideoStreamController: ObservableObject {
     func request(phoneID: String, framesPerSecond: Int, application: PhoneApplication? = nil) {
         stop()
         self.phoneID = phoneID
-        send?(phoneID, ControlPacket(type: "screenRequest", payload: .object(["captureEntireDisplay": .bool(application == nil), "framesPerSecond": .number(60), "applicationName": .string(application?.name ?? ""), "applicationPackage": .string(application?.identity.packageName ?? "")])))
+        send?(phoneID, ControlPacket(type: "screenRequest", payload: .object(["captureEntireDisplay": .bool(application == nil), "framesPerSecond": .number(Double(framesPerSecond)), "applicationName": .string(application?.name ?? ""), "applicationPackage": .string(application?.identity.packageName ?? "")])))
         message = "On your phone, tap Approve screen sharing and confirm Android's sharing prompt."
+    }
+
+    func rotateCameraPreview() {
+        rotationDegrees = (rotationDegrees + 90) % 360
     }
 
     func requestCamera(phoneID: String, preferences: CameraPreferences) {
@@ -59,7 +64,7 @@ final class PhoneVideoStreamController: ObservableObject {
             "facing": .string(preferences.facing.rawValue), "resolutionHeight": .number(Double(preferences.resolutionHeight)),
             "framesPerSecond": .number(Double(preferences.framesPerSecond)),
             "exposureEV": .number(preferences.exposureEV), "zoom": .number(preferences.zoom),
-            "torch": .bool(preferences.torch), "whiteBalance": .string(preferences.whiteBalance)
+            "torch": .bool(preferences.torch), "whiteBalance": .string("auto")
         ])))
         message = "On the phone, approve camera sharing."
     }
@@ -68,7 +73,7 @@ final class PhoneVideoStreamController: ObservableObject {
         guard purpose == .camera, isStreaming, self.phoneID == phoneID else { return }
         send?(phoneID, ControlPacket(type: "cameraControls", payload: .object([
             "exposureEV": .number(preferences.exposureEV), "zoom": .number(preferences.zoom),
-            "torch": .bool(preferences.torch), "whiteBalance": .string(preferences.whiteBalance)
+            "torch": .bool(preferences.torch), "whiteBalance": .string("auto")
         ])))
     }
 
@@ -86,7 +91,15 @@ final class PhoneVideoStreamController: ObservableObject {
         } catch { message = error.localizedDescription }
     }
 
+    @Published private(set) var whiteBalanceModes: [String]?
+
+    func receiveWhiteBalanceModes(phoneID: String, modes: String) {
+        guard self.phoneID == phoneID else { return }
+        whiteBalanceModes = modes.split(separator: ",").map(String.init)
+    }
+
     func stop() {
+        whiteBalanceModes = nil
         let stopExternal = externalStop
         externalStop = nil
         externalInput = nil
@@ -184,6 +197,7 @@ final class PhoneVideoStreamController: ObservableObject {
 
     private func configure(_ data: Data) throws {
         let value = try JSONDecoder().decode(JSONValue.self, from: data)
+        rotationDegrees = purpose == .camera ? Int(value["rotationDegrees"].number ?? 0) : 0
         let reportedEncoder = value["encoder"].string ?? ""
         if encoderName != reportedEncoder { encoderName = reportedEncoder }
         var parameters = Data()

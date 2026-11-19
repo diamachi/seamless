@@ -55,7 +55,9 @@ class CameraStreamService : Service() {
             worker.post {
                 try {
                     val sink = ConnectionRuntime.server?.prepareCameraStream(target) ?: error("Mac is disconnected")
-                    val cameraSession = CameraEncodingSession(this, worker, sink) { fail(it) }
+                    val cameraSession = CameraEncodingSession(this, worker, sink, { modes ->
+                        ConnectionRuntime.server?.reportWhiteBalanceModes(target, modes)
+                    }) { fail(it) }
                     session = cameraSession
                     cameraSession.start(facing, height, rate, intent.getDoubleExtra("exposureEV", 0.0), intent.getDoubleExtra("zoom", 1.0), intent.getBooleanExtra("torch", false), intent.getStringExtra("whiteBalance") ?: "auto")
                 } catch (exception: Exception) { fail(exception) }

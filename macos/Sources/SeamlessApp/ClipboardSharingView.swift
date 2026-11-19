@@ -7,9 +7,10 @@ struct ClipboardSharingView: View {
     @ObservedObject var preferencesStore: PreferencesStore
     @StateObject private var editor = ClipboardEditor()
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.phoneThemeColor) private var phoneThemeColor
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Clipboard").font(.title2.weight(.semibold))
+            Text("Share text").font(.title2.weight(.semibold))
             ViewThatFits(in: .horizontal) {
                 EqualHeightCardRow {
                     historyCard
@@ -33,7 +34,7 @@ struct ClipboardSharingView: View {
     private var composerCard: some View {
         WorkspaceCard(fillsHeight: true) {
             Text("Mac → phone").font(.headline)
-            Text("Copy text on this Mac, then send it below. Once confirmed, paste in any phone app.")
+            Text("Copy text on this Mac, then send it below. Tap Copy in the phone notification to use it.")
                 .font(.caption).foregroundStyle(.secondary)
             textEditor
             if let phoneID = preferencesStore.preferences.selectedPhoneID {
@@ -49,14 +50,13 @@ struct ClipboardSharingView: View {
                 Text(preferencesStore.connections.clipboardStatus[phoneID] ?? "Ready · copy text or write a message above")
                     .font(.caption).foregroundStyle(.secondary)
             }
-            Toggle("Auto-send new copies from this Mac", isOn: preferencesStore.featurePreferences.automaticallyShareMacClipboard)
-            Text("Phone → Mac: select text in an Android app → Share → Seamless. It is copied to this Mac when connected. Simply copying on Android cannot sync reliably while Seamless is in the background.")
+            Text("On Android, select text → Share → Seamless. Received text appears here.")
                 .font(.caption).foregroundStyle(.secondary)
         }
     }
 
     private var textEditor: some View {
-        let palette = InterfacePalette(scheme: colorScheme)
+        let palette = InterfacePalette(scheme: colorScheme, colorName: phoneThemeColor)
         return ClipboardTextEditor(text: $editor.text)
         .frame(minHeight: 110, idealHeight: 130, maxHeight: 170)
         .background(palette.canvas, in: RoundedRectangle(cornerRadius: 12))
@@ -71,15 +71,14 @@ private struct ClipboardHistoryView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
-                Text("Clipboard shelf").font(.headline)
+                Text("Received text").font(.headline)
                 Spacer()
-                Button("Clear") { history.clear() }
+                Button("Clear all") { history.clear(phoneID: phoneID) }
             }
-            Toggle("Keep history during this app session", isOn: $history.isEnabled)
-            Text("Up to 30 text clips from either device. History stays in memory and disappears when Seamless quits. Avoid enabling it while copying sensitive text.")
+            Text("Text shared from your phone. Cards stay until deleted or Seamless quits.")
                 .font(.caption).foregroundStyle(.secondary)
             if visibleItems.isEmpty {
-                ContentUnavailableView("Your next clips appear here", systemImage: "doc.on.clipboard")
+                ContentUnavailableView("Text shared from your phone appears here", systemImage: "doc.on.clipboard")
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
             } else {
                 ScrollView(.horizontal) {
@@ -91,7 +90,10 @@ private struct ClipboardHistoryView: View {
                                 Text(item.text).lineLimit(8)
                                     .frame(maxWidth: .infinity, minHeight: 140, alignment: .topLeading)
                                     .textSelection(.enabled)
-                                Button("Copy") { history.copy(item) }
+                                HStack {
+                                    Button("Copy to clipboard") { history.copy(item) }
+                                    Button("Delete") { history.delete(item) }
+                                }
                             }.frame(width: 240)
                         }
                     }

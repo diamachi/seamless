@@ -6,7 +6,7 @@ struct SetupGuideView: View {
     @ObservedObject var setup: SetupCoordinator
     let openDevices: () -> Void
 
-    private let steps = ["Welcome", "Pair devices", "Permissions", "Ready"]
+    private let steps = ["Welcome", "Pair devices", "Permissions", "Verify", "Ready"]
     var body: some View {
         VStack(alignment: .leading, spacing: 24) {
             HStack {
@@ -17,7 +17,7 @@ struct SetupGuideView: View {
             HStack(spacing: 16) {
                 ForEach(Array(steps.enumerated()), id: \.offset) { index, title in
                     Label(title, systemImage: index < setup.step ? "checkmark.circle.fill" : "\(index + 1).circle")
-                        .font(.caption.weight(.medium)).foregroundStyle(index == setup.step ? InterfacePalette(scheme: colorScheme).accent : InterfacePalette(scheme: colorScheme).secondaryText)
+                        .font(.caption.weight(.medium)).foregroundStyle(index == setup.step ? InterfacePalette(scheme: colorScheme, colorName: phoneThemeColor).accent : InterfacePalette(scheme: colorScheme, colorName: phoneThemeColor).secondaryText)
                 }
             }
             ScrollView {
@@ -28,22 +28,24 @@ struct SetupGuideView: View {
                 if setup.step > 0 { Button("Back") { setup.step -= 1 } }
                 Spacer()
                 Text("Optional features can be configured later.").font(.caption).foregroundStyle(.secondary)
-                if setup.step < 3 {
+                if setup.step < 4 {
                     Button("Continue") { setup.step += 1 }.buttonStyle(WorkspaceButtonStyle(prominent: true))
+                        .disabled(setup.step == 1 && !preferencesStore.preferences.rememberedPhones.contains { preferencesStore.sessions.state(for: $0.id) == .connected })
                 } else {
                     Button("Finish setup") { setup.finish() }.buttonStyle(WorkspaceButtonStyle(prominent: true))
                 }
             }
         }
         .padding(28).frame(width: 740, height: 600)
-        .background(InterfacePalette(scheme: colorScheme).canvas)
+        .background(InterfacePalette(scheme: colorScheme, colorName: phoneThemeColor).canvas)
         .buttonStyle(WorkspaceButtonStyle())
-        .tint(InterfacePalette(scheme: colorScheme).accent)
+        .tint(InterfacePalette(scheme: colorScheme, colorName: phoneThemeColor).accent)
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in setup.refresh() }
         .task { setup.refresh() }
         .onReceive(preferencesStore.calls.$isDiscovering) { _ in setup.refresh() }
     }
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.phoneThemeColor) private var phoneThemeColor
 
     @ViewBuilder private var stepContent: some View {
         switch setup.step {
@@ -57,19 +59,21 @@ struct SetupGuideView: View {
             }
         case 1:
             WorkspaceCard {
-                Text("Pair your Android phone").font(.title2.weight(.semibold))
-                Text("1. In Devices on this Mac, choose Create pairing QR.\n2. On Android, choose Pair a Mac → Scan Mac QR code.\n3. Scan this Mac’s QR and approve the trust request on your phone.").lineSpacing(8)
-                Text(preferencesStore.preferences.rememberedPhones.isEmpty ? "No phone paired yet" : "\(preferencesStore.preferences.rememberedPhones.count) phone(s) remembered")
-                    .font(.callout).foregroundStyle(.secondary)
-                Button("Open device pairing") { setup.isPresented = false; openDevices() }
-                    .buttonStyle(WorkspaceButtonStyle(prominent: true))
-                Text("If macOS asks for Local Network access while connecting, review and allow it for Seamless. There is no reliable general permission-status check here; a successful connection confirms access.")
-                    .font(.caption).foregroundStyle(.secondary)
+                ConnectionSettingsView(connections: preferencesStore.connections)
+                Text("Keep the Android setup guide open and scan this QR. Continue once the phone is connected.").font(.caption)
             }
         case 2:
             SetupMacPermissions(preferencesStore: preferencesStore, setup: setup)
             DownloadsSetupCard(preferencesStore: preferencesStore)
             phonePermissions
+        case 3:
+            WorkspaceCard {
+                Text("Verify both devices").font(.title2)
+                Text("1. On Android, use Check alert sounds and play each test.\n2. On this Mac, choose Android apps in the filter below.\n3. In Android Overview, post a test notification.\n4. Share a small file and text in each direction from Overview.")
+                Text("Android screen-sharing approval is required for each new session. Optional calls need Bluetooth pairing. The webcam driver is configured in Live camera.")
+            }
+            NotificationSettingsView(preferencesStore: preferencesStore, connections: preferencesStore.connections, initiallyShowApplications: true)
+                .frame(height: 350)
         default:
             WorkspaceCard {
                 Text("Make it yours.").font(.title.weight(.semibold))
@@ -156,8 +160,7 @@ private struct DownloadsSetupCard: View {
 
     var body: some View {
         WorkspaceCard {
-            Text("Automatic Downloads").font(.headline)
-            Toggle("Save files from this phone to Downloads automatically", isOn: preferencesStore.featurePreferences.automaticallyAcceptFiles)
+            Text("Downloads access").font(.headline)
                 .disabled(preferencesStore.preferences.selectedPhoneID == nil)
             Text("Files use unique names and never replace existing downloads. Choose a paired phone first. macOS controls folder access separately.")
                 .font(.caption).foregroundStyle(.secondary)

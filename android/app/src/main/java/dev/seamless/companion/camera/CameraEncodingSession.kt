@@ -23,8 +23,11 @@ class CameraEncodingSession(
     private val context: Context,
     private val handler: Handler,
     private val sink: MediaStreamSink,
+    private val reportWhiteBalanceModes: (List<String>) -> Unit,
     private val onFailure: (Exception) -> Unit
 ) : AutoCloseable {
+    private val whiteBalanceModes = mapOf("auto" to CaptureRequest.CONTROL_AWB_MODE_AUTO, "daylight" to CaptureRequest.CONTROL_AWB_MODE_DAYLIGHT, "cloudy" to CaptureRequest.CONTROL_AWB_MODE_CLOUDY_DAYLIGHT,
+            "incandescent" to CaptureRequest.CONTROL_AWB_MODE_INCANDESCENT, "fluorescent" to CaptureRequest.CONTROL_AWB_MODE_FLUORESCENT)
     private var camera: CameraDevice? = null
     private var cameraSession: CameraCaptureSession? = null
     private var encoder: MediaCodec? = null
@@ -60,6 +63,8 @@ class CameraEncodingSession(
         } ?: error("Requested camera is unavailable")
         val characteristics = manager.getCameraCharacteristics(cameraID)
         this.characteristics = characteristics
+        val supportedModes = characteristics.get(CameraCharacteristics.CONTROL_AWB_AVAILABLE_MODES) ?: intArrayOf()
+        reportWhiteBalanceModes(whiteBalanceModes.filterValues { it in supportedModes }.keys.toList())
         val sizes = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)?.getOutputSizes(MediaCodec::class.java)
             ?: error("Camera does not advertise encoder outputs")
         val size = sizes.filter { minOf(it.width, it.height) == resolutionHeight }
@@ -168,10 +173,12 @@ class CameraEncodingSession(
         val step = info.get(CameraCharacteristics.CONTROL_AE_COMPENSATION_STEP)?.toDouble() ?: 0.0
         if (exposureRange != null && step > 0) request.set(CaptureRequest.CONTROL_AE_EXPOSURE_COMPENSATION, (exposureEV / step).toInt().coerceIn(exposureRange.lower, exposureRange.upper))
         if (info.get(CameraCharacteristics.FLASH_INFO_AVAILABLE) == true) request.set(CaptureRequest.FLASH_MODE, if (torch) CaptureRequest.FLASH_MODE_TORCH else CaptureRequest.FLASH_MODE_OFF)
-        val modes = mapOf("auto" to CaptureRequest.CONTROL_AWB_MODE_AUTO, "daylight" to CaptureRequest.CONTROL_AWB_MODE_DAYLIGHT, "cloudy" to CaptureRequest.CONTROL_AWB_MODE_CLOUDY_DAYLIGHT,
-            "incandescent" to CaptureRequest.CONTROL_AWB_MODE_INCANDESCENT, "fluorescent" to CaptureRequest.CONTROL_AWB_MODE_FLUORESCENT)
-        val mode = modes[whiteBalance] ?: CaptureRequest.CONTROL_AWB_MODE_AUTO
+        val mode = whiteBalanceModes[whiteBalance] ?: CaptureRequest.CONTROL_AWB_MODE_AUTO
         val supportedWhiteBalance = info.get(CameraCharacteristics.CONTROL_AWB_AVAILABLE_MODES)
+        request.set(CaptureRequest.CONTROL_MODE, CaptureRequest.CONTROL_MODE_AUTO)
+        if (info.get(CameraCharacteristics.CONTROL_AWB_LOCK_AVAILABLE) == true) {
+            request.set(CaptureRequest.CONTROL_AWB_LOCK, false)
+        }
         if (supportedWhiteBalance?.contains(mode) == true) {
             request.set(CaptureRequest.CONTROL_AWB_MODE, mode)
         } else {
@@ -209,7 +216,7 @@ class CameraEncodingSession(
             if (output == MediaCodec.INFO_TRY_AGAIN_LATER) break
             if (output == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
                 val format = codec.outputFormat
-                val description = JSONObject().put("width", format.getInteger("width")).put("height", format.getInteger("height")).put("encoder", codec.name)
+                val description = JSONObject().put("width", format.getInteger("width")).put("height", format.getInteger("height")).put("encoder", codec.name).put("rotationDegrees", characteristics?.get(CameraCharacteristics.SENSOR_ORIENTATION) ?: 0)
                 for (key in listOf("csd-0", "csd-1")) {
                     val bytes = format.getByteBuffer(key)?.duplicate() ?: continue
                     val content = ByteArray(bytes.remaining())

@@ -12,9 +12,10 @@ struct WorkspaceMenuPicker: View {
     let choices: [(String, String)]
     @StateObject private var presentation = WorkspacePickerPresentation()
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.phoneThemeColor) private var phoneThemeColor
 
     var body: some View {
-        let palette = InterfacePalette(scheme: colorScheme)
+        let palette = InterfacePalette(scheme: colorScheme, colorName: phoneThemeColor)
         VStack(alignment: .leading, spacing: 8) {
             Text(title).font(.caption.weight(.medium)).foregroundStyle(palette.secondaryText)
             Button { presentation.isPresented.toggle() } label: {
