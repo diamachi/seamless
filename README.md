@@ -9,6 +9,9 @@
 
 Text and file sharing, phone notifications, phone screen, photos and live camera, together in a native Mac app and Android companion. Pair your devices over your local network, select a phone, and keep the controls within reach from the window or menu bar.
 
+> [!WARNING]
+> **Google Pay compatibility:** Google Pay India may block payments while the optional **Seamless phone control** Accessibility service is enabled, even when screen sharing is stopped. This conflict has been reported during use; the exact detection conditions have not been independently verified. Turn off **Seamless phone control** in Android **Settings → Accessibility → Downloaded apps / Installed services**, then reopen Google Pay. Remote phone controls will be unavailable while the service is off. See [Google Pay's guidance on Accessibility-related payment blocks](https://support.google.com/pay/india/answer/17165523?hl=en).
+
 ## Screenshots
 
 <table>
