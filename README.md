@@ -10,7 +10,13 @@
 Text and file sharing, phone notifications, phone screen, photos and live camera, together in a native Mac app and Android companion. Pair your devices over your local network, select a phone, and keep the controls within reach from the window or menu bar.
 
 > [!WARNING]
-> **Google Pay compatibility:** Google Pay India may block payments while the optional **Seamless phone control** Accessibility service is enabled, even when screen sharing is stopped. This conflict has been reported during use; the exact detection conditions have not been independently verified. Turn off **Seamless phone control** in Android **Settings → Accessibility → Downloaded apps / Installed services**, then reopen Google Pay. Remote phone controls will be unavailable while the service is off. See [Google Pay's guidance on Accessibility-related payment blocks](https://support.google.com/pay/india/answer/17165523?hl=en).
+> **Google Pay compatibility:** Google Pay India may block payments while the optional **Seamless phone control** Accessibility service is enabled, even when screen sharing is stopped. This conflict has been reported during use; the exact detection conditions have not been independently verified. See [Google Pay's guidance on Accessibility-related payment blocks](https://support.google.com/pay/india/answer/17165523?hl=en).
+>
+> **What the service does:** It enables remote taps, swipes, scrolling, and Back / Home / Recents controls from your Mac. It can read the active app's screen structure, which Seamless currently uses for scrolling.
+>
+> **To turn it off:** Open Android **Settings → Accessibility → Downloaded apps / Installed services → Seamless phone control**, switch the service **Off**, then reopen Google Pay. Settings names vary by phone.
+>
+> **What still works:** Screen viewing, text and file sharing, phone notifications, photos, camera streaming, contacts, and ringing your phone do not depend on this service. Remote controls that use Accessibility are unavailable while it is off.
 
 ## Screenshots
 
