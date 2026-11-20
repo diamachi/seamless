@@ -42,7 +42,7 @@ Text and file sharing, phone notifications, phone screen, photos and live camera
   </tr>
 </table>
 
-**Development preview.** A free public preview is available; production distribution is still in development. Some integrations are experimental; the [validation record](docs/VALIDATION.md) separates device-tested behavior from remaining work. GitHub Actions builds test installers; there is no automatic updater yet.
+**Available now:** Download the macOS and Android apps from [GitHub Releases](https://github.com/diamachi/seamless/releases/latest). Some integrations remain experimental; the [validation record](docs/VALIDATION.md) separates device-tested behavior from remaining work. Android updates can be tracked with Obtainium or ObtainX; Seamless has no built-in updater.
 
 ## Features
 
@@ -78,14 +78,25 @@ Text and file sharing, phone notifications, phone screen, photos and live camera
 
 ## Try it
 
-Download the [0.6.27 preview from GitHub Releases](https://github.com/diamachi/seamless/releases/tag/v0.6.27), or get CI packages from **Actions → Build test installers → a successful run → Artifacts**. See [CI setup and signing limits](docs/CI.md). Local build outputs are placed in `dist/`:
+Download the [latest release from GitHub](https://github.com/diamachi/seamless/releases/latest) for macOS and Android. Version [0.6.27](https://github.com/diamachi/seamless/releases/tag/v0.6.27) is currently available. For development builds, use **Actions → Build test installers → a successful run → Artifacts**; see [CI setup and signing limits](docs/CI.md). Local build outputs are placed in `dist/`:
 
 | Platform | Package | Install |
 | --- | --- | --- |
 | macOS | `Seamless_<version>.dmg` | Open the image and drag Seamless into Applications. |
 | Android | `Seamless_<version>.apk` | Open the APK on Android and review the installation prompt. |
 
-Local DMGs are ad-hoc signed test packages, **not notarized releases**. Android 0.6.12 onward uses stable distribution signing on main; PR/debug builds remain development-signed. Moving from older debug APKs may require one final reinstall. See [signing and backup notes](docs/DEVELOPMENT_SIGNING.md). Preview installers are published through GitHub Releases. No Homebrew package or automatic updater is configured. macOS package minimum is 14; Android minimum is 7.0/API 24, with feature-specific gates. These build minimums do not establish physical compatibility across all versions. Initial physical tests use Android 17 and macOS 27.
+Local DMGs are ad-hoc signed test packages, **not notarized releases**. Android 0.6.12 onward uses stable distribution signing on main; PR/debug builds remain development-signed. Moving from older debug APKs may require one final reinstall. See [signing and backup notes](docs/DEVELOPMENT_SIGNING.md). Installers are published through GitHub Releases. No Homebrew package or built-in updater is configured. macOS package minimum is 14; Android minimum is 7.0/API 24, with feature-specific gates. These build minimums do not establish physical compatibility across all versions. Initial physical tests use Android 17 and macOS 27.
+
+### Android updates with Obtainium or ObtainX
+
+Use [Obtainium](https://github.com/ImranR98/Obtainium) or its fork [ObtainX](https://github.com/bikram-agarwal/ObtainX) to track Seamless updates directly from GitHub Releases:
+
+1. Install either updater from its official project.
+2. Add an app with the source URL `https://github.com/diamachi/seamless`.
+3. Select the Seamless APK if prompted, then follow the updater’s installation prompts. Allow that updater to install apps when Android asks.
+4. Let the updater check for new releases and install updates when available.
+
+Install updates over your existing release app to preserve pairing and settings. Android requires a matching signing certificate; older debug-signed builds may require a reinstall. This updater setup has not yet been physically verified with Seamless. On macOS, download the latest DMG and replace Seamless in Applications after quitting it.
 
 ## macOS installation — unnotarized preview
 
