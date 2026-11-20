@@ -11,13 +11,27 @@ Files, notifications, clipboard, phone screen and live camera, together in a nat
 
 ## Screenshots
 
-### macOS overview
+<table>
+  <tr>
+    <td width="72%" valign="top"><img src="docs/screenshots/overview-macos.png" alt="Seamless for macOS showing device status and sharing controls" width="100%"></td>
+    <td width="28%" valign="top"><img src="docs/screenshots/overview-android.jpg" alt="Seamless for Android showing the connected Mac and sharing actions" width="100%"></td>
+  </tr>
+  <tr>
+    <td align="center">macOS overview</td>
+    <td align="center">Android overview</td>
+  </tr>
+</table>
 
-![Seamless for macOS showing device status, quick actions and phone notifications](docs/screenshots/macos-overview.png)
-
-### Android overview
-
-![Seamless for Android showing the connected Mac and sharing actions](docs/screenshots/android-overview.png)
+<table>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/phone-screen-macos.png" alt="Seamless phone screen sharing page" width="100%"></td>
+    <td width="50%"><img src="docs/screenshots/live-camera-macos.png" alt="Seamless live camera page" width="100%"></td>
+  </tr>
+  <tr>
+    <td align="center">Phone screen</td>
+    <td align="center">Live camera</td>
+  </tr>
+</table>
 
 **Development preview.** A free public preview is available; production distribution is still in development. Some integrations are experimental; the [validation record](docs/VALIDATION.md) separates device-tested behavior from remaining work. GitHub Actions builds test installers; there is no automatic updater yet.
 
