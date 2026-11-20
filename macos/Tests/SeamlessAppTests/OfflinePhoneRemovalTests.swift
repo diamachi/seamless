@@ -1,9 +1,13 @@
+// Tests for OfflinePhoneRemovalTests and the behavior owned by its target module.
+// Keep assertions focused on externally visible results and failure boundaries.
+
 import Foundation
 import Testing
 @testable import SeamlessApp
 
 @MainActor
 struct OfflinePhoneRemovalTests {
+    /// Exercises offline phone can be removed without network acknowledgement through the expected result and relevant rejection assertions.
     @Test func offlinePhoneCanBeRemovedWithoutNetworkAcknowledgement() async throws {
         let connections = PhoneConnections()
         defer { connections.shutdown() }

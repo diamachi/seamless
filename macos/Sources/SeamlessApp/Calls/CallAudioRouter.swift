@@ -1,3 +1,6 @@
+// macOS calling integration for call audio router.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 import AVFoundation
 import Combine
 import Foundation
@@ -13,6 +16,7 @@ final class CallAudioRouter: ObservableObject {
     private var generation = UUID()
     private(set) var deviceUIDs: Set<String> = []
 
+    /// Starts this component’s operation using the provided session inputs.
     func start(microphone: CallAudioDevice, speaker: CallAudioDevice, phoneInput: CallAudioDevice, phoneOutput: CallAudioDevice) async {
         guard !isStarting else { return }
         stop()
@@ -54,12 +58,14 @@ final class CallAudioRouter: ObservableObject {
         }
     }
 
+    /// Performs toggle mute for call audio router.
     func toggleMute() {
         guard isRunning else { return }
         isMuted.toggle()
         uplink?.setMuted(isMuted)
     }
 
+    /// Stops the current operation and releases its active resources.
     func stop(reason: String = "Selected-device audio stopped.") {
         generation = UUID()
         uplink?.stop()

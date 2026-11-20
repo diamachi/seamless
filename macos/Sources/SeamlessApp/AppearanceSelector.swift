@@ -1,3 +1,6 @@
+// macOS application presentation and coordination for appearance selector.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 import SwiftUI
 import SeamlessCore
 
@@ -19,6 +22,7 @@ struct AppearanceSelector: View {
         .accessibilityLabel("Appearance")
     }
 
+    /// Performs appearance button for appearance selector.
     private func appearanceButton(_ appearance: AppAppearance, title: String, symbol: String) -> some View {
         let isSelected = preferencesStore.preferences.appearance == appearance
         let palette = InterfacePalette(scheme: colorScheme, colorName: phoneThemeColor)

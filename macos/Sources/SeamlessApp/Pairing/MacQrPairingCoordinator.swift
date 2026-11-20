@@ -1,3 +1,6 @@
+// macOS application presentation and coordination for mac qr pairing coordinator.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 import AppKit
 import Combine
 import CoreImage
@@ -19,6 +22,7 @@ final class MacQrPairingCoordinator: ObservableObject {
     private var clients: [UUID: NWConnection] = [:]
     private var clientDeadlines: [UUID: Task<Void, Never>] = [:]
 
+    /// Performs create for mac qr pairing coordinator.
     func create() {
         stop()
         let addresses = LocalPairingAddresses.available()
@@ -62,6 +66,7 @@ final class MacQrPairingCoordinator: ObservableObject {
         }
     }
 
+    /// Stops the current operation and releases its active resources.
     func stop() {
         generation = UUID()
         listener?.cancel()
@@ -81,6 +86,7 @@ final class MacQrPairingCoordinator: ObservableObject {
         clients.removeAll()
     }
 
+    /// Performs present offer for mac qr pairing coordinator.
     private func presentOffer(addresses: [String], port: UInt16) {
         startupDeadline?.cancel()
         startupDeadline = nil
@@ -108,6 +114,7 @@ final class MacQrPairingCoordinator: ObservableObject {
         }
     }
 
+    /// Accepts a pending offer and prepares the selected local destination.
     private func accept(_ connection: NWConnection) {
         guard offer != nil, clients.count < 3 else { connection.cancel(); return }
         let identifier = UUID()
@@ -120,6 +127,7 @@ final class MacQrPairingCoordinator: ObservableObject {
         receive(identifier, buffer: Data())
     }
 
+    /// Routes incoming data to the matching operation or session state.
     private func receive(_ identifier: UUID, buffer: Data) {
         guard let connection = clients[identifier] else { return }
         connection.receive(minimumIncompleteLength: 1, maximumLength: 4096) { [weak self] data, _, finished, error in
@@ -136,6 +144,7 @@ final class MacQrPairingCoordinator: ObservableObject {
         }
     }
 
+    /// Performs process for mac qr pairing coordinator.
     private func process(_ data: Data, identifier: UUID) {
         do {
             guard let offer, let connection = clients[identifier] else { return }
@@ -155,6 +164,7 @@ final class MacQrPairingCoordinator: ObservableObject {
         }
     }
 
+    /// Closes owned resources so sockets, buffers and pending work do not outlive their session.
     private func close(_ identifier: UUID) {
         clients.removeValue(forKey: identifier)?.cancel()
         clientDeadlines.removeValue(forKey: identifier)?.cancel()

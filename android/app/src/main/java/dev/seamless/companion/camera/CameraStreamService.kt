@@ -1,3 +1,6 @@
+// Android camera-capture pipeline for camera stream service.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 package dev.seamless.companion.camera
 
 import android.app.Notification
@@ -20,6 +23,7 @@ class CameraStreamService : Service() {
     private var session: CameraEncodingSession? = null
     private var macID: String? = null
 
+    /** Initializes Android-owned resources when this component is created. */
     override fun onCreate() {
         super.onCreate()
         thread.start()
@@ -27,6 +31,7 @@ class CameraStreamService : Service() {
         activeService = this
     }
 
+    /** Serializes live-control changes on the camera worker and reports application failures. */
     private fun applyLiveControls(requestingMacID: String, controls: org.json.JSONObject) {
         worker.post {
             if (macID != requestingMacID) return@post
@@ -42,6 +47,7 @@ class CameraStreamService : Service() {
         }
     }
 
+    /** Handles foreground-service commands and selects the service restart policy. */
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_STOP) { stopSelf(); return START_NOT_STICKY }
         if (session != null || macID != null) return START_NOT_STICKY
@@ -66,7 +72,9 @@ class CameraStreamService : Service() {
         return START_NOT_STICKY
     }
 
+    /** Implements the Android binding contract for this service. */
     override fun onBind(intent: Intent?): IBinder? = null
+    /** Releases this component’s resources when Android destroys it; ownership checks protect replacement sessions. */
     override fun onDestroy() {
         if (activeService === this) activeService = null
         worker.post {
@@ -80,13 +88,16 @@ class CameraStreamService : Service() {
         super.onDestroy()
     }
 
+    /** Publishes an operation failure and releases the resources owned by that operation. */
     private fun fail(exception: Exception) {
         ConnectionRuntime.update { it.copy(message = exception.message ?: "Camera capture failed") }
         macID?.let { ConnectionRuntime.server?.reportCameraError(it, exception.message ?: "Camera capture failed") }
         stopSelf()
     }
 
+    /** Performs show notification for camera stream service. */
     @Suppress("DEPRECATION")
+    /** Handles show notification callback by translating the native window event into the owning app action. */
     private fun showNotification() {
         val manager = getSystemService(NotificationManager::class.java)
         val channel = "camera_stream"
@@ -106,8 +117,10 @@ class CameraStreamService : Service() {
 
     companion object {
         const val ACTION_STOP = "dev.seamless.companion.STOP_CAMERA"
+        /** Performs update controls for camera stream service. */
         @Volatile private var activeService: CameraStreamService? = null
 
+        /** Handles update controls callback by translating the native window event into the owning app action. */
         fun updateControls(macID: String, controls: org.json.JSONObject) {
             // A control packet may only affect an already approved, running service.
             activeService?.applyLiveControls(macID, controls)

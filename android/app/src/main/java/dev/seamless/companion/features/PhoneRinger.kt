@@ -1,3 +1,6 @@
+// Android feature implementation for phone ringer.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 package dev.seamless.companion.features
 
 import android.content.Context
@@ -11,6 +14,7 @@ class PhoneRinger(private val context: Context) {
     private var ringtone: Ringtone? = null
     private val stopTask = Runnable { stop() }
 
+    /** Plays a bounded alarm on the main thread and reports whether playback started. */
     fun ring(onResult: (Boolean) -> Unit) {
         handler.post {
             stop()
@@ -32,6 +36,7 @@ class PhoneRinger(private val context: Context) {
         }
     }
 
+    /** Stops the current operation and releases its active resources. */
     fun stop() {
         handler.removeCallbacks(stopTask)
         ringtone?.stop()

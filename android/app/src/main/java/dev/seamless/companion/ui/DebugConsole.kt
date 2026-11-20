@@ -1,3 +1,6 @@
+// Android Compose presentation and user actions for debug console.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 package dev.seamless.companion.ui
 
 import androidx.compose.foundation.layout.*
@@ -12,7 +15,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.seamless.companion.features.DebugEvents
 
+/** Composes the debug console interface from state and supplied callbacks. */
 @Composable
+/** Handles debug console callback by translating the native window event into the owning app action. */
 internal fun DebugConsole() {
     val enabled by DebugEvents.enabled.collectAsStateWithLifecycle()
     val lines by DebugEvents.lines.collectAsStateWithLifecycle()

@@ -1,7 +1,11 @@
+// Tests for AndroidDebugBridgePlanTests and the behavior owned by its target module.
+// Keep assertions focused on externally visible results and failure boundaries.
+
 import Testing
 @testable import SeamlessCore
 
 struct AndroidDebugBridgePlanTests {
+    /// Exercises device list keeps authorization and transport separate through the expected result and relevant rejection assertions.
     @Test func deviceListKeepsAuthorizationAndTransportSeparate() {
         let devices = AndroidDebugDevice.parseList("""
         List of devices attached
@@ -17,6 +21,7 @@ struct AndroidDebugBridgePlanTests {
         #expect(!devices[2].isUSB)
     }
 
+    /// Exercises plans reject device and package injection through the expected result and relevant rejection assertions.
     @Test func plansRejectDeviceAndPackageInjection() throws {
         #expect(throws: AndroidDebugBridgePlan.PlanError.self) {
             try AndroidDebugBridgePlan.forward(serial: "--tcpip", remotePort: 48763)

@@ -1,3 +1,6 @@
+// macOS application presentation and coordination for camera output window.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 import AppKit
 import SwiftUI
 
@@ -7,6 +10,7 @@ final class CameraOutputWindow: NSObject, NSWindowDelegate {
     private var window: NSWindow?
     private weak var controller: PhoneVideoStreamController?
 
+    /// Performs show for camera output window.
     func show(controller: PhoneVideoStreamController) {
         if let window { window.makeKeyAndOrderFront(nil); return }
         self.controller = controller
@@ -21,6 +25,7 @@ final class CameraOutputWindow: NSObject, NSWindowDelegate {
         self.window = window
     }
 
+    /// Handles window closure while preserving or releasing the subsystem owned by that window.
     func windowWillClose(_ notification: Notification) {
         controller?.isDetached = false
         window = nil

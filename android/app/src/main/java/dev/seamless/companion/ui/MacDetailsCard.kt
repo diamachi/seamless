@@ -1,3 +1,6 @@
+// Android Compose presentation and user actions for mac details card.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 package dev.seamless.companion.ui
 
 import android.text.format.Formatter
@@ -22,7 +25,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import dev.seamless.companion.connection.ConnectedMacDetails
 
+/** Composes the mac details content interface from state and supplied callbacks. */
 @Composable
+/** Handles mac details content callback by translating the native window event into the owning app action. */
 internal fun MacDetailsContent(name: String, details: ConnectedMacDetails?) {
     val context = LocalContext.current
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -47,7 +52,9 @@ internal fun MacDetailsContent(name: String, details: ConnectedMacDetails?) {
     }
 }
 
+/** Composes the mac book illustration interface from state and supplied callbacks. */
 @Composable
+/** Handles mac book illustration callback by translating the native window event into the owning app action. */
 private fun MacBookIllustration() {
     val frame = MaterialTheme.colorScheme.outline
     val screen = MaterialTheme.colorScheme.primary

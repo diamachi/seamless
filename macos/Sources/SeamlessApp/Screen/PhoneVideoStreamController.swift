@@ -33,6 +33,7 @@ final class PhoneVideoStreamController: ObservableObject {
     let purpose: VideoStreamPurpose
     var sourcePhoneID: String? { phoneID }
 
+    /// Constructs PhoneVideoStreamController with the dependencies and initial values supplied by its caller.
     init(purpose: VideoStreamPurpose = .screen) {
         self.purpose = purpose
         if purpose == .camera {
@@ -48,6 +49,7 @@ final class PhoneVideoStreamController: ObservableObject {
         }
     }
 
+    /// Performs request for phone video stream controller.
     func request(phoneID: String, framesPerSecond: Int, application: PhoneApplication? = nil) {
         stop()
         self.phoneID = phoneID
@@ -55,10 +57,12 @@ final class PhoneVideoStreamController: ObservableObject {
         message = "On your phone, tap Approve screen sharing and confirm Android's sharing prompt."
     }
 
+    /// Advances the preview’s quarter-turn rotation without changing encoded webcam pixels.
     func rotateCameraPreview() {
         rotationDegrees = (rotationDegrees + 90) % 360
     }
 
+    /// Requests a camera session with the saved per-phone capture profile.
     func requestCamera(phoneID: String, preferences: CameraPreferences) {
         stop()
         self.phoneID = phoneID
@@ -71,6 +75,7 @@ final class PhoneVideoStreamController: ObservableObject {
         message = "On the phone, approve camera sharing."
     }
 
+    /// Sends live camera controls only for the currently streaming camera session.
     func updateCameraControls(phoneID: String, preferences: CameraPreferences) {
         guard purpose == .camera, isStreaming, self.phoneID == phoneID else { return }
         send?(phoneID, ControlPacket(type: "cameraControls", payload: .object([
@@ -79,6 +84,7 @@ final class PhoneVideoStreamController: ObservableObject {
         ])))
     }
 
+    /// Performs accept grant for phone video stream controller.
     func acceptGrant(phoneID: String, profile: ConnectionProfile, macID: String, credential: String, token: String) {
         guard self.phoneID == phoneID else { return }
         do {
@@ -93,13 +99,16 @@ final class PhoneVideoStreamController: ObservableObject {
         } catch { message = error.localizedDescription }
     }
 
+    /// Performs receive white balance modes for phone video stream controller.
     @Published private(set) var whiteBalanceModes: [String]?
 
+    /// Handles receive white balance modes callback by translating the native window event into the owning app action.
     func receiveWhiteBalanceModes(phoneID: String, modes: String) {
         guard self.phoneID == phoneID else { return }
         whiteBalanceModes = modes.split(separator: ",").map(String.init)
     }
 
+    /// Stops the current operation and releases its active resources.
     func stop() {
         DiagnosticsConsole.shared.record("Video: session stopped")
         whiteBalanceModes = nil
@@ -123,10 +132,12 @@ final class PhoneVideoStreamController: ObservableObject {
         message = "Video sharing stopped."
     }
 
+    /// Performs ended for phone video stream controller.
     func ended(phoneID: String) {
         if self.phoneID == phoneID { stop() }
     }
 
+    /// Performs report error for phone video stream controller.
     func reportError(phoneID: String, description: String) {
         guard self.phoneID == phoneID else { return }
         stop()
@@ -135,6 +146,7 @@ final class PhoneVideoStreamController: ObservableObject {
 
     var supportsContinuousTouch: Bool { externalInput != nil }
 
+    /// Performs input for phone video stream controller.
     func input(kind: String, coordinates: [String: Double] = [:], text: String = "") {
         guard purpose == .screen, isStreaming, let phoneID else { return }
         if let externalInput { externalInput(kind, coordinates, text); return }
@@ -146,6 +158,7 @@ final class PhoneVideoStreamController: ObservableObject {
         send?(phoneID, ControlPacket(type: "input", payload: .object(payload)))
     }
 
+    /// Performs begin external for phone video stream controller.
     func beginExternal(phoneID: String, stop: @escaping () -> Void, input: @escaping (String, [String: Double], String) -> Void) {
         self.stop()
         self.phoneID = phoneID
@@ -159,12 +172,14 @@ final class PhoneVideoStreamController: ObservableObject {
         message = "Preparing ADB app sharing…"
     }
 
+    /// Performs receive external for phone video stream controller.
     func receiveExternal(_ record: MediaRecord) {
         guard externalInput != nil else { return }
         do { try receive(record) }
         catch { stop(); message = error.localizedDescription }
     }
 
+    /// Routes incoming data to the matching operation or session state.
     private func receive(_ record: MediaRecord) throws {
         if record.kind == 0 {
             try configure(record.data)
@@ -191,6 +206,7 @@ final class PhoneVideoStreamController: ObservableObject {
         }
     }
 
+    /// Requests a key frame after decoder loss, throttling requests to avoid flooding the control channel.
     private func requestRecoveryFrame() {
         guard externalInput == nil, let phoneID,
               Date().timeIntervalSince(lastRecoveryRequest) >= 0.5 else { return }
@@ -198,6 +214,7 @@ final class PhoneVideoStreamController: ObservableObject {
         send?(phoneID, ControlPacket(type: "mediaKeyFrameRequest", payload: .object(["purpose": .string(purpose.rawValue)])))
     }
 
+    /// Configures this component using the supplied settings and its current dependencies.
     private func configure(_ data: Data) throws {
         let value = try JSONDecoder().decode(JSONValue.self, from: data)
         DiagnosticsConsole.shared.record("Video: decoder configuration received")
@@ -235,6 +252,7 @@ final class PhoneVideoStreamController: ObservableObject {
         if videoSize != updatedSize { videoSize = updatedSize }
     }
 
+    /// Performs make sample for phone video stream controller.
     private func makeSample(bytes: Data, timestamp: Int64, format: CMFormatDescription) throws -> CMSampleBuffer {
         var block: CMBlockBuffer?
         let creation = CMBlockBufferCreateWithMemoryBlock(allocator: kCFAllocatorDefault, memoryBlock: nil,
@@ -259,6 +277,7 @@ final class PhoneVideoStreamController: ObservableObject {
         return sample
     }
 
+    /// Performs publish statistics for phone video stream controller.
     private func publishStatistics() {
         let now = Date()
         receivedFramesPerSecond = Double(frameCounter) / max(now.timeIntervalSince(intervalStart), 0.001)

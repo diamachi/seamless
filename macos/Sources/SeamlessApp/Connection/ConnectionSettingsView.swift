@@ -1,3 +1,6 @@
+// macOS connection and transfer infrastructure for connection settings view.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 import SwiftUI
 import SeamlessCore
 
@@ -57,6 +60,7 @@ struct ConnectionSettingsView: View {
         .onDisappear { qrPairing.stop() }
     }
 
+    /// Performs pairing step for connection settings view.
     private func pairingStep(_ number: String, title: String, detail: String) -> some View {
         HStack(alignment: .top, spacing: 12) {
             Text(number).font(.callout.weight(.semibold))

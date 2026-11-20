@@ -1,3 +1,6 @@
+// macOS application presentation and coordination for files workspace view.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 import AppKit
 import SwiftUI
 import SeamlessCore
@@ -132,6 +135,7 @@ struct FilesWorkspaceView: View {
         }
     }
 
+    /// Performs entry row for files workspace view.
     private func entryRow(_ entry: PhoneStorageEntry) -> some View {
         WorkspaceCard {
             HStack(spacing: 14) {

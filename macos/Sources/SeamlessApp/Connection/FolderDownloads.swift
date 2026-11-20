@@ -1,3 +1,6 @@
+// macOS connection and transfer infrastructure for folder downloads.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 import Foundation
 import SeamlessCore
 
@@ -21,6 +24,7 @@ final class FolderDownloads: ObservableObject {
     private var deadline: Task<Void, Never>?
     private var listedEntries = 0
 
+    /// Persists the supplied state through the owning storage interface.
     func save(entries: [PhoneStorageEntry], phoneID: String, bulk: BulkTransfers, destinationDirectory: URL? = nil) {
         guard let downloads = destinationDirectory ?? FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask).first else { return }
         self.bulk = bulk
@@ -36,6 +40,7 @@ final class FolderDownloads: ObservableObject {
         } catch { message = error.localizedDescription }
     }
 
+    /// Routes incoming data to the matching operation or session state.
     func receive(_ packet: ControlPacket, phoneID: String) -> Bool {
         guard packet.id == requestID, let directory = active, directory.phoneID == phoneID else { return false }
         deadline?.cancel()
@@ -65,17 +70,20 @@ final class FolderDownloads: ObservableObject {
         return true
     }
 
+    /// Performs cancel for folder downloads.
     func cancel() {
         let phoneIDs = Set(queue.map(\.phoneID) + [active?.phoneID].compactMap { $0 })
         for phoneID in phoneIDs { bulk?.cancelBrowserDownloads(phoneID: phoneID) }
         stop(message: "Folder listing cancelled.")
     }
 
+    /// Performs disconnected for folder downloads.
     func disconnected(phoneID: String) {
         queue.removeAll { $0.phoneID == phoneID }
         if active?.phoneID == phoneID { stop(message: "Folder listing interrupted by disconnect. Downloaded files remain in Downloads.") }
     }
 
+    /// Performs next for folder downloads.
     private func next() {
         guard active == nil else { return }
         guard !queue.isEmpty else { isListing = false; listedEntries = 0; return }
@@ -93,6 +101,7 @@ final class FolderDownloads: ObservableObject {
         }
     }
 
+    /// Stops the current operation and releases its active resources.
     private func stop(message: String) {
         deadline?.cancel()
         active = nil
@@ -103,6 +112,7 @@ final class FolderDownloads: ObservableObject {
         self.message = message
     }
 
+    /// Performs make directory for folder downloads.
     private func makeDirectory(parent: URL, name: String) throws -> URL {
         guard BulkTransfers.validName(name) else { throw ConnectionProtocolError.invalidMessage }
         var destination = parent.appendingPathComponent(name, isDirectory: true)

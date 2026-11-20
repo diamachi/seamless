@@ -1,3 +1,6 @@
+// macOS application presentation and coordination for phone switcher view.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 import SwiftUI
 import SeamlessCore
 
@@ -61,12 +64,14 @@ struct PhoneSwitcherView: View {
         }
     }
 
+    /// Performs miniature for phone switcher view.
     private func miniature(_ phoneID: String?) -> some View {
         PhoneIllustration(wallpaper: nil, colorName: preferencesStore.preferences.rememberedPhones.first { $0.id == phoneID }?.preferences.previewColor ?? "sage")
             .frame(width: 122, height: 260).scaleEffect(0.24)
             .frame(width: 30, height: 63).accessibilityHidden(true)
     }
 
+    /// Performs connection text for phone switcher view.
     private func connectionText(_ phoneID: String?) -> String {
         guard let phoneID else { return "Add a device to get started" }
         if preferencesStore.sessions.state(for: phoneID) == .connected {

@@ -1,3 +1,6 @@
+// Android feature implementation for notification relay.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 package dev.seamless.companion.features
 
 import android.graphics.Bitmap
@@ -17,15 +20,19 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 class NotificationRelay : NotificationListenerService() {
+    /** Registers the live notification listener after Android grants listener access. */
     override fun onListenerConnected() { activeListener = this }
+    /** Removes the live-listener reference when Android disconnects it. */
     override fun onListenerDisconnected() { activeListener = null }
 
+    /** Relays removal of an Android notification so the Mac can discard its matching entry. */
     override fun onNotificationRemoved(notification: StatusBarNotification) {
         val profile = notification.user.hashCode().toString()
         ConnectionRuntime.server?.relayNotificationRemoval(notification.packageName, profile,
             JSONObject().put("notificationKey", notification.key))
     }
 
+    /** Converts an Android notification into a bounded relay payload, subject to the app’s sharing policy. */
     override fun onNotificationPosted(notification: StatusBarNotification) {
         val content = notification.notification
         if (notification.packageName == packageName && notification.id != 100) return
@@ -45,9 +52,12 @@ class NotificationRelay : NotificationListenerService() {
     }
 
     companion object {
+        /** Performs profile id for notification relay. */
         @Volatile private var activeListener: NotificationRelay? = null
+        /** Handles profile id callback by translating the native window event into the owning app action. */
         fun profileID(): String = Process.myUserHandle().hashCode().toString()
 
+        /** Enumerates launchable Android apps with bounded icon data for app selection on the Mac. */
         fun applicationInventory(context: Context): JSONObject {
             val launcher = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
             val applications = context.packageManager.queryIntentActivities(launcher, 0)
@@ -68,6 +78,7 @@ class NotificationRelay : NotificationListenerService() {
             return JSONObject().put("applications", array)
         }
 
+        /** Converts application imagery into the bounded representation accepted by this component. */
         private fun applicationIcon(context: Context, packageName: String): String? {
             return try {
                 val drawable = context.packageManager.getApplicationIcon(packageName)
@@ -89,6 +100,7 @@ class NotificationRelay : NotificationListenerService() {
             }
         }
 
+        /** Invokes a still-active notification action, supplying reply text only to compatible remote inputs. */
         fun performAction(context: Context, payload: JSONObject) {
             val listener = activeListener ?: error("Notification access is unavailable")
             val notification = listener.activeNotifications.firstOrNull {

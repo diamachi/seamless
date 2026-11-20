@@ -1,3 +1,6 @@
+// Shared protocol/model rules for scrcpy protocol.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 import Foundation
 
 public enum ScrcpyVideoEvent: Sendable {
@@ -11,8 +14,10 @@ public struct ScrcpyVideoDecoder: Sendable {
     private var hasMetadata = false
     private var width = 1
     private var height = 1
+    /// Constructs ScrcpyProtocol with the dependencies and initial values supplied by its caller.
     public init() {}
 
+    /// Performs append for scrcpy protocol.
     public mutating func append(_ data: Data) throws -> [ScrcpyVideoEvent] {
         guard data.count <= 65_536 else { throw ConnectionProtocolError.oversizedMessage }
         buffer.append(data)
@@ -53,6 +58,7 @@ public struct ScrcpyVideoDecoder: Sendable {
         return events
     }
 
+    /// Performs read integer for scrcpy protocol.
     private func readInteger(offset: Int, count: Int) -> UInt64 {
         var value: UInt64 = 0
         for byte in buffer.dropFirst(offset).prefix(count) { value = value << 8 | UInt64(byte) }
@@ -61,6 +67,7 @@ public struct ScrcpyVideoDecoder: Sendable {
 }
 
 public enum ScrcpyControlMessage {
+    /// Performs start app for scrcpy protocol.
     public static func startApp(packageName: String) throws -> Data {
         // Reuse the launch-plan validator before a package reaches the shell-backed server.
         try AndroidDebugBridgePlan.validatePackageName(packageName)
@@ -68,6 +75,7 @@ public enum ScrcpyControlMessage {
         return Data([16, UInt8(bytes.count)]) + bytes
     }
 
+    /// Performs key for scrcpy protocol.
     public static func key(code: UInt32, isDown: Bool) -> Data {
         var data = Data([0, isDown ? 0 : 1])
         append(code, to: &data)
@@ -76,6 +84,7 @@ public enum ScrcpyControlMessage {
         return data
     }
 
+    /// Performs touch for scrcpy protocol.
     public static func touch(action: UInt8, x: Double, y: Double, width: Int, height: Int) throws -> Data {
         guard [0, 1, 2].contains(action), x.isFinite, y.isFinite, (1...4096).contains(width), (1...4096).contains(height) else { throw ConnectionProtocolError.invalidMessage }
         var data = Data([2, action])
@@ -90,6 +99,7 @@ public enum ScrcpyControlMessage {
         return data
     }
 
+    /// Performs text for scrcpy protocol.
     public static func text(_ text: String) -> Data {
         var bytes = Data()
         for character in text {
@@ -103,6 +113,7 @@ public enum ScrcpyControlMessage {
         return data
     }
 
+    /// Performs append for scrcpy protocol.
     private static func append<Value: FixedWidthInteger>(_ value: Value, to data: inout Data) {
         var encoded = value.bigEndian
         withUnsafeBytes(of: &encoded) { data.append(contentsOf: $0) }

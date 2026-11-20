@@ -1,3 +1,6 @@
+// Android feature implementation for transfer notifications.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 package dev.seamless.companion.features
 
 import android.Manifest
@@ -20,11 +23,13 @@ internal class TransferNotifications(private val context: Context) {
         }
     }
 
+    /** Completes the current workflow and publishes its resulting state. */
     fun finish(id: String, name: String, result: String) {
         manager.cancel(id, 1)
         post(id, name, result)
     }
 
+    /** Performs post for transfer notifications. */
     private fun post(id: String, name: String, text: String) {
         if (Build.VERSION.SDK_INT >= 33 && ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) return
         val notification = NotificationCompat.Builder(context, AlertChannels.TRANSFER_RESULTS)

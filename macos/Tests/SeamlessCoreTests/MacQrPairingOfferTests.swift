@@ -1,3 +1,6 @@
+// Tests for MacQrPairingOfferTests and the behavior owned by its target module.
+// Keep assertions focused on externally visible results and failure boundaries.
+
 import Foundation
 import Testing
 @testable import SeamlessCore
@@ -6,6 +9,7 @@ struct MacQrPairingOfferTests {
     private let sessionID = "11111111-2222-3333-4444-555555555555"
     private let vector = "AAECAwQFBgcICQoLNGe3dqmAsWi8e+Ty350QCPe/5BmEHiwIFQ6L83QdYcZof8AqElQqVsbSqRwad9IFwcqg"
 
+    /// Exercises interoperable envelope rejects wrong role and session through the expected result and relevant rejection assertions.
     @Test func interoperableEnvelopeRejectsWrongRoleAndSession() throws {
         let offer = try fixtureOffer()
         let ciphertext = try #require(Data(base64Encoded: vector))
@@ -19,6 +23,7 @@ struct MacQrPairingOfferTests {
         #expect(throws: (any Error).self) { try offer.open(damaged, purpose: "request") }
     }
 
+    /// Exercises invitation handoff requires complete trust material through the expected result and relevant rejection assertions.
     @Test func invitationHandoffRequiresCompleteTrustMaterial() throws {
         let offer = try fixtureOffer()
         let fields: [String: Any] = ["version": 1, "phoneID": UUID().uuidString, "name": "Test phone",
@@ -34,12 +39,14 @@ struct MacQrPairingOfferTests {
         #expect(throws: (any Error).self) { try offer.openInvitationPacket(wrongSession) }
         #expect(throws: (any Error).self) { try offer.openInvitationPacket(Data(repeating: 32, count: 32_769)) }
     }
+    /// Checks fixture offer by exercising its expected result and a relevant invalid or boundary input.
 
     private func fixtureOffer(session: String? = nil) throws -> MacQrPairingOffer {
         let fields: [String: Any] = ["version": 1, "sessionID": session ?? sessionID, "name": "Test Mac",
             "addresses": ["192.0.2.2"], "port": 50000, "key": Data((0..<32).map { UInt8($0) }).base64EncodedString()]
         return try JSONDecoder().decode(MacQrPairingOffer.self, from: JSONSerialization.data(withJSONObject: fields))
     }
+    /// Builds packet from deterministic inputs used by the test cases in this file.
 
     private func packet(offer: MacQrPairingOffer, sealed: Data, session: String? = nil) throws -> Data {
         try JSONSerialization.data(withJSONObject: ["version": 1, "sessionID": session ?? offer.sessionID,

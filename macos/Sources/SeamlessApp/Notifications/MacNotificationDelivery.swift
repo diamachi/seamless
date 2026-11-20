@@ -1,3 +1,6 @@
+// macOS application presentation and coordination for mac notification delivery.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 import AppKit
 import Combine
 import UserNotifications
@@ -10,6 +13,7 @@ final class MacNotificationDelivery: NSObject, ObservableObject, UNUserNotificat
     @Published private(set) var canShowBanners = false
     var onCallAction: ((String, String, String) -> Void)?
 
+    /// Configures this component using the supplied settings and its current dependencies.
     func configure() {
         UNUserNotificationCenter.current().delegate = self
         let answer = UNNotificationAction(identifier: "answer-call", title: "Answer on Mac", options: [.foreground])
@@ -31,6 +35,7 @@ final class MacNotificationDelivery: NSObject, ObservableObject, UNUserNotificat
         else { status = "Mac notification banners and sounds are enabled." }
     }
 
+    /// Performs request authorization for mac notification delivery.
     @discardableResult func requestAuthorization() async -> Bool {
         do {
             let allowed = try await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge])
@@ -43,6 +48,7 @@ final class MacNotificationDelivery: NSObject, ObservableObject, UNUserNotificat
         }
     }
 
+    /// Performs review access for mac notification delivery.
     func reviewAccess() {
         Task {
             let settings = await UNUserNotificationCenter.current().notificationSettings()
@@ -51,10 +57,12 @@ final class MacNotificationDelivery: NSObject, ObservableObject, UNUserNotificat
         }
     }
 
+    /// Performs open settings for mac notification delivery.
     func openSettings() {
         if let url = URL(string: "x-apple.systempreferences:com.apple.preference.notifications") { NSWorkspace.shared.open(url) }
     }
 
+    /// Performs deliver for mac notification delivery.
     func deliver(identifier: String, title: String, body: String, quiet: Bool = false) {
         let content = UNMutableNotificationContent()
         content.title = title
@@ -74,6 +82,7 @@ final class MacNotificationDelivery: NSObject, ObservableObject, UNUserNotificat
         }
     }
 
+    /// Performs incoming call for mac notification delivery.
     func incomingCall(phoneID: String, caller: String, token: String) {
         let content = UNMutableNotificationContent()
         content.title = "Incoming phone call"
@@ -85,10 +94,12 @@ final class MacNotificationDelivery: NSObject, ObservableObject, UNUserNotificat
                                                                      content: content, trigger: nil))
     }
 
+    /// Performs clear incoming call for mac notification delivery.
     func clearIncomingCall(phoneID: String) {
         UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: ["incoming-call-" + phoneID])
     }
 
+    /// Performs user notification center for mac notification delivery.
     nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse) async {
         let info = response.notification.request.content.userInfo
         guard let phoneID = info["phoneID"] as? String, let token = info["callToken"] as? String else { return }
@@ -96,14 +107,17 @@ final class MacNotificationDelivery: NSObject, ObservableObject, UNUserNotificat
         await handleCallAction(phoneID: phoneID, token: token, action: action)
     }
 
+    /// Performs handle call action for mac notification delivery.
     private func handleCallAction(phoneID: String, token: String, action: String) {
         onCallAction?(phoneID, token, action)
     }
 
+    /// Performs post local test for mac notification delivery.
     func postLocalTest() {
         deliver(identifier: "seamless-local-test", title: "Seamless notifications are ready", body: "This is a local Mac test. No message was sent to anyone.")
     }
 
+    /// Performs user notification center for mac notification delivery.
     nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification) async -> UNNotificationPresentationOptions {
         // macOS otherwise suppresses alerts while our own window is in the foreground.
         if notification.request.content.interruptionLevel == .passive { return [.list] }

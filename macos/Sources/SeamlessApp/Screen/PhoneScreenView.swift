@@ -1,3 +1,6 @@
+// macOS application presentation and coordination for phone screen view.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 import AVFoundation
 import AppKit
 import SwiftUI
@@ -10,6 +13,7 @@ private final class ScreenLayerView: NSView {
     private var lastPointerPoint: CGPoint?
     private var lastPointerSentAt = Date.distantPast
     private var lastScrollAt = Date.distantPast
+    /// Constructs PhoneScreenView with the dependencies and initial values supplied by its caller.
     init(controller: PhoneVideoStreamController) {
         self.controller = controller
         self.videoLayer = controller.displayLayer
@@ -19,7 +23,9 @@ private final class ScreenLayerView: NSView {
         layer?.backgroundColor = NSColor.black.cgColor
         layer?.addSublayer(videoLayer)
     }
+    /// Constructs PhoneScreenView with the dependencies and initial values supplied by its caller.
     required init?(coder: NSCoder) { nil }
+    /// Recomputes native layer geometry from the current view bounds.
     override func layout() {
         super.layout()
         if videoLayer.frame != bounds || controller.purpose == .camera {
@@ -38,6 +44,7 @@ private final class ScreenLayerView: NSView {
         }
     }
     override var acceptsFirstResponder: Bool { true }
+    /// Performs mouse down for phone screen view.
     override func mouseDown(with event: NSEvent) {
         window?.makeFirstResponder(self)
         pointerStart = normalizedPoint(event)
@@ -46,6 +53,7 @@ private final class ScreenLayerView: NSView {
             sendPointer("touchDown", point: point)
         }
     }
+    /// Performs mouse dragged for phone screen view.
     override func mouseDragged(with event: NSEvent) {
         guard pointerStart != nil, let point = normalizedPoint(event) else { return }
         lastPointerPoint = point
@@ -54,10 +62,12 @@ private final class ScreenLayerView: NSView {
             sendPointer("touchMove", point: point)
         }
     }
+    /// Forwards a normalized touch event while tracking the last dispatch time.
     private func sendPointer(_ kind: String, point: CGPoint) {
         lastPointerSentAt = Date()
         controller.input(kind: kind, coordinates: ["x": point.x, "y": point.y])
     }
+    /// Performs mouse up for phone screen view.
     override func mouseUp(with event: NSEvent) {
         if controller.supportsContinuousTouch {
             if pointerStart != nil, let point = normalizedPoint(event) ?? lastPointerPoint {
@@ -75,6 +85,7 @@ private final class ScreenLayerView: NSView {
             controller.input(kind: "swipe", coordinates: ["x": start.x, "y": start.y, "endX": end.x, "endY": end.y])
         }
     }
+    /// Performs scroll wheel for phone screen view.
     override func scrollWheel(with event: NSEvent) {
         if controller.purpose == .camera || !controller.isStreaming {
             super.scrollWheel(with: event)
@@ -85,15 +96,18 @@ private final class ScreenLayerView: NSView {
         let endY = event.scrollingDeltaY < 0 ? 0.3 : 0.7
         controller.input(kind: "swipe", coordinates: ["x": 0.5, "y": 0.5, "endX": 0.5, "endY": endY])
     }
+    /// Performs other mouse up for phone screen view.
     override func otherMouseUp(with event: NSEvent) {
         if event.buttonNumber == 3 { controller.input(kind: "back") }
         else if event.buttonNumber == 4 { controller.input(kind: "forward") }
         else { super.otherMouseUp(with: event) }
     }
+    /// Performs key down for phone screen view.
     override func keyDown(with event: NSEvent) {
         if event.keyCode == 53 { controller.input(kind: "back") }
         else { super.keyDown(with: event) }
     }
+    /// Maps pointer coordinates into normalized video coordinates and rejects letterboxed margins.
     private func normalizedPoint(_ event: NSEvent) -> CGPoint? {
         let point = convert(event.locationInWindow, from: nil)
         let content = AVMakeRect(aspectRatio: controller.videoSize, insideRect: bounds)
@@ -103,8 +117,11 @@ private final class ScreenLayerView: NSView {
 }
 
 struct PhoneVideoSurface: NSViewRepresentable {
+    /// Creates the native AppKit view hosted by SwiftUI.
     @ObservedObject var controller: PhoneVideoStreamController
+    /// Handles make nsview callback by translating the native window event into the owning app action.
     func makeNSView(context: Context) -> NSView { ScreenLayerView(controller: controller) }
+    /// Applies the latest SwiftUI state to the existing native view without recreating it.
     func updateNSView(_ nsView: NSView, context: Context) { nsView.needsLayout = true }
 }
 
@@ -274,6 +291,7 @@ struct PhoneStreamMockup: View {
         .foregroundStyle(.primary)
     }
 
+    /// Performs navigation button for phone screen view.
     private func navigationButton(_ title: String, symbol: String, command: String) -> some View {
         Button { controller.input(kind: command) } label: {
             Image(systemName: symbol).frame(width: 52, height: 44).contentShape(Rectangle())
@@ -293,6 +311,7 @@ final class ScreenPopout: NSObject, NSWindowDelegate {
     static let shared = ScreenPopout()
     private var window: NSWindow?
     private weak var controller: PhoneVideoStreamController?
+    /// Performs show for phone screen view.
     func show(controller: PhoneVideoStreamController) {
         if let window { window.makeKeyAndOrderFront(nil); return }
         self.controller = controller
@@ -313,6 +332,7 @@ final class ScreenPopout: NSObject, NSWindowDelegate {
         guard let controller, controller.videoSize.height > 1 else { return 0.48 }
         return controller.videoSize.width / controller.videoSize.height
     }
+    /// Performs window will resize for phone screen view.
     func windowWillResize(_ sender: NSWindow, to frameSize: NSSize) -> NSSize {
         let titleBarHeight = sender.frame.height - sender.contentLayoutRect.height
         let minimumHeight = max(280, 216 / streamAspectRatio + 60)
@@ -320,6 +340,7 @@ final class ScreenPopout: NSObject, NSWindowDelegate {
         return NSSize(width: (contentHeight - 60) * streamAspectRatio + 8,
                       height: contentHeight + titleBarHeight)
     }
+    /// Handles window closure while preserving or releasing the subsystem owned by that window.
     func windowWillClose(_ notification: Notification) {
         controller?.isDetached = false
         window = nil
@@ -341,6 +362,7 @@ private struct CompactStreamPopout: View {
             }.frame(height: 48)
         }.padding(4).background(InterfacePalette(scheme: colorScheme, colorName: phoneThemeColor).canvas)
     }
+    /// Performs navigation button for phone screen view.
     private func navigationButton(_ title: String, symbol: String, command: String) -> some View {
         Button { controller.input(kind: command) } label: {
             Image(systemName: symbol).frame(width: 52, height: 44).contentShape(Rectangle())
@@ -349,8 +371,10 @@ private struct CompactStreamPopout: View {
 }
 
 private struct ScreenNavigationButtonStyle: ButtonStyle {
+    /// Builds the styled control using enabled and pressed state supplied by SwiftUI.
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.phoneThemeColor) private var phoneThemeColor
+    /// Handles make body callback by translating the native window event into the owning app action.
     func makeBody(configuration: Configuration) -> some View {
         let palette = InterfacePalette(scheme: colorScheme, colorName: phoneThemeColor)
         configuration.label

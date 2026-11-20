@@ -1,3 +1,6 @@
+// Android screen-capture pipeline for screen capture session.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 package dev.seamless.companion.screen
 
 import android.hardware.display.DisplayManager
@@ -27,11 +30,13 @@ class ScreenCaptureSession(
     private var isClosed = false
     private val outputInfo = MediaCodec.BufferInfo()
     private val projectionCallback = object : MediaProjection.Callback() {
+        /** Unregisters foreground Activity behavior when the screen leaves view. */
         override fun onStop() {
             onProjectionStopped()
         }
     }
     private val drainTask = object : Runnable {
+        /** Runs the supplied work through this component’s execution or process interface. */
         override fun run() {
             if (isClosed) return
             try {
@@ -43,6 +48,7 @@ class ScreenCaptureSession(
         }
     }
 
+    /** Starts this component’s operation using the provided session inputs. */
     fun start(configuration: ScreenEncodingConfiguration, densityDpi: Int) {
         projection.registerCallback(projectionCallback, handler)
         val activeEncoder = ScreenEncoderFactory.create(configuration)
@@ -70,6 +76,7 @@ class ScreenCaptureSession(
         handler.post(drainTask)
     }
 
+    /** Closes owned resources so sockets, buffers and pending work do not outlive their session. */
     fun close() {
         if (isClosed) return
         isClosed = true
@@ -90,6 +97,7 @@ class ScreenCaptureSession(
         }
     }
 
+    /** Performs drain encoder for screen capture session. */
     private fun drainEncoder() {
         val activeEncoder = encoder ?: return
         val activeStatistics = statistics ?: return

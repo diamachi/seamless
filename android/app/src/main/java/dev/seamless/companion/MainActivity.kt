@@ -1,3 +1,6 @@
+// Android Activity entry point for permissions, sharing intents and capture requests.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 package dev.seamless.companion
 
 import android.Manifest
@@ -22,6 +25,7 @@ class MainActivity : ComponentActivity() {
         pendingContactsRequest?.let { ConnectionRuntime.server?.shareContacts(it, allowed) }
         pendingContactsRequest = null
     }
+    /** Performs approve contacts for main activity. */
     private fun approveContacts() {
         val request = ConnectionRuntime.state.value.contactsRequest ?: return
         if (checkSelfPermission(Manifest.permission.READ_CONTACTS) == PackageManager.PERMISSION_GRANTED) {
@@ -52,6 +56,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    /** Initializes Android-owned resources when this component is created. */
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         preferences.edit().putInt("screen_frame_rate", 60).apply()
@@ -83,6 +88,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    /** Performs approve requested screen for main activity. */
     private fun approveRequestedScreen() {
         val connection = ConnectionRuntime.state.value
         targetScreenMacID = connection.screenRequestedBy
@@ -90,12 +96,14 @@ class MainActivity : ComponentActivity() {
         requestScreenCapture()
     }
 
+    /** Performs approve requested camera for main activity. */
     private fun approveRequestedCamera() {
         pendingCameraRequest = ConnectionRuntime.state.value
         if (checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) startCameraStream()
         else cameraPermission.launch(Manifest.permission.CAMERA)
     }
 
+    /** Processes a new intent delivered to the existing Activity instance. */
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
@@ -106,6 +114,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    /** Performs receive shared text for main activity. */
     private fun receiveSharedText(intent: Intent?) {
         if (intent?.action == Intent.ACTION_SEND || intent?.action == Intent.ACTION_SEND_MULTIPLE) {
             val uris = mutableListOf<android.net.Uri>()
@@ -133,6 +142,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    /** Registers foreground Activity behavior when the screen becomes visible. */
     override fun onStart() {
         super.onStart()
         ConnectionRuntime.isActivityVisible = true
@@ -144,11 +154,13 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    /** Unregisters foreground Activity behavior when the screen leaves view. */
     override fun onStop() {
         ConnectionRuntime.isActivityVisible = false
         super.onStop()
     }
 
+    /** Refreshes state that may have changed in Android settings while the Activity was paused. */
     override fun onResume() {
         super.onResume()
         reviewRequestedSharing()
@@ -156,6 +168,7 @@ class MainActivity : ComponentActivity() {
         maybeStartRemoteCamera()
     }
 
+    /** Performs review requested sharing for main activity. */
     private fun reviewRequestedSharing() {
         val kind = pendingRequestReview ?: return
         pendingRequestReview = null
@@ -167,6 +180,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    /** Performs maybe start remote camera for main activity. */
     private fun maybeStartRemoteCamera() {
         if (!ConnectionRuntime.isActivityVisible) return
         val request = ConnectionRuntime.state.value
@@ -180,6 +194,7 @@ class MainActivity : ComponentActivity() {
         else cameraPermission.launch(Manifest.permission.CAMERA)
     }
 
+    /** Performs maybe start remote capture for main activity. */
     private fun maybeStartRemoteCapture() {
         if (!ConnectionRuntime.isActivityVisible) return
         val request = ConnectionRuntime.state.value
@@ -192,6 +207,7 @@ class MainActivity : ComponentActivity() {
         requestScreenCapture()
     }
 
+    /** Performs request screen capture for main activity. */
     private fun requestScreenCapture() {
         configureDisplayFrameRate(targetScreenMacID?.let { targetScreenFrameRate } ?: preferences.getInt("screen_frame_rate", 60))
         if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
@@ -201,7 +217,9 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    /** Selects a compatible display mode while preserving the current physical resolution. */
     @Suppress("DEPRECATION")
+    /** Handles configure display frame rate callback by translating the native window event into the owning app action. */
     private fun configureDisplayFrameRate(requestedFramesPerSecond: Int) {
         val activeDisplay = if (Build.VERSION.SDK_INT >= 30) display else windowManager.defaultDisplay
         val currentMode = activeDisplay?.mode ?: return
@@ -213,6 +231,7 @@ class MainActivity : ComponentActivity() {
         window.attributes = attributes
     }
 
+    /** Performs start camera stream for main activity. */
     private fun startCameraStream() {
         val request = pendingCameraRequest ?: return
         val macID = request.cameraRequestedBy ?: return
@@ -225,6 +244,7 @@ class MainActivity : ComponentActivity() {
         } catch (exception: Exception) { ConnectionRuntime.update { it.copy(message = exception.message ?: "Camera could not start") } }
     }
 
+    /** Opens Android’s required screen-sharing consent with the requested capture scope. */
     private fun launchScreenConsent() {
         val manager = getSystemService(MediaProjectionManager::class.java)
         val requestEntireDisplay = targetScreenMacID != null && ConnectionRuntime.state.value.screenCaptureEntireDisplay
@@ -236,6 +256,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    /** Performs start screen benchmark for main activity. */
     private fun startScreenBenchmark(consent: Intent) {
         val intent = Intent(this, ScreenBenchmarkService::class.java)
             .putExtra(ScreenBenchmarkService.EXTRA_PROJECTION_CONSENT, consent)

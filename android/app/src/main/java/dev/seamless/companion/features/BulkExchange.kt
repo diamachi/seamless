@@ -1,3 +1,6 @@
+// Android feature implementation for bulk exchange.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 package dev.seamless.companion.features
 
 import android.content.Context
@@ -32,13 +35,17 @@ class BulkExchange(private val context: Context) : AutoCloseable {
     private val preparationExecutor = java.util.concurrent.Executors.newSingleThreadExecutor()
     private var preparing = false
 
+    /** Performs enqueue for bulk exchange. */
     @Synchronized
+    /** Handles enqueue callback by translating the native window event into the owning app action. */
     fun enqueue(uris: List<Uri>, peer: MacPeer, temporaryFile: File? = null) {
         for (uri in uris) outgoingQueue.add(QueuedFile(uri, peer, temporaryFile))
         advanceOutgoingQueue()
     }
 
+    /** Performs advance outgoing queue for bulk exchange. */
     @Synchronized
+    /** Handles advance outgoing queue callback by translating the native window event into the owning app action. */
     private fun advanceOutgoingQueue() {
         ConnectionRuntime.update { it.copy(outgoingFileCount = outgoingQueue.size + entries.values.count { entry -> entry.outgoing }) }
         if (preparationExecutor.isShutdown || preparing || entries.size >= 8 || entries.values.any { it.outgoing } || outgoingQueue.isEmpty()) return
@@ -62,6 +69,7 @@ class BulkExchange(private val context: Context) : AutoCloseable {
 
     private val temporarySources = ConcurrentHashMap<String, File>()
 
+    /** Performs offer for bulk exchange. */
     fun offer(uri: Uri, peer: MacPeer, requestToken: String? = null) {
         require(entries.size < 8) { "Finish current transfers first" }
         var size = 0L
@@ -86,6 +94,7 @@ class BulkExchange(private val context: Context) : AutoCloseable {
         ConnectionRuntime.update { it.copy(message = "Waiting for ${peer.name} to accept $name") }
     }
 
+    /** Performs handle for bulk exchange. */
     fun handle(peer: MacPeer, type: String, payload: JSONObject) {
         val id = payload.getString("transferID")
         require(id.matches(Regex("[a-zA-Z0-9-]{1,64}")))
@@ -109,7 +118,9 @@ class BulkExchange(private val context: Context) : AutoCloseable {
         presentNextOffer()
     }
 
+    /** Performs present next offer for bulk exchange. */
     @Synchronized
+    /** Handles present next offer callback by translating the native window event into the owning app action. */
     fun presentNextOffer() {
         val state = ConnectionRuntime.state.value
         if (state.incomingFileOffer != null || state.receivedFile != null || entries.values.any { !it.outgoing && it.accepted }) return
@@ -124,8 +135,10 @@ class BulkExchange(private val context: Context) : AutoCloseable {
         }
     }
 
+    /** Evaluates contains against the current model or supplied input. */
     fun contains(id: String): Boolean = entries.containsKey(id)
 
+    /** Accepts a pending offer and prepares the selected local destination. */
     fun accept(id: String, accepted: Boolean) {
         val entry = entries[id] ?: return
         require(!entry.outgoing && entry.expiresAt > System.currentTimeMillis())
@@ -139,6 +152,7 @@ class BulkExchange(private val context: Context) : AutoCloseable {
         ConnectionRuntime.update { it.copy(incomingFileOffer = null, message = "Receiving ${entry.name}") }
     }
 
+    /** Performs stream for bulk exchange. */
     fun stream(peerID: String, payload: JSONObject, channel: ControlChannel) {
         val id = payload.getString("transferID")
         val entry = entries[id] ?: error("Expired transfer")
@@ -205,6 +219,7 @@ class BulkExchange(private val context: Context) : AutoCloseable {
         }
     }
 
+    /** Performs report progress for bulk exchange. */
     private fun reportProgress(id: String, entry: BulkEntry, completed: Long) {
         val previous = ConnectionRuntime.state.value.transferProgress[id]
         // Publishing every network chunk would needlessly recompose the whole overview.
@@ -214,13 +229,16 @@ class BulkExchange(private val context: Context) : AutoCloseable {
         }
     }
 
+    /** Performs expire for bulk exchange. */
     fun expire() {
         for ((id, entry) in entries) {
             if (entry.channel == null && entry.expiresAt < System.currentTimeMillis()) cancel(entry.peer.id, id)
         }
     }
 
+    /** Disconnects the selected session and cancels operations scoped to it. */
     @Synchronized
+    /** Handles disconnect callback by translating the native window event into the owning app action. */
     fun disconnect(peerID: String) {
         val discarded = outgoingQueue.filter { it.peer.id == peerID }
         outgoingQueue.removeAll(discarded.toSet())
@@ -228,6 +246,7 @@ class BulkExchange(private val context: Context) : AutoCloseable {
         for ((id, entry) in entries) { if (entry.peer.id == peerID) cancel(peerID, id) }
     }
 
+    /** Performs cancel for bulk exchange. */
     private fun cancel(peerID: String, id: String) {
         val entry = entries[id] ?: return
         if (entry.peer.id != peerID) return
@@ -241,6 +260,7 @@ class BulkExchange(private val context: Context) : AutoCloseable {
         advanceOutgoingQueue()
     }
 
+    /** Closes owned resources so sockets, buffers and pending work do not outlive their session. */
     override fun close() {
         synchronized(this) {
             for (queued in outgoingQueue) queued.temporaryFile?.delete()
@@ -250,6 +270,7 @@ class BulkExchange(private val context: Context) : AutoCloseable {
         for ((id, entry) in entries) cancel(entry.peer.id, id)
     }
 
+    /** Performs document name for bulk exchange. */
     private fun documentName(uri: Uri): String {
         if (uri.scheme == "file") return File(requireNotNull(uri.path)).name
         context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null).use { cursor ->
@@ -261,9 +282,11 @@ class BulkExchange(private val context: Context) : AutoCloseable {
         return "Shared file"
     }
 
+    /** Performs hex for bulk exchange. */
     private fun ByteArray.hex() = joinToString("") { "%02x".format(it) }
     companion object {
         const val MAXIMUM_BYTES = 9_007_199_254_740_991L
+        /** Rejects unsafe filenames before constructing a destination path. */
         fun validName(name: String) = name.isNotBlank() && name.length <= 255 && name != "." && name != ".." && !name.contains('/') && !name.contains('\\') && !name.contains('\u0000')
     }
 }

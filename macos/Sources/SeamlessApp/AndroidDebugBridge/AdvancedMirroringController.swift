@@ -1,3 +1,6 @@
+// Optional USB/ADB integration for advanced mirroring controller.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 import AppKit
 import Combine
 import Foundation
@@ -6,6 +9,7 @@ import SeamlessCore
 private final class AndroidToolDiagnostics: @unchecked Sendable {
     private let lock = NSLock()
     private var bytes = Data()
+    /// Performs append for advanced mirroring controller.
     func append(_ data: Data) {
         lock.withLock {
             bytes.append(data)
@@ -30,6 +34,7 @@ final class AdvancedMirroringController: ObservableObject {
     private var localPort: UInt16?
     private var remoteServerPath: String?
 
+    /// Constructs AdvancedMirroringController with the dependencies and initial values supplied by its caller.
     init() {
         stream.onRecord = { [weak self] record in
             guard let self else { return }
@@ -45,6 +50,7 @@ final class AdvancedMirroringController: ObservableObject {
         }
     }
 
+    /// Performs open for advanced mirroring controller.
     func open(application: PhoneApplication, phoneID: String, serial: String?, framesPerSecond: Int) {
         guard application.identity.profileIdentifier == "0" else {
             message = "The native ADB backend currently supports the primary Android profile only."
@@ -105,14 +111,17 @@ final class AdvancedMirroringController: ObservableObject {
         }
     }
 
+    /// Performs input for advanced mirroring controller.
     func input(kind: String, coordinates: [String: Double], text: String) {
         stream.input(kind: kind, coordinates: coordinates, text: text)
     }
 
+    /// Stops the current operation and releases its active resources.
     func stop(phoneID: String) {
         if activePhoneID == phoneID { stopAll() }
     }
 
+    /// Performs stop all for advanced mirroring controller.
     func stopAll() {
         let previousPhone = activePhoneID
         activePhoneID = nil
@@ -132,6 +141,7 @@ final class AdvancedMirroringController: ObservableObject {
         if let previousPhone { onEnd?(previousPhone) }
     }
 
+    /// Performs launch server for advanced mirroring controller.
     private func launchServer(adb: URL, serial: String, remotePath: String, token: String, framesPerSecond: Int, expected: UUID) throws {
         guard [60, 120].contains(framesPerSecond) else { throw AndroidDebugBridgePlan.PlanError.invalidDevice }
         let process = Process()
@@ -161,6 +171,7 @@ final class AdvancedMirroringController: ObservableObject {
         serverProcess = process
     }
 
+    /// Removes transfer-local resources and completes any waiting callbacks.
     private func cleanup(adb: URL, serial: String, port: UInt16?, path: String?) {
         var commands: [[String]] = []
         if let port, let arguments = try? AndroidDebugBridgePlan.removeForward(serial: serial, localPort: port) { commands.append(arguments) }

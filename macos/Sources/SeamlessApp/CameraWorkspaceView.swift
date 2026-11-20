@@ -1,3 +1,6 @@
+// macOS application presentation and coordination for camera workspace view.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 import SwiftUI
 import SeamlessCore
 
@@ -80,6 +83,7 @@ struct CameraWorkspaceView: View {
         }
     }
 
+    /// Performs start camera for camera workspace view.
     private func startCamera() {
         guard let phone = preferencesStore.preferences.selectedPhone else { return }
         controller.requestCamera(phoneID: phone.id, preferences: phone.preferences.camera)

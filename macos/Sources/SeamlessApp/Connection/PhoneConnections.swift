@@ -77,6 +77,7 @@ final class PhoneConnections: ObservableObject {
     private var sessionCredentials: [String: String] = [:]
     private var authenticationAttempts: [String: UUID] = [:]
 
+    /// Constructs PhoneConnections with the dependencies and initial values supplied by its caller.
     init() {
         advancedMirroring.onBegin = { [weak self] phoneID in
             guard let self else { return }
@@ -135,6 +136,7 @@ final class PhoneConnections: ObservableObject {
 
     }
 
+    /// Reconciles live feature policies and discovery scope with the latest remembered-phone preferences.
     func synchronize(with preferences: AppPreferences) {
         let previous = savedPhones
         savedPhones = Dictionary(uniqueKeysWithValues: preferences.rememberedPhones.map { ($0.id, $0) })
@@ -158,6 +160,7 @@ final class PhoneConnections: ObservableObject {
         UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: removedIDs)
     }
 
+    /// Starts the trust handshake using the user-supplied invitation; the phone must approve before credentials are retained.
     func pair() {
         do {
             let invitation = try PairingInvitation.parse(pairingCode)
@@ -174,6 +177,7 @@ final class PhoneConnections: ObservableObject {
         } catch { message = error.localizedDescription }
     }
 
+    /// Reconnects an already trusted phone using the best available endpoint and retained credential.
     func reconnect(_ phone: RememberedPhone) {
         guard let savedProfile = phone.connection else { message = "Pair this phone again."; return }
         let profile: ConnectionProfile
@@ -212,6 +216,7 @@ final class PhoneConnections: ObservableObject {
         }
     }
 
+    /// Tears down the owning subsystem and cancels its outstanding work.
     func shutdown() {
         phoneContacts.clear(phoneID: nil)
         for deadline in clipboardDeadlines.values { deadline.cancel() }
@@ -227,10 +232,12 @@ final class PhoneConnections: ObservableObject {
         for client in clients.values { client.onState = nil; client.disconnect() }
     }
 
+    /// Starts reconnect attempts for remembered phones with valid saved connection profiles.
     func reconnectSavedPhones() {
         for phone in savedPhones.values { reconnect(phone) }
     }
 
+    /// Disconnects the selected session and cancels operations scoped to it.
     func disconnect(phoneID: String) {
         phoneContacts.clear(phoneID: phoneID)
         clipboardDeadlines.removeValue(forKey: phoneID)?.cancel()
@@ -279,6 +286,7 @@ final class PhoneConnections: ObservableObject {
         send(phoneID: phoneID, packet: ControlPacket(type: stop ? "stopRing" : "ring", payload: .object(["expiresAt": .number(expiry)])))
     }
 
+    /// Performs forget for phone connections.
 
 
     func forget(phoneID: String) {
@@ -295,6 +303,7 @@ final class PhoneConnections: ObservableObject {
         }
     }
 
+    /// Removes local trust and phone-specific metadata after disconnecting the active session.
     private func removeLocalPhone(_ phoneID: String, remoteRevocationConfirmed: Bool) {
         disconnect(phoneID: phoneID)
         Task {
@@ -310,6 +319,7 @@ final class PhoneConnections: ObservableObject {
         }
     }
 
+    /// Reads explicitly requested local clipboard text and submits it to the selected connected peer.
     func sendClipboard(phoneID: String) {
         guard let text = NSPasteboard.general.string(forType: .string), text.utf16.count <= 32_000 else {
             message = "Copy text of up to 32,000 characters first."
@@ -318,6 +328,7 @@ final class PhoneConnections: ObservableObject {
         sendText(text, phoneID: phoneID)
     }
 
+    /// Sends user-selected text and tracks the phone’s delivery acknowledgement.
     func sendText(_ text: String, phoneID: String) {
         guard sessions.state(for: phoneID) == .connected else {
             clipboardStatus[phoneID] = "Connect this phone before sending text"
@@ -341,6 +352,7 @@ final class PhoneConnections: ObservableObject {
         send(phoneID: phoneID, packet: packet)
     }
 
+    /// Performs notification action for phone connections.
     func notificationAction(_ notification: RelayedNotification, index: Int? = nil, reply: String = "", dismiss: Bool = false) {
         send(phoneID: notification.phoneID, packet: ControlPacket(type: "notificationAction", payload: .object([
             "notificationKey": .string(notification.id), "packageName": .string(notification.application.packageName),
@@ -350,6 +362,7 @@ final class PhoneConnections: ObservableObject {
         if dismiss { notifications.removeAll { $0.phoneID == notification.phoneID && $0.id == notification.id } }
     }
 
+    /// Performs request notification permission for phone connections.
     func requestNotificationPermission() {
         MacNotificationDelivery.shared.reviewAccess()
     }
@@ -361,6 +374,7 @@ final class PhoneConnections: ObservableObject {
         return identity
     }
 
+    /// Creates a control client and connects its lifecycle and packet callbacks to the owning coordinator.
     private func makeClient(phoneID: String, profile: ConnectionProfile) -> PhoneControlClient {
         screen.ended(phoneID: phoneID)
         camera.ended(phoneID: phoneID)
@@ -396,6 +410,7 @@ final class PhoneConnections: ObservableObject {
         return client
     }
 
+    /// Routes incoming data to the matching operation or session state.
     private func receive(_ packet: ControlPacket, phoneID: String, profile: ConnectionProfile) {
         DiagnosticsConsole.shared.record("Control received: " + packet.type)
         activeProfiles[phoneID] = profile
@@ -488,6 +503,7 @@ final class PhoneConnections: ObservableObject {
         }
     }
 
+    /// Validates the pairing response before storing the credential and remembering the authenticated phone.
     private func finishPairing(_ packet: ControlPacket, phoneID: String, profile: ConnectionProfile) {
         guard let invitation = pendingInvitations.removeValue(forKey: phoneID),
               packet.payload["phoneID"].string == phoneID,
@@ -517,6 +533,7 @@ final class PhoneConnections: ObservableObject {
         }
     }
 
+    /// Performs mark authenticated for phone connections.
     private func markAuthenticated(phoneID: String) {
         metadataSentPhones.remove(phoneID)
         reconnectTasks.removeValue(forKey: phoneID)?.cancel()
@@ -527,6 +544,7 @@ final class PhoneConnections: ObservableObject {
         sendNotificationPolicy(phoneID: phoneID)
     }
 
+    /// Performs update status for phone connections.
     private func updateStatus(_ payload: JSONValue, phoneID: String) {
         guard sessions.state(for: phoneID) == .connected, payload["phoneID"].string == phoneID else { return }
         if payload["macDetailsVersion"].number == 1 { sendMacDetailsIfNeeded(phoneID: phoneID) }
@@ -547,6 +565,7 @@ final class PhoneConnections: ObservableObject {
             deviceDetails: DeviceDetails(payload: payload["deviceDetails"]))
     }
 
+    /// Performs send mac details if needed for phone connections.
     private func sendMacDetailsIfNeeded(phoneID: String) {
         let lastSent = metadataLastSent[phoneID] ?? .distantPast
         guard !metadataSentPhones.contains(phoneID) || Date().timeIntervalSince(lastSent) >= 60,
@@ -562,6 +581,7 @@ final class PhoneConnections: ObservableObject {
         }
     }
 
+    /// Converts application imagery into the bounded representation accepted by this component.
     private func applicationIcon(_ value: JSONValue) -> NSImage? {
         guard let encodedImage = value.string, encodedImage.count <= 8192,
               let imageData = Data(base64Encoded: encodedImage),
@@ -572,6 +592,7 @@ final class PhoneConnections: ObservableObject {
         return image
     }
 
+    /// Performs update applications for phone connections.
     private func updateApplications(_ payload: JSONValue, phoneID: String) {
         guard sessions.state(for: phoneID) == .connected else { return }
         applications[phoneID] = payload["applications"].array.prefix(500).compactMap { entry in
@@ -581,6 +602,7 @@ final class PhoneConnections: ObservableObject {
         }
     }
 
+    /// Applies the phone-specific notification policy before updating local history and Mac delivery.
     private func receiveNotification(_ payload: JSONValue, phoneID: String) {
         guard sessions.state(for: phoneID) == .connected, let phone = savedPhones[phoneID],
               let package = payload["packageName"].string, let profile = payload["profileIdentifier"].string,
@@ -598,6 +620,7 @@ final class PhoneConnections: ObservableObject {
                                                body: notification.text)
     }
 
+    /// Sends the selected app allow-list and pause state to the authenticated phone.
     private func sendNotificationPolicy(phoneID: String) {
         guard sessions.state(for: phoneID) == .connected, let policy = savedPhones[phoneID]?.preferences.notifications else { return }
         do {
@@ -606,6 +629,7 @@ final class PhoneConnections: ObservableObject {
         } catch { message = error.localizedDescription }
     }
 
+    /// Submits an outgoing operation through this component’s transport or action handler.
     private func send(phoneID: String, packet: ControlPacket) {
         DiagnosticsConsole.shared.record("Control send: " + packet.type)
         do {
@@ -614,6 +638,7 @@ final class PhoneConnections: ObservableObject {
         } catch { message = "Select a connected phone before using this action." }
     }
 
+    /// Schedules a bounded backoff retry so transient transport failures do not cause a tight reconnect loop.
     private func scheduleReconnect(phoneID: String) {
         guard reconnectEnabled.contains(phoneID), reconnectTasks[phoneID] == nil else { return }
         DiagnosticsConsole.shared.record("Connection: reconnect scheduled")

@@ -1,3 +1,6 @@
+// macOS application presentation and coordination for settings workspace view.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 import SwiftUI
 
 struct SettingsWorkspaceView: View {

@@ -1,3 +1,6 @@
+// macOS application presentation and coordination for main window.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 import SwiftUI
 import SeamlessCore
 
@@ -170,12 +173,14 @@ struct MainWindow: View {
         .foregroundStyle(palette.text)
     }
 
+    /// Performs sidebar caption for main window.
     private func sidebarCaption(_ title: String) -> some View {
         Text(title).font(.system(size: 9, weight: .semibold)).tracking(1.3)
             .foregroundStyle(InterfacePalette(scheme: colorScheme, colorName: phoneThemeColor).secondaryText)
             .padding(.horizontal, 12).padding(.bottom, 8)
     }
 
+    /// Performs sidebar item for main window.
     private func sidebarItem(_ destination: Destination) -> some View {
         let palette = InterfacePalette(scheme: colorScheme, colorName: phoneThemeColor)
         let isSelected = navigation.destination == destination
@@ -294,6 +299,7 @@ private struct OverviewView: View {
         }
     }
 
+    /// Performs quick action for main window.
     private func quickAction(_ title: String, symbol: String, destination: Destination) -> some View {
         Button { openDestination(destination) } label: {
             WorkspaceCard {

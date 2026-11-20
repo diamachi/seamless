@@ -68,10 +68,12 @@ data class CompanionConnectionState(
 object ConnectionRuntime {
     private val mutableState = MutableStateFlow(CompanionConnectionState())
     val state = mutableState.asStateFlow()
+    /** Performs update for connection state. */
     @Volatile var server: PhoneServer? = null
     @Volatile var isActivityVisible = false
 
     @Synchronized
+    /** Handles update callback by translating the native window event into the owning app action. */
     fun update(transform: (CompanionConnectionState) -> CompanionConnectionState) {
         val previous = mutableState.value
         val next = transform(previous)

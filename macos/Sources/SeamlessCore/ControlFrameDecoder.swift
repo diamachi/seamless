@@ -1,11 +1,16 @@
+// Shared protocol/model rules for control frame decoder.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 import Foundation
 
 public struct ControlFrameDecoder: Sendable {
     private var bufferedData = Data()
     public static let maximumFrameBytes = 262_144
 
+    /// Constructs ControlFrameDecoder with the dependencies and initial values supplied by its caller.
     public init() {}
 
+    /// Performs append for control frame decoder.
     public mutating func append(_ data: Data) throws -> [ControlPacket] {
         guard data.count <= 65_536 else { throw ConnectionProtocolError.oversizedMessage }
         bufferedData.append(data)

@@ -1,3 +1,6 @@
+// macOS application presentation and coordination for phone wallpaper store.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 import AppKit
 import CryptoKit
 import ImageIO
@@ -10,10 +13,12 @@ final class PhoneWallpaperStore: ObservableObject {
     private var loadedPhoneIDs: Set<String> = []
     private let directory: URL
 
+    /// Constructs PhoneWallpaperStore with the dependencies and initial values supplied by its caller.
     init(directory: URL = URL.applicationSupportDirectory.appending(path: "Seamless/Wallpapers", directoryHint: .isDirectory)) {
         self.directory = directory
     }
 
+    /// Loads the requested data into the component’s local model.
     func load(phoneID: String) {
         guard loadedPhoneIDs.insert(phoneID).inserted else { return }
         let url = imageURL(phoneID: phoneID)
@@ -26,6 +31,7 @@ final class PhoneWallpaperStore: ObservableObject {
         }
     }
 
+    /// Performs choose for phone wallpaper store.
     func choose(phoneID: String) {
         let panel = NSOpenPanel()
         panel.title = "Choose this phone’s wallpaper"
@@ -41,6 +47,7 @@ final class PhoneWallpaperStore: ObservableObject {
         }
     }
 
+    /// Performs import image for phone wallpaper store.
     func importImage(from source: URL, phoneID: String) throws {
         let size = try source.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0
         guard size > 0, size <= 20 * 1024 * 1024 else { throw WallpaperError.invalidImage }
@@ -59,6 +66,7 @@ final class PhoneWallpaperStore: ObservableObject {
         errors.removeValue(forKey: phoneID)
     }
 
+    /// Performs remove for phone wallpaper store.
     func remove(phoneID: String) {
         do {
             let url = imageURL(phoneID: phoneID)
@@ -73,11 +81,13 @@ final class PhoneWallpaperStore: ObservableObject {
         }
     }
 
+    /// Performs image url for phone wallpaper store.
     private func imageURL(phoneID: String) -> URL {
         let name = SHA256.hash(data: Data(phoneID.utf8)).map { String(format: "%02x", $0) }.joined()
         return directory.appendingPathComponent(name).appendingPathExtension("jpg")
     }
 
+    /// Performs thumbnail for phone wallpaper store.
     private func thumbnail(from data: Data) throws -> NSImage {
         guard let source = CGImageSourceCreateWithData(data as CFData, nil) else { throw WallpaperError.invalidImage }
         let options: [CFString: Any] = [

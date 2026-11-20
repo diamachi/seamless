@@ -1,3 +1,6 @@
+// Android feature implementation for storage browser.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 package dev.seamless.companion.features
 
 import android.content.Context
@@ -26,6 +29,7 @@ class StorageBrowser(private val context: Context, private val offer: (Uri, MacP
     private val documents = ConcurrentHashMap<String, BrowserDocument>()
     private val preferences = context.getSharedPreferences("shared_storage", Context.MODE_PRIVATE)
 
+    /** Performs handle for storage browser. */
     fun handle(peer: MacPeer, type: String, payload: JSONObject, requestID: String) {
         try {
             when (type) {
@@ -38,10 +42,13 @@ class StorageBrowser(private val context: Context, private val offer: (Uri, MacP
         }
     }
 
+    /** Performs revoke for storage browser. */
     fun revoke() { documents.clear() }
 
+    /** Performs disconnected for storage browser. */
     fun disconnected(peerID: String) { documents.entries.removeAll { it.value.peerID == peerID } }
 
+    /** Performs list for storage browser. */
     private fun list(peer: MacPeer, payload: JSONObject, requestID: String) {
         val token = payload.optString("directory")
         val mediaOnly = payload.optBoolean("media")
@@ -112,10 +119,12 @@ class StorageBrowser(private val context: Context, private val offer: (Uri, MacP
             .put("entries", result).put("nextOffset", if (total > offset + 100) offset + 100 else -1), requestID)
     }
 
+    /** Evaluates has full access against the current model or supplied input. */
     private fun hasFullAccess(): Boolean {
         return Build.VERSION.SDK_INT >= 30 && Environment.isExternalStorageManager() && preferences.getBoolean("full_access_enabled", false)
     }
 
+    /** Performs entry for storage browser. */
     private fun entry(peer: MacPeer, uri: Uri, name: String, mime: String, size: Long): JSONObject {
         require(documents.size < 100_000) { "Reconnect to refresh browser" }
         val directory = mime == DocumentsContract.Document.MIME_TYPE_DIR
@@ -125,6 +134,7 @@ class StorageBrowser(private val context: Context, private val offer: (Uri, MacP
             .put("directory", directory).put("size", maxOf(0, size))
     }
 
+    /** Performs document for storage browser. */
     private fun document(peer: MacPeer, payload: JSONObject): BrowserDocument {
         val token = payload.optString("entry", payload.optString("directory"))
         val document = documents[token] ?: error("Refresh browser")
@@ -133,6 +143,7 @@ class StorageBrowser(private val context: Context, private val offer: (Uri, MacP
         return document
     }
 
+    /** Performs thumbnail for storage browser. */
     private fun thumbnail(peer: MacPeer, payload: JSONObject, requestID: String) {
         val document = document(peer, payload)
         require(!document.directory)

@@ -1,3 +1,6 @@
+// Android Compose presentation and user actions for companion app root.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 package dev.seamless.companion.ui
 
 import android.content.Context
@@ -34,7 +37,9 @@ import dev.seamless.companion.R
 import dev.seamless.companion.connection.ConnectionRuntime
 import dev.seamless.companion.screen.BenchmarkState
 
+/** Composes the companion app root interface from state and supplied callbacks. */
 @Composable
+/** Handles companion app root callback by translating the native window event into the owning app action. */
 fun CompanionAppRoot(
     initialFrameRate: Int,
     initialMaximumDimension: Int,
@@ -139,7 +144,9 @@ fun CompanionAppRoot(
     }
 }
 
+/** Performs companion colors for companion app root. */
 @Composable
+/** Handles companion colors callback by translating the native window event into the owning app action. */
 private fun companionColors(dark: Boolean) = if (dark) {
     darkColorScheme(primary = Color(0xFFABDCC9), onPrimary = Color(0xFF20252B),
         background = Color(0xFF18221F), onBackground = Color(0xFFF1F3F5),

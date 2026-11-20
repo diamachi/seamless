@@ -1,3 +1,6 @@
+// Android feature implementation for phone contacts.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 package dev.seamless.companion.features
 
 import android.Manifest
@@ -8,6 +11,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 internal object PhoneContacts {
+    /** Reads the requested representation from the owned input interface. */
     fun read(context: Context): List<JSONObject> {
         require(context.checkSelfPermission(Manifest.permission.READ_CONTACTS) == PackageManager.PERMISSION_GRANTED) {
             "Allow Contacts access on the phone first"

@@ -1,3 +1,6 @@
+// macOS calling integration for calls workspace view.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 import AppKit
 import SwiftUI
 import SeamlessCore
@@ -47,6 +50,7 @@ struct CallsWorkspaceView: View {
         }
     }
 
+    /// Performs connection card for calls workspace view.
     private func connectionCard(phoneID: String, name: String) -> some View {
         WorkspaceCard {
             HStack {
@@ -126,6 +130,7 @@ struct CallsWorkspaceView: View {
         }
     }
 
+    /// Performs phone choices for calls workspace view.
     private func phoneChoices(phoneID: String) -> [(String, String)] {
         var choices = [("", "Choose the intended phone…")]
         let saved = calls.options(for: phoneID).bluetoothAddress
@@ -136,6 +141,7 @@ struct CallsWorkspaceView: View {
         return choices
     }
 
+    /// Performs address binding for calls workspace view.
     private func addressBinding(_ phoneID: String) -> Binding<String> {
         Binding(get: { calls.options(for: phoneID).bluetoothAddress },
                 set: { value in calls.updateOptions(phoneID: phoneID) { $0.bluetoothAddress = value } })

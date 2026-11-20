@@ -1,3 +1,6 @@
+// macOS connection and transfer infrastructure for phone discovery.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 import Darwin
 import Foundation
 import SeamlessCore
@@ -14,6 +17,7 @@ final class PhoneDiscovery: NSObject, @preconcurrency NetServiceBrowserDelegate,
     private var knownPhoneIDs: Set<String> = []
     private var started = false
 
+    /// Starts this component’s operation using the provided session inputs.
     func start(knownPhoneIDs: Set<String>) {
         self.knownPhoneIDs = knownPhoneIDs
         guard !started else { return }
@@ -23,6 +27,7 @@ final class PhoneDiscovery: NSObject, @preconcurrency NetServiceBrowserDelegate,
         browser.searchForServices(ofType: "_seamless._tcp.", inDomain: "local.")
     }
 
+    /// Performs net service browser for phone discovery.
     func netServiceBrowser(_ browser: NetServiceBrowser, didFind service: NetService, moreComing: Bool) {
         guard services.count < 32, let phoneID = phoneID(for: service), knownPhoneIDs.contains(phoneID) else { return }
         services[service.name] = service
@@ -31,6 +36,7 @@ final class PhoneDiscovery: NSObject, @preconcurrency NetServiceBrowserDelegate,
         service.resolve(withTimeout: 5)
     }
 
+    /// Performs net service did resolve address for phone discovery.
     func netServiceDidResolveAddress(_ service: NetService) {
         guard let host = ipv4Address(for: service) ?? service.hostName,
               let endpoint = DiscoveredPhoneEndpoint(serviceName: service.name, host: host, port: service.port),
@@ -46,10 +52,12 @@ final class PhoneDiscovery: NSObject, @preconcurrency NetServiceBrowserDelegate,
         }
     }
 
+    /// Performs net service for phone discovery.
     func netService(_ sender: NetService, didUpdateTXTRecord data: Data) {
         receiveReconnectRequest(service: sender, record: data)
     }
 
+    /// Performs receive reconnect request for phone discovery.
     private func receiveReconnectRequest(service: NetService, record: Data) {
         guard let phoneID = phoneID(for: service), knownPhoneIDs.contains(phoneID),
               endpointServiceNames[phoneID] == service.name else { return }
@@ -59,6 +67,7 @@ final class PhoneDiscovery: NSObject, @preconcurrency NetServiceBrowserDelegate,
         onReconnectRequest?(phoneID)
     }
 
+    /// Performs net service browser for phone discovery.
     func netServiceBrowser(_ browser: NetServiceBrowser, didRemove service: NetService, moreComing: Bool) {
         if let removed = services.removeValue(forKey: service.name) {
             removed.stopMonitoring()
@@ -70,6 +79,7 @@ final class PhoneDiscovery: NSObject, @preconcurrency NetServiceBrowserDelegate,
         onEndpoint?(phoneID, nil)
     }
 
+    /// Performs net service for phone discovery.
     func netService(_ service: NetService, didNotResolve errorDict: [String: NSNumber]) {
         if let removed = services.removeValue(forKey: service.name) {
             removed.stopMonitoring()
@@ -77,6 +87,7 @@ final class PhoneDiscovery: NSObject, @preconcurrency NetServiceBrowserDelegate,
         }
     }
 
+    /// Performs ipv4 address for phone discovery.
     private func ipv4Address(for service: NetService) -> String? {
         for address in service.addresses ?? [] {
             guard address.count >= MemoryLayout<sockaddr_in>.size,
@@ -95,6 +106,7 @@ final class PhoneDiscovery: NSObject, @preconcurrency NetServiceBrowserDelegate,
         return nil
     }
 
+    /// Performs phone id for phone discovery.
     private func phoneID(for service: NetService) -> String? {
         DiscoveredPhoneEndpoint.phoneIdentifier(serviceName: service.name)
     }

@@ -1,3 +1,6 @@
+// Android feature implementation for pairing envelope.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 package dev.seamless.companion.features
 
 import java.security.SecureRandom
@@ -6,6 +9,7 @@ import javax.crypto.spec.GCMParameterSpec
 import javax.crypto.spec.SecretKeySpec
 
 internal object PairingEnvelope {
+    /** Performs seal for pairing envelope. */
     fun seal(content: ByteArray, key: ByteArray, sessionID: String, purpose: String): ByteArray {
         require(key.size == 32)
         val nonce = ByteArray(12)
@@ -16,6 +20,7 @@ internal object PairingEnvelope {
         return nonce + cipher.doFinal(content)
     }
 
+    /** Performs open for pairing envelope. */
     fun open(combined: ByteArray, key: ByteArray, sessionID: String, purpose: String): ByteArray {
         require(key.size == 32 && combined.size in 28..24_000)
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")
@@ -24,5 +29,6 @@ internal object PairingEnvelope {
         return cipher.doFinal(combined, 12, combined.size - 12)
     }
 
+    /** Performs context for pairing envelope. */
     private fun context(sessionID: String, purpose: String) = "Seamless QR pairing v1:$sessionID:$purpose".toByteArray(Charsets.UTF_8)
 }

@@ -1,3 +1,6 @@
+// Android feature implementation for pending download.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 package dev.seamless.companion.features
 
 import android.content.ContentValues
@@ -9,11 +12,14 @@ import android.os.ParcelFileDescriptor
 import android.provider.MediaStore
 
 internal class PendingDownload private constructor(private val context: Context, private val uri: Uri, val output: ParcelFileDescriptor.AutoCloseOutputStream) {
+    /** Performs publish for pending download. */
     fun publish() {
         if (Build.VERSION.SDK_INT >= 29) context.contentResolver.update(uri, ContentValues().apply { put(MediaStore.Downloads.IS_PENDING, 0) }, null, null)
     }
+    /** Performs abort for pending download. */
     fun abort() { context.contentResolver.delete(uri, null, null) }
     companion object {
+        /** Performs create for pending download. */
         fun create(context: Context, name: String): PendingDownload? {
             if (Build.VERSION.SDK_INT < 29) return null
             val values = ContentValues().apply {

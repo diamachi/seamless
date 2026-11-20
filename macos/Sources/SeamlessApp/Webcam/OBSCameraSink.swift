@@ -1,3 +1,6 @@
+// macOS webcam output integration for obscamera sink.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 import CoreImage
 import CoreMedia
 import CoreMediaIO
@@ -19,6 +22,7 @@ final class OBSCameraSink {
     private let imageContext = CIContext(options: [.cacheIntermediates: false])
     private var outputSize = CGSize(width: 1920, height: 1080)
 
+    /// Starts this component’s operation using the provided session inputs.
     func start() throws {
         stop()
         let pluginURL = URL(fileURLWithPath: "/Applications/OBS.app/Contents/PlugIns/mac-virtualcam.plugin/Contents/Info.plist")
@@ -72,6 +76,7 @@ final class OBSCameraSink {
         try check(CMIODeviceStartStream(deviceID, streamID))
     }
 
+    /// Writes the supplied representation through the owned output interface.
     func write(_ imageBuffer: CVPixelBuffer) throws -> Bool {
         guard let queue, let format, let pixelBufferPool else { return false }
         if CMSimpleQueueGetCount(queue) >= CMSimpleQueueGetCapacity(queue) { return false }
@@ -103,6 +108,7 @@ final class OBSCameraSink {
         return true
     }
 
+    /// Stops the current operation and releases its active resources.
     func stop() {
         if deviceID != 0 && streamID != 0 { _ = CMIODeviceStopStream(deviceID, streamID) }
         if streamID != 0 {
@@ -122,10 +128,12 @@ final class OBSCameraSink {
         deviceID = 0
     }
 
+    /// Performs address for obscamera sink.
     private func address(_ selector: Int) -> CMIOObjectPropertyAddress {
         CMIOObjectPropertyAddress(mSelector: CMIOObjectPropertySelector(selector), mScope: CMIOObjectPropertyScope(kCMIOObjectPropertyScopeGlobal), mElement: CMIOObjectPropertyElement(kCMIOObjectPropertyElementMain))
     }
 
+    /// Performs object ids for obscamera sink.
     private func objectIDs(_ object: CMIOObjectID, selector: Int) throws -> [CMIOObjectID] {
         var property = address(selector)
         var size: UInt32 = 0
@@ -141,6 +149,7 @@ final class OBSCameraSink {
         return Array(values.prefix(Int(used) / 4))
     }
 
+    /// Performs string property for obscamera sink.
     private func stringProperty(_ object: CMIOObjectID, selector: Int) throws -> String {
         var property = address(selector)
         var value: CFString?
@@ -149,6 +158,7 @@ final class OBSCameraSink {
         return value as String? ?? ""
     }
 
+    /// Performs check for obscamera sink.
     private func check(_ status: OSStatus) throws {
         if status != noErr { throw WebcamOutputError(description: "Camera driver operation failed (\(status)).") }
     }

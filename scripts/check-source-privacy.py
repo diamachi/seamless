@@ -17,7 +17,9 @@ RULES = {
 }
 
 
+
 def source_paths():
+    """Yield project text files while excluding local credentials and build output."""
     for directory, subdirectories, filenames in os.walk(PROJECT_DIRECTORY):
         subdirectories[:] = [name for name in subdirectories if name not in IGNORED_DIRECTORIES]
         for filename in filenames:
@@ -26,7 +28,9 @@ def source_paths():
                 yield path
 
 
+
 def main():
+    """Report personal paths or credential patterns found in distributable sources."""
     findings = []
     for path in source_paths():
         for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):

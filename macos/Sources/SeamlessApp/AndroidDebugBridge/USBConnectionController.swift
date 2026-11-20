@@ -1,3 +1,6 @@
+// Optional USB/ADB integration for usbconnection controller.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 import AppKit
 import Foundation
 import Combine
@@ -19,6 +22,7 @@ final class USBConnectionController: ObservableObject {
     var useTunnel: ((String, ConnectionProfile) -> Void)?
     var removeTunnel: ((String, Bool) -> Void)?
 
+    /// Tears down the owning subsystem and cancels its outstanding work.
     func shutdown() {
         guard let adb = AndroidToolRunner.find("adb") else { return }
         for tunnel in tunnels.values {
@@ -34,6 +38,7 @@ final class USBConnectionController: ObservableObject {
         tunnels.removeAll()
     }
 
+    /// Refreshes the model from its current system or transport source.
     func refresh() {
         guard !isBusy else { return }
         guard let adb = AndroidToolRunner.find("adb") else {
@@ -52,6 +57,7 @@ final class USBConnectionController: ObservableObject {
         }
     }
 
+    /// Establishes the configured connection and registers its asynchronous result handlers.
     func connect(_ phone: RememberedPhone) {
         guard !isBusy, let device = devices.first(where: { $0.serial == selectedSerial }), device.state == "device",
               let savedProfile = phone.connection, let adb = AndroidToolRunner.find("adb") else {
@@ -76,6 +82,7 @@ final class USBConnectionController: ObservableObject {
         }
     }
 
+    /// Performs mark verified for usbconnection controller.
     func markVerified(phoneID: String, profile: ConnectionProfile) {
         guard var tunnel = tunnels[phoneID], tunnel.profile == profile else { return }
         tunnel.isVerified = true
@@ -83,13 +90,16 @@ final class USBConnectionController: ObservableObject {
         message = "USB connected and paired identity verified. Screen, camera, files and controls use the cable."
     }
 
+    /// Performs verified serial for usbconnection controller.
     func verifiedSerial(phoneID: String) -> String? {
         guard let tunnel = tunnels[phoneID], tunnel.isVerified else { return nil }
         return tunnel.serial
     }
 
+    /// Evaluates has tunnel against the current model or supplied input.
     func hasTunnel(phoneID: String) -> Bool { tunnels[phoneID] != nil }
 
+    /// Performs stop tunnel for usbconnection controller.
     func stopTunnel(phoneID: String) {
         if var tunnel = tunnels[phoneID] {
             tunnel.isVerified = false
@@ -98,10 +108,12 @@ final class USBConnectionController: ObservableObject {
         Task { await close(phoneID: phoneID, reconnectWiFi: false) }
     }
 
+    /// Performs use wi fi for usbconnection controller.
     func useWiFi(phoneID: String) {
         Task { await close(phoneID: phoneID, reconnectWiFi: true) }
     }
 
+    /// Performs connection lost for usbconnection controller.
     func connectionLost(phoneID: String, reason: String?) {
         guard tunnels[phoneID] != nil else { return }
         Task {
@@ -110,6 +122,7 @@ final class USBConnectionController: ObservableObject {
         }
     }
 
+    /// Closes owned resources so sockets, buffers and pending work do not outlive their session.
     private func close(phoneID: String, reconnectWiFi: Bool) async {
         guard let tunnel = tunnels.removeValue(forKey: phoneID) else { return }
         removeTunnel?(phoneID, reconnectWiFi)

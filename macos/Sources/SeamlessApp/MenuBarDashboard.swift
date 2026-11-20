@@ -15,6 +15,7 @@ final class MenuBarDashboard {
     private var popover: NSPopover?
     private var dropView: MenuBarDropView?
 
+    /// Configures this component using the supplied settings and its current dependencies.
     func configure(preferencesStore: PreferencesStore, openMainWindow: @escaping () -> Void) {
         guard item == nil else { return }
         let item = NSStatusBar.system.statusItem(withLength: 32)
@@ -102,6 +103,7 @@ private final class MenuBarDropView: NSView {
     var receiveFiles: (([URL]) -> Bool)?
     private var highlighted = false
 
+    /// Constructs MenuBarDashboard with the dependencies and initial values supplied by its caller.
     override init(frame: NSRect) {
         super.init(frame: frame)
         registerForDraggedTypes([.fileURL])
@@ -110,7 +112,9 @@ private final class MenuBarDropView: NSView {
         setAccessibilityLabel("Seamless dashboard. Drop files to send to the selected phone.")
         toolTip = "Seamless · drop files to send to your phone"
     }
+    /// Constructs MenuBarDashboard with the dependencies and initial values supplied by its caller.
     required init?(coder: NSCoder) { nil }
+    /// Performs draw for menu bar dashboard.
     override func draw(_ dirtyRect: NSRect) {
         if highlighted {
             NSColor.controlAccentColor.withAlphaComponent(0.25).setFill()
@@ -118,8 +122,11 @@ private final class MenuBarDropView: NSView {
         }
 
     }
+    /// Performs mouse down for menu bar dashboard.
     override func mouseDown(with event: NSEvent) { open?() }
+    /// Performs accessibility perform press for menu bar dashboard.
     override func accessibilityPerformPress() -> Bool { open?(); return true }
+    /// Performs dragging entered for menu bar dashboard.
     override func draggingEntered(_ sender: any NSDraggingInfo) -> NSDragOperation {
         guard sender.draggingPasteboard.canReadObject(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]) else { return [] }
         highlighted = true
@@ -127,7 +134,9 @@ private final class MenuBarDropView: NSView {
         dragEntered?()
         return .copy
     }
+    /// Performs dragging exited for menu bar dashboard.
     override func draggingExited(_ sender: (any NSDraggingInfo)?) { highlighted = false; needsDisplay = true }
+    /// Performs perform drag operation for menu bar dashboard.
     override func performDragOperation(_ sender: any NSDraggingInfo) -> Bool {
         highlighted = false
         needsDisplay = true
@@ -286,17 +295,22 @@ private struct IncomingSharePopup: View {
 
 @MainActor
 private final class MenuBarFileShelf: ObservableObject {
+    /// Performs add for menu bar dashboard.
     @Published private(set) var files: [URL] = []
 
+    /// Handles add callback by translating the native window event into the owning app action.
     func add(_ urls: [URL]) {
         for url in urls where url.isFileURL && !files.contains(url) {
             files.append(url)
         }
     }
 
+    /// Clears the collection owned by this component.
     func clear() { files = [] }
+    /// Performs remove for menu bar dashboard.
     func remove(_ url: URL) { files.removeAll { $0 == url } }
 
+    /// Submits an outgoing operation through this component’s transport or action handler.
     func send(to phoneID: String, using bulk: BulkTransfers) {
         guard bulk.supportedPhones.contains(phoneID) else { return }
         let availableSlots = max(0, 8 - bulk.activities.count)

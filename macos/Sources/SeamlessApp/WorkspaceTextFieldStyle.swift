@@ -1,9 +1,14 @@
+// macOS application presentation and coordination for workspace text field style.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 import SwiftUI
 
 struct WorkspaceTextFieldStyle: TextFieldStyle {
+    /// Performs body for workspace text field style.
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.phoneThemeColor) private var phoneThemeColor
 
+    /// Handles _body callback by translating the native window event into the owning app action.
     func _body(configuration: TextField<Self._Label>) -> some View {
         let palette = InterfacePalette(scheme: colorScheme, colorName: phoneThemeColor)
         configuration

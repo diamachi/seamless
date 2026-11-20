@@ -1,4 +1,6 @@
 #!/bin/sh
+# Builds the native Mac app with the available Apple SDK and project-local caches.
+# Signing identity selection is documented in docs/ARCHITECTURE.md.
 set -eu
 
 PROJECT_DIRECTORY=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)

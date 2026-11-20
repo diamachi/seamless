@@ -1,21 +1,28 @@
+// macOS connection and transfer infrastructure for peer credential store.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 import Foundation
 import Security
 
 struct PeerCredentialStore: Sendable {
     private let service = "dev.seamless.mac.phone-credentials"
 
+    /// Performs credential for peer credential store.
     func credential(for phoneID: String) async throws -> String? {
         try await Task.detached(priority: .userInitiated) { try self.readCredential(for: phoneID) }.value
     }
 
+    /// Persists the supplied state through the owning storage interface.
     func save(_ credential: String, for phoneID: String) async throws {
         try await Task.detached(priority: .userInitiated) { try self.writeCredential(credential, for: phoneID) }.value
     }
 
+    /// Performs remove for peer credential store.
     func remove(for phoneID: String) async throws {
         try await Task.detached(priority: .userInitiated) { try self.deleteCredential(for: phoneID) }.value
     }
 
+    /// Performs read credential for peer credential store.
     private func readCredential(for phoneID: String) throws -> String? {
         var query = baseQuery(phoneID)
         query[kSecReturnData as String] = true
@@ -30,6 +37,7 @@ struct PeerCredentialStore: Sendable {
         return text
     }
 
+    /// Performs write credential for peer credential store.
     private func writeCredential(_ credential: String, for phoneID: String) throws {
         let query = baseQuery(phoneID)
         let data = Data(credential.utf8)
@@ -45,11 +53,13 @@ struct PeerCredentialStore: Sendable {
         }
     }
 
+    /// Performs delete credential for peer credential store.
     private func deleteCredential(for phoneID: String) throws {
         let status = SecItemDelete(baseQuery(phoneID) as CFDictionary)
         guard status == errSecSuccess || status == errSecItemNotFound else { throw CredentialError(status: status) }
     }
 
+    /// Performs base query for peer credential store.
     private func baseQuery(_ phoneID: String) -> [String: Any] {
         [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: service, kSecAttrAccount as String: phoneID]
     }

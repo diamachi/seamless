@@ -1,4 +1,6 @@
 #!/bin/sh
+# Packages the built Mac app into the versioned, unnotarized distribution DMG.
+# The caller remains responsible for installation and quarantine handling.
 set -eu
 
 PROJECT_DIRECTORY=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)

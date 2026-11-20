@@ -1,9 +1,14 @@
+// Tests for MediaProtocolTests and the behavior owned by its target module.
+// Keep assertions focused on externally visible results and failure boundaries.
+
 import Foundation
 import Testing
 @testable import SeamlessCore
 
 struct MediaProtocolTests {
+    /// Checks media records handle split headers and payloads by exercising its expected result and a relevant invalid or boundary input.
     @Test
+    /// Builds media records handle split headers and payloads from deterministic test inputs and returns the protocol response.
     func mediaRecordsHandleSplitHeadersAndPayloads() throws {
         var wire = Data([2, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 42])
         wire.append(contentsOf: [7, 8, 9])
@@ -15,15 +20,17 @@ struct MediaProtocolTests {
         #expect(records[0].presentationTimeMicroseconds == 42)
         #expect(records[0].data == Data([7, 8, 9]))
     }
-
+    /// Checks oversized media is rejected before waiting for payload by exercising its expected result and a relevant invalid or boundary input.
     @Test
+    /// Builds oversized media is rejected before waiting for payload from deterministic test inputs and returns the protocol response.
     func oversizedMediaIsRejectedBeforeWaitingForPayload() throws {
         var decoder = MediaRecordDecoder()
         let header = Data([1, 127, 255, 255, 255, 0, 0, 0, 0, 0, 0, 0, 0])
         #expect(throws: ConnectionProtocolError.self) { _ = try decoder.append(header) }
     }
-
+    /// Checks annex bhandles both start codes without including them in samples by exercising its expected result and a relevant invalid or boundary input.
     @Test
+    /// Builds annex bhandles both start codes without including them in samples from deterministic test inputs and returns the protocol response.
     func annexBHandlesBothStartCodesWithoutIncludingThemInSamples() throws {
         let source = Data([0, 0, 0, 1, 0x67, 5, 0, 0, 1, 0x68, 9])
         #expect(H264ByteStream.nalUnits(in: source) == [Data([0x67, 5]), Data([0x68, 9])])

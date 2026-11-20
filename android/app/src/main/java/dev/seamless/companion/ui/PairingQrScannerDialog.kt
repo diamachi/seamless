@@ -1,3 +1,6 @@
+// Android Compose presentation and user actions for pairing qr scanner dialog.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 package dev.seamless.companion.ui
 
 import android.Manifest
@@ -34,7 +37,9 @@ import dev.seamless.companion.connection.ConnectionRuntime
 import dev.seamless.companion.features.MacQrPairingTask
 import java.util.concurrent.atomic.AtomicBoolean
 
+/** Composes the pairing qr scanner dialog interface from state and supplied callbacks. */
 @Composable
+/** Handles pairing qr scanner dialog callback by translating the native window event into the owning app action. */
 internal fun PairingQrScannerDialog(onClose: () -> Unit) {
     val context = LocalContext.current
     var allowed by remember { mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) }

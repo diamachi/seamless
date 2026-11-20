@@ -1,3 +1,6 @@
+// Optional USB/ADB integration for android tool runner.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 import Foundation
 
 struct AndroidToolFailure: LocalizedError {
@@ -6,6 +9,7 @@ struct AndroidToolFailure: LocalizedError {
 }
 
 struct AndroidToolRunner {
+    /// Performs find for android tool runner.
     static func find(_ name: String) -> URL? {
         let bundled = Bundle.main.bundleURL.appendingPathComponent("Contents/Helpers/\(name)")
         let paths = [bundled.path, "/opt/homebrew/bin/\(name)", "/usr/local/bin/\(name)",
@@ -13,6 +17,7 @@ struct AndroidToolRunner {
         return paths.first(where: { FileManager.default.isExecutableFile(atPath: $0) }).map { URL(fileURLWithPath: $0) }
     }
 
+    /// Runs the supplied work through this component’s execution or process interface.
     static func run(_ executable: URL, arguments: [String], timeout: TimeInterval = 15) async throws -> String {
         let process = Process()
         process.executableURL = executable

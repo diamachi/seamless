@@ -1,9 +1,14 @@
+// Tests for MultiPhoneTests and the behavior owned by its target module.
+// Keep assertions focused on externally visible results and failure boundaries.
+
 import Foundation
 import Testing
 @testable import SeamlessCore
 
 struct MultiPhoneTests {
+    /// Checks switching preserves independent preferences and pairing identity by exercising its expected result and a relevant invalid or boundary input.
     @Test
+    /// Builds switching preserves independent preferences and pairing identity from deterministic test inputs and returns the protocol response.
     func switchingPreservesIndependentPreferencesAndPairingIdentity() throws {
         var preferences = AppPreferences()
         try preferences.rememberPhone(id: "phone-one", displayName: "Test Phone")
@@ -22,8 +27,9 @@ struct MultiPhoneTests {
         #expect(preferences.rememberedPhones.count == 2)
         #expect(try preferences.featurePreferences(for: "phone-one") == firstPhoneSettings)
     }
-
+    /// Checks registry and selection survive serialization by exercising its expected result and a relevant invalid or boundary input.
     @Test
+    /// Builds registry and selection survive serialization from deterministic test inputs and returns the protocol response.
     func registryAndSelectionSurviveSerialization() throws {
         var preferences = AppPreferences()
         try preferences.rememberPhone(id: "a", displayName: "Same name")
@@ -34,8 +40,9 @@ struct MultiPhoneTests {
         #expect(restored == preferences)
         #expect(restored.selectedPhoneID == "b")
     }
-
+    /// Checks legacy settings migrate without creating apaired phone by exercising its expected result and a relevant invalid or boundary input.
     @Test
+    /// Builds legacy settings migrate without creating apaired phone from deterministic test inputs and returns the protocol response.
     func legacySettingsMigrateWithoutCreatingAPairedPhone() throws {
         let data = Data("""
         {"schemaVersion":1,"notifications":{"isPaused":true,"allowedApplications":[]},
@@ -50,8 +57,9 @@ struct MultiPhoneTests {
         #expect(migrated.defaultPhonePreferences.screenFramesPerSecond == 60)
         #expect(migrated.defaultPhonePreferences.notifications.isPaused)
     }
-
+    /// Checks removing selected phone does not redirect actions by exercising its expected result and a relevant invalid or boundary input.
     @Test
+    /// Builds removing selected phone does not redirect actions from deterministic test inputs and returns the protocol response.
     func removingSelectedPhoneDoesNotRedirectActions() throws {
         var preferences = AppPreferences()
         try preferences.rememberPhone(id: "a", displayName: "First")
@@ -63,8 +71,9 @@ struct MultiPhoneTests {
             try preferences.updateFeaturePreferences(PhonePreferences(), for: "a")
         }
     }
-
+    /// Checks disconnecting selected phone never falls back to another connection by exercising its expected result and a relevant invalid or boundary input.
     @Test
+    /// Builds disconnecting selected phone never falls back to another connection from deterministic test inputs and returns the protocol response.
     func disconnectingSelectedPhoneNeverFallsBackToAnotherConnection() throws {
         var sessions = PhoneSessionDirectory()
         sessions.update(.connected, for: "a")

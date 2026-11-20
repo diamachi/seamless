@@ -26,6 +26,7 @@ class ConnectionService : Service() {
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private lateinit var powerLease: ConnectionPowerLease
 
+    /** Initializes Android-owned resources when this component is created. */
     override fun onCreate() {
         super.onCreate()
         powerLease = ConnectionPowerLease(this)
@@ -41,6 +42,7 @@ class ConnectionService : Service() {
         }
     }
 
+    /** Handles foreground-service commands and selects the service restart policy. */
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_STOP) {
             getSharedPreferences("connection_settings", MODE_PRIVATE).edit().putBoolean("reconnect_on_launch", false).apply()
@@ -85,6 +87,7 @@ class ConnectionService : Service() {
         return START_STICKY
     }
 
+    /** Implements the Android binding contract for this service. */
     override fun onBind(intent: Intent?): IBinder? = null
 
     /// Retains service-owned sessions when the recent-app task is dismissed; manufacturer process killing remains outside this callback’s control.
@@ -95,6 +98,7 @@ class ConnectionService : Service() {
         super.onTaskRemoved(rootIntent)
     }
 
+    /** Releases this component’s resources when Android destroys it; ownership checks protect replacement sessions. */
     override fun onDestroy() {
         dev.seamless.companion.features.DebugEvents.record("Android connection service destroyed")
         isDestroyed = true
@@ -114,7 +118,9 @@ class ConnectionService : Service() {
         super.onDestroy()
     }
 
+    /** Updates the persistent connection notification with current peer names and a stop action. */
     @Suppress("DEPRECATION")
+    /** Handles show foreground notification callback by translating the native window event into the owning app action. */
     private fun showForegroundNotification() {
         val manager = getSystemService(NotificationManager::class.java)
         if (Build.VERSION.SDK_INT >= 26) {
@@ -140,23 +146,28 @@ class ConnectionService : Service() {
         const val ACTION_RECONNECT = "dev.seamless.companion.RECONNECT"
         const val ACTION_PAIR = "dev.seamless.companion.CREATE_INVITATION"
         const val ACTION_STOP = "dev.seamless.companion.STOP_CONNECTION"
+        /** Posts the phone-side approval alert for a pending screen or camera request. */
         fun notifyCaptureRequest(context: android.content.Context, camera: Boolean = false) {
             notifyRequest(context, if (camera) "Your Mac requested the camera" else "Your Mac requested screen sharing",
                 if (camera) "Tap to review and approve camera sharing." else "Tap to open Android’s screen-sharing consent.", 12, if (camera) "camera" else "screen")
         }
 
+        /** Performs notify file request for connection service. */
         fun notifyFileRequest(context: android.content.Context, name: String) {
             notifyRequest(context, "File from your Mac", "Tap to accept $name", 13, "file")
         }
 
+        /** Performs notify contacts request for connection service. */
         fun notifyContactsRequest(context: android.content.Context, macName: String) {
             notifyRequest(context, "Share phone contacts?", "$macName requested contacts for the call picker", 15, "contacts")
         }
 
+        /** Performs notify pairing request for connection service. */
         fun notifyPairingRequest(context: android.content.Context, macName: String) {
             notifyRequest(context, "Trust this Mac?", "Review the pairing request from $macName", 14, "pairing")
         }
 
+        /** Posts an actionable sharing request using the registered notification channel. */
         private fun notifyRequest(context: android.content.Context, title: String, message: String, identifier: Int, kind: String) {
             val manager = context.getSystemService(NotificationManager::class.java)
             // A new channel keeps previously low-importance service notifications separate.

@@ -1,9 +1,14 @@
+// Tests for ConnectionProtocolTests and the behavior owned by its target module.
+// Keep assertions focused on externally visible results and failure boundaries.
+
 import Foundation
 import Testing
 @testable import SeamlessCore
 
 struct ConnectionProtocolTests {
+    /// Checks invitation requires complete trust material by exercising its expected result and a relevant invalid or boundary input.
     @Test
+    /// Builds invitation requires complete trust material from deterministic test inputs and returns the protocol response.
     func invitationRequiresCompleteTrustMaterial() throws {
         let valid: [String: Any] = [
             "version": 1, "phoneID": UUID().uuidString, "name": "Test phone",
@@ -24,8 +29,9 @@ struct ConnectionProtocolTests {
         #expect(throws: (any Error).self) { try PairingInvitation.parse(code(noEndpoint)) }
         #expect(throws: (any Error).self) { try PairingInvitation.parse(String(repeating: "x", count: 20_000)) }
     }
-
+    /// Checks control values keep booleans distinct from numbers by exercising its expected result and a relevant invalid or boundary input.
     @Test
+    /// Builds control values keep booleans distinct from numbers from deterministic test inputs and returns the protocol response.
     func controlValuesKeepBooleansDistinctFromNumbers() throws {
         let packet = ControlPacket(type: "notificationPolicy", payload: .object([
             "isPaused": .bool(false), "allowedApplications": .array([]), "revision": .number(1)
@@ -35,12 +41,14 @@ struct ConnectionProtocolTests {
         #expect(restored.payload["revision"].number == 1)
         #expect(restored.payload["missing"].string == nil)
     }
+    /// Builds code from deterministic inputs used by the test cases in this file.
 
     private func code(_ fields: [String: Any]) throws -> String {
         "seamless1:" + (try JSONSerialization.data(withJSONObject: fields)).base64EncodedString()
     }
-
+    /// Checks framing handles split and coalesced packets by exercising its expected result and a relevant invalid or boundary input.
     @Test
+    /// Builds framing handles split and coalesced packets from deterministic test inputs and returns the protocol response.
     func framingHandlesSplitAndCoalescedPackets() throws {
         let first = ControlPacket(type: "status")
         let second = ControlPacket(type: "pong")
@@ -53,8 +61,9 @@ struct ConnectionProtocolTests {
         let packets = try decoder.append(Data(wire.dropFirst(7)))
         #expect(packets.map(\.type) == ["status", "pong"])
     }
-
+    /// Checks framing rejects unbounded partial messages and unknown versions by exercising its expected result and a relevant invalid or boundary input.
     @Test
+    /// Builds framing rejects unbounded partial messages and unknown versions from deterministic test inputs and returns the protocol response.
     func framingRejectsUnboundedPartialMessagesAndUnknownVersions() throws {
         var decoder = ControlFrameDecoder()
         for _ in 0..<3 { _ = try decoder.append(Data(repeating: 65, count: 65_536)) }

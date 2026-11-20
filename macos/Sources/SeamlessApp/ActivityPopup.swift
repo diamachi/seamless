@@ -1,3 +1,6 @@
+// macOS application presentation and coordination for activity popup.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 import AppKit
 import SwiftUI
 
@@ -6,6 +9,7 @@ final class AppNotices: ObservableObject {
     @Published private(set) var message: String?
     private var expiration: Task<Void, Never>?
 
+    /// Performs show for activity popup.
     func show(_ message: String) {
         guard !message.isEmpty else { return }
         expiration?.cancel()
@@ -20,6 +24,7 @@ final class AppNotices: ObservableObject {
         }
     }
 
+    /// Performs dismiss for activity popup.
     func dismiss() {
         expiration?.cancel()
         message = nil

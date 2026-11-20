@@ -1,3 +1,6 @@
+// macOS application presentation and coordination for camera setup guide.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 import AppKit
 import SwiftUI
 
@@ -30,6 +33,7 @@ struct CameraSetupGuide: View {
         }
     }
 
+    /// Performs open for camera setup guide.
     private func open(_ address: String) {
         if let url = URL(string: address) { NSWorkspace.shared.open(url) }
     }

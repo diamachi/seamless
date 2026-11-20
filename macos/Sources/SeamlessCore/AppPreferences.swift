@@ -1,3 +1,6 @@
+// Shared protocol/model rules for app preferences.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 import Foundation
 
 public struct CameraPreferences: Codable, Equatable, Sendable {
@@ -17,7 +20,9 @@ public struct CameraPreferences: Codable, Equatable, Sendable {
     public var whiteBalance = "auto"
 
     private enum CodingKeys: String, CodingKey { case facing, resolutionHeight, framesPerSecond, automaticallyAdjustQuality, exposureEV, zoom, torch, whiteBalance }
+    /// Constructs AppPreferences with the dependencies and initial values supplied by its caller.
     public init() {}
+    /// Constructs AppPreferences with the dependencies and initial values supplied by its caller.
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         facing = try container.decodeIfPresent(Facing.self, forKey: .facing) ?? .back
@@ -39,12 +44,14 @@ public struct PhonePreferences: Codable, Equatable, Sendable {
     public var automaticallyAcceptFiles = true
     public var previewColor = "sage"
 
+    /// Constructs AppPreferences with the dependencies and initial values supplied by its caller.
     public init() {}
 
     private enum CodingKeys: String, CodingKey {
         case notifications, camera, screenFramesPerSecond, automaticallyShareMacClipboard, automaticallyAcceptFiles, previewColor
     }
 
+    /// Constructs AppPreferences with the dependencies and initial values supplied by its caller.
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         automaticallyAcceptFiles = try container.decodeIfPresent(Bool.self, forKey: .automaticallyAcceptFiles) ?? true
@@ -57,6 +64,7 @@ public struct PhonePreferences: Codable, Equatable, Sendable {
         automaticallyShareMacClipboard = try container.decodeIfPresent(Bool.self, forKey: .automaticallyShareMacClipboard) ?? false
     }
 
+    /// Checks the model’s supported values before it is persisted or used for an operation.
     public func validate() throws {
         guard screenFramesPerSecond == 60,
               [720, 1080, 1440, 2160].contains(camera.resolutionHeight),
@@ -79,12 +87,14 @@ public struct AppPreferences: Codable, Equatable, Sendable {
     public private(set) var rememberedPhones: [RememberedPhone] = []
     public private(set) var selectedPhoneID: String?
 
+    /// Constructs AppPreferences with the dependencies and initial values supplied by its caller.
     public init() {}
 
     public var selectedPhone: RememberedPhone? {
         rememberedPhones.first { $0.id == selectedPhoneID }
     }
 
+    /// Performs feature preferences for app preferences.
     public func featurePreferences(for phoneID: String?) throws -> PhonePreferences {
         guard let phoneID else { return defaultPhonePreferences }
         guard let phone = rememberedPhones.first(where: { $0.id == phoneID }) else {
@@ -93,6 +103,7 @@ public struct AppPreferences: Codable, Equatable, Sendable {
         return phone.preferences
     }
 
+    /// Performs update feature preferences for app preferences.
     public mutating func updateFeaturePreferences(_ updated: PhonePreferences, for phoneID: String?) throws {
         try updated.validate()
         guard let phoneID else {
@@ -122,6 +133,7 @@ public struct AppPreferences: Codable, Equatable, Sendable {
         }
     }
 
+    /// Performs rename phone for app preferences.
     public mutating func renamePhone(id: String, name: String) throws {
         let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedName.isEmpty, trimmedName.count <= 80,
@@ -129,6 +141,7 @@ public struct AppPreferences: Codable, Equatable, Sendable {
         rememberedPhones[index].displayName = trimmedName
     }
 
+    /// Performs select phone for app preferences.
     public mutating func selectPhone(id: String?) throws {
         if let id, !rememberedPhones.contains(where: { $0.id == id }) {
             throw PreferencesError.unknownPhone
@@ -136,6 +149,7 @@ public struct AppPreferences: Codable, Equatable, Sendable {
         selectedPhoneID = id
     }
 
+    /// Performs update connection for app preferences.
     public mutating func updateConnection(_ profile: ConnectionProfile, for phoneID: String) throws {
         guard let index = rememberedPhones.firstIndex(where: { $0.id == phoneID }) else {
             throw PreferencesError.unknownPhone
@@ -143,6 +157,7 @@ public struct AppPreferences: Codable, Equatable, Sendable {
         rememberedPhones[index].connection = profile
     }
 
+    /// Performs remove phone metadata for app preferences.
     public mutating func removePhoneMetadata(id: String) {
         rememberedPhones.removeAll { $0.id == id }
         if selectedPhoneID == id {
@@ -151,6 +166,7 @@ public struct AppPreferences: Codable, Equatable, Sendable {
         }
     }
 
+    /// Checks the model’s supported values before it is persisted or used for an operation.
     public func validate() throws {
         guard schemaVersion == 2 else { throw PreferencesError.unsupportedVersion }
         try defaultPhonePreferences.validate()
@@ -179,6 +195,7 @@ public struct AppPreferences: Codable, Equatable, Sendable {
         case notifications, camera, screenFramesPerSecond
     }
 
+    /// Constructs AppPreferences with the dependencies and initial values supplied by its caller.
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let version = try container.decode(Int.self, forKey: .schemaVersion)
@@ -200,6 +217,7 @@ public struct AppPreferences: Codable, Equatable, Sendable {
         try validate()
     }
 
+    /// Converts the local model into its wire or persisted representation.
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(schemaVersion, forKey: .schemaVersion)

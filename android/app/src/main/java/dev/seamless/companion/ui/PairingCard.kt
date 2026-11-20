@@ -1,3 +1,6 @@
+// Android Compose presentation and user actions for pairing card.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 package dev.seamless.companion.ui
 
 import android.os.SystemClock
@@ -25,7 +28,9 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import dev.seamless.companion.connection.CompanionConnectionState
 
+/** Composes the pairing card interface from state and supplied callbacks. */
 @Composable
+/** Handles pairing card callback by translating the native window event into the owning app action. */
 internal fun PairingCard(state: CompanionConnectionState, onScanMac: () -> Unit) {
     val context = LocalContext.current
     var useFullCode by remember { mutableStateOf(false) }

@@ -1,3 +1,6 @@
+// Android Compose presentation and user actions for notification sound setup.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 package dev.seamless.companion.ui
 
 import android.app.Notification
@@ -13,7 +16,9 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import dev.seamless.companion.features.AlertChannels
 
+/** Composes the notification sound setup interface from state and supplied callbacks. */
 @Composable
+/** Handles notification sound setup callback by translating the native window event into the owning app action. */
 internal fun NotificationSoundSetup() {
     val context = LocalContext.current
     val manager = context.getSystemService(NotificationManager::class.java)

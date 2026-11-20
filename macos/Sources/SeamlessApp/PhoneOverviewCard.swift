@@ -1,3 +1,6 @@
+// macOS application presentation and coordination for phone overview card.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 import SwiftUI
 import SeamlessCore
 
@@ -60,6 +63,7 @@ struct PhoneOverviewCard: View {
             DeviceDetailsSummary(status: status)
         }
     }
+    /// Performs battery summary for phone overview card.
     private func batterySummary(_ status: ConnectedPhoneStatus) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .firstTextBaseline, spacing: 8) {

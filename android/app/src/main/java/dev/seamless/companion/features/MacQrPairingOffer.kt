@@ -1,3 +1,6 @@
+// Android feature implementation for mac qr pairing offer.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 package dev.seamless.companion.features
 
 import android.util.Base64
@@ -6,6 +9,7 @@ import java.util.UUID
 
 internal data class MacQrPairingOffer(val sessionID: String, val name: String, val addresses: List<String>, val port: Int, val key: ByteArray) {
     companion object {
+        /** Performs parse for mac qr pairing offer. */
         fun parse(text: String): MacQrPairingOffer {
             require(text.startsWith("seamlessmac1:") && text.length <= 16_384) { "This is not a Seamless Mac pairing QR code" }
             val data = Base64.decode(text.removePrefix("seamlessmac1:"), Base64.NO_WRAP)

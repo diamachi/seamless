@@ -1,3 +1,6 @@
+// Android feature implementation for phone input service.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 package dev.seamless.companion.features
 
 import android.accessibilityservice.AccessibilityService
@@ -11,11 +14,16 @@ import android.view.accessibility.AccessibilityNodeInfo
 import org.json.JSONObject
 
 class PhoneInputService : AccessibilityService() {
+    /** Performs on service connected for phone input service. */
     override fun onServiceConnected() { current = this }
+    /** Performs on accessibility event for phone input service. */
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {}
+    /** Performs on interrupt for phone input service. */
     override fun onInterrupt() {}
+    /** Releases this component’s resources when Android destroys it; ownership checks protect replacement sessions. */
     override fun onDestroy() { current = null; super.onDestroy() }
 
+    /** Performs handle for phone input service. */
     private fun handle(payload: JSONObject) {
         when (payload.getString("kind")) {
             "forward" -> rootInActiveWindow?.performAction(AccessibilityNodeInfo.ACTION_SCROLL_FORWARD)
@@ -33,8 +41,10 @@ class PhoneInputService : AccessibilityService() {
         }
     }
 
+    /** Performs dispatch touch for phone input service. */
     private fun dispatchTouch(payload: JSONObject) {
         val metrics = resources.displayMetrics
+        /** Performs coordinate for phone input service. */
         fun coordinate(key: String, dimension: Int): Float {
             val value = payload.getDouble(key)
             require(value.isFinite() && value in 0.0..1.0)
@@ -49,7 +59,9 @@ class PhoneInputService : AccessibilityService() {
     }
 
     companion object {
+        /** Performs submit for phone input service. */
         @Volatile private var current: PhoneInputService? = null
+        /** Handles submit callback by translating the native window event into the owning app action. */
         fun submit(payload: JSONObject): Boolean {
             val service = current ?: return false
             Handler(Looper.getMainLooper()).post {

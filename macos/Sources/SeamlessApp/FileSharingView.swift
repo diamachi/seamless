@@ -1,3 +1,6 @@
+// macOS application presentation and coordination for file sharing view.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -51,6 +54,7 @@ struct FileSharingView: View {
         }
     }
 
+    /// Performs receive drop for file sharing view.
     private func receiveDrop(_ providers: [NSItemProvider]) -> Bool {
         guard isConnected, let targetPhoneID = phoneID, let provider = providers.first else { return false }
         provider.loadDataRepresentation(forTypeIdentifier: UTType.fileURL.identifier) { data, _ in

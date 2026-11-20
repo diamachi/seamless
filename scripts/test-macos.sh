@@ -1,4 +1,5 @@
 #!/bin/sh
+# Runs the Swift package test suites using the project-local Swift build cache.
 set -eu
 
 PROJECT_DIRECTORY=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)

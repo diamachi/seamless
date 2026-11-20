@@ -1,3 +1,6 @@
+// Shared protocol/model rules for media record.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 import Foundation
 
 public struct MediaRecord: Sendable {
@@ -8,8 +11,10 @@ public struct MediaRecord: Sendable {
 
 public struct MediaRecordDecoder: Sendable {
     private var bufferedData = Data()
+    /// Constructs MediaRecord with the dependencies and initial values supplied by its caller.
     public init() {}
 
+    /// Performs append for media record.
     public mutating func append(_ data: Data) throws -> [MediaRecord] {
         guard data.count <= 65_536 else { throw ConnectionProtocolError.oversizedMessage }
         bufferedData.append(data)
@@ -33,6 +38,7 @@ public struct MediaRecordDecoder: Sendable {
 }
 
 public enum H264ByteStream {
+    /// Splits an Annex B H.264 byte stream at valid start-code boundaries.
     public static func nalUnits(in data: Data) -> [Data] {
         let bytes = Array(data)
         var starts: [(offset: Int, length: Int)] = []
@@ -61,6 +67,7 @@ public enum H264ByteStream {
         return units
     }
 
+    /// Converts H.264 NAL units into the length-prefixed representation expected by the decoder.
     public static func lengthPrefixed(_ data: Data) throws -> Data {
         let units = nalUnits(in: data)
         guard !units.isEmpty else { throw ConnectionProtocolError.invalidMessage }

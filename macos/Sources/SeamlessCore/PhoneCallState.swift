@@ -1,3 +1,6 @@
+// Shared protocol/model rules for phone call state.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 import Foundation
 
 public struct PhoneCallState: Equatable, Sendable {
@@ -9,6 +12,7 @@ public struct PhoneCallState: Equatable, Sendable {
     public var hasCall: Bool { isActive || setupMode != 0 || heldMode != 0 }
     public var canAnswer: Bool { isConnected && setupMode == 1 && !isActive }
 
+    /// Constructs PhoneCallState with the dependencies and initial values supplied by its caller.
     public init() {}
 
     public var title: String {
@@ -21,8 +25,10 @@ public struct PhoneCallState: Equatable, Sendable {
         return "Ready for calls"
     }
 
+    /// Disconnects the selected session and cancels operations scoped to it.
     public mutating func disconnect() { self = PhoneCallState() }
 
+    /// Performs dial number for phone call state.
     public static func dialNumber(_ text: String) -> String? {
         let separators = CharacterSet(charactersIn: " ()-")
         let cleaned = text.components(separatedBy: separators).joined()
@@ -33,6 +39,7 @@ public struct PhoneCallState: Equatable, Sendable {
         return cleaned
     }
 
+    /// Performs normalized bluetooth address for phone call state.
     public static func normalizedBluetoothAddress(_ address: String) -> String? {
         let compact = address.replacingOccurrences(of: ":", with: "").replacingOccurrences(of: "-", with: "").uppercased()
         guard compact.count == 12, compact.utf8.allSatisfy({ (48...57).contains($0) || (65...70).contains($0) }) else { return nil }

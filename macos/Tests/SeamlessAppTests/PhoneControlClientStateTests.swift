@@ -1,9 +1,13 @@
+// Tests for PhoneControlClientStateTests and the behavior owned by its target module.
+// Keep assertions focused on externally visible results and failure boundaries.
+
 import Testing
 import SeamlessCore
 @testable import SeamlessApp
 
 @MainActor
 struct PhoneControlClientStateTests {
+    /// Exercises connection setup failure emits one actual failure through the expected result and relevant rejection assertions.
     @Test func connectionSetupFailureEmitsOneActualFailure() {
         let client = PhoneControlClient()
         var events: [(PhoneConnectionState, String?)] = []

@@ -1,3 +1,6 @@
+// macOS application presentation and coordination for interface components.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 import SwiftUI
 
 struct WorkspaceHeading: View {
@@ -18,6 +21,7 @@ struct WorkspaceCard<Content: View>: View {
     private let content: Content
     private let fillsHeight: Bool
 
+    /// Constructs InterfaceComponents with the dependencies and initial values supplied by its caller.
     init(fillsHeight: Bool = false, @ViewBuilder content: () -> Content) {
         self.fillsHeight = fillsHeight
         self.content = content()
@@ -61,10 +65,12 @@ struct ConnectionBadge: View {
 struct WorkspaceButtonStyle: ButtonStyle {
     var prominent = false
     var compact = false
+    /// Builds the styled control using enabled and pressed state supplied by SwiftUI.
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.phoneThemeColor) private var phoneThemeColor
     @Environment(\.isEnabled) private var isEnabled
 
+    /// Handles make body callback by translating the native window event into the owning app action.
     func makeBody(configuration: Configuration) -> some View {
         let palette = InterfacePalette(scheme: colorScheme, colorName: phoneThemeColor)
         configuration.label

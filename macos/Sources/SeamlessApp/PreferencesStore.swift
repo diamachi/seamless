@@ -19,6 +19,7 @@ final class PreferencesStore: ObservableObject {
     private var hasStartedConnections = false
     private let repository: PreferencesRepository
 
+    /// Constructs PreferencesStore with the dependencies and initial values supplied by its caller.
     init() {
         let supportDirectory = URL.applicationSupportDirectory
             .appending(path: "Seamless", directoryHint: .isDirectory)
@@ -56,6 +57,7 @@ final class PreferencesStore: ObservableObject {
         }
     }
 
+    /// Persists the supplied state through the owning storage interface.
     func save(synchronizeConnections: Bool = true) {
         guard canSave else { return }
         do {
@@ -67,6 +69,7 @@ final class PreferencesStore: ObservableObject {
         }
     }
 
+    /// Performs start connections for preferences store.
     func startConnections() {
         guard !hasStartedConnections else { return }
         hasStartedConnections = true
@@ -89,6 +92,7 @@ final class PreferencesStore: ObservableObject {
         }
     }
 
+    /// Performs set notification application for preferences store.
     func setNotificationApplication(_ application: AndroidApplicationIdentity, enabled: Bool) {
         do {
             let phoneID = preferences.selectedPhoneID
@@ -100,6 +104,7 @@ final class PreferencesStore: ObservableObject {
         } catch { errorMessage = error.localizedDescription }
     }
 
+    /// Performs set appearance for preferences store.
     func setAppearance(_ appearance: AppAppearance) {
         guard canSave else { return }
         var transaction = Transaction()
@@ -109,11 +114,13 @@ final class PreferencesStore: ObservableObject {
         save(synchronizeConnections: false)
     }
 
+    /// Performs rename phone for preferences store.
     func renamePhone(id: String, name: String) {
         do { try preferences.renamePhone(id: id, name: name); save() }
         catch { errorMessage = error.localizedDescription }
     }
 
+    /// Performs apply appearance for preferences store.
     func applyAppearance() {
         let appearance: NSAppearance?
         switch preferences.appearance {
@@ -126,6 +133,7 @@ final class PreferencesStore: ObservableObject {
         // AppKit propagates one appearance to all windows; avoid competing window and SwiftUI overrides.
     }
 
+    /// Performs select phone for preferences store.
     func selectPhone(id: String?) {
         guard canSave else { return }
         do {

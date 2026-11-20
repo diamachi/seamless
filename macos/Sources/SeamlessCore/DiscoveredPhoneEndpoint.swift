@@ -1,3 +1,6 @@
+// Shared protocol/model rules for discovered phone endpoint.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 import Foundation
 
 public struct DiscoveredPhoneEndpoint: Equatable, Sendable {
@@ -5,6 +8,7 @@ public struct DiscoveredPhoneEndpoint: Equatable, Sendable {
     public let host: String
     public let port: UInt16
 
+    /// Constructs DiscoveredPhoneEndpoint with the dependencies and initial values supplied by its caller.
     public init?(serviceName: String, host: String, port: Int) {
         guard let identifier = Self.phoneIdentifier(serviceName: serviceName),
               !host.isEmpty, host.count <= 253,
@@ -15,6 +19,7 @@ public struct DiscoveredPhoneEndpoint: Equatable, Sendable {
         self.port = UInt16(port)
     }
 
+    /// Performs phone identifier for discovered phone endpoint.
     public static func phoneIdentifier(serviceName: String) -> String? {
         let prefix = "Seamless-"
         guard serviceName.hasPrefix(prefix) else { return nil }
@@ -28,6 +33,7 @@ public struct DiscoveredPhoneEndpoint: Equatable, Sendable {
         return identifier.uuidString.lowercased()
     }
 
+    /// Performs connection profile for discovered phone endpoint.
     public func connectionProfile(for phone: RememberedPhone) -> ConnectionProfile? {
         guard phone.id.lowercased() == phoneID, let pairedProfile = phone.connection else { return nil }
         // Network advertisements can update routing, never pairing trust.

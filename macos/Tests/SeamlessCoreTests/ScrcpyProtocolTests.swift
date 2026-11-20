@@ -1,8 +1,12 @@
+// Tests for ScrcpyProtocolTests and the behavior owned by its target module.
+// Keep assertions focused on externally visible results and failure boundaries.
+
 import Foundation
 import Testing
 @testable import SeamlessCore
 
 struct ScrcpyProtocolTests {
+    /// Exercises fragmented version five stream preserves session and frame flags through the expected result and relevant rejection assertions.
     @Test func fragmentedVersionFiveStreamPreservesSessionAndFrameFlags() throws {
         var bytes = Data(repeating: 0, count: 64)
         bytes.append(contentsOf: [0x68, 0x32, 0x36, 0x34])
@@ -27,6 +31,7 @@ struct ScrcpyProtocolTests {
         #expect(configuration["csd-0"].string == Data([0, 0, 1, 0x67]).base64EncodedString())
     }
 
+    /// Exercises oversized frame is rejected before allocating payload through the expected result and relevant rejection assertions.
     @Test func oversizedFrameIsRejectedBeforeAllocatingPayload() throws {
         var bytes = Data(repeating: 0, count: 64)
         bytes.append(contentsOf: [0x68, 0x32, 0x36, 0x34])
@@ -35,6 +40,7 @@ struct ScrcpyProtocolTests {
         #expect(throws: ConnectionProtocolError.self) { try decoder.append(bytes) }
     }
 
+    /// Exercises touch packets use the video coordinate space and stay bounded through the expected result and relevant rejection assertions.
     @Test func touchPacketsUseTheVideoCoordinateSpaceAndStayBounded() throws {
         let touch = try ScrcpyControlMessage.touch(action: 0, x: 2, y: -1, width: 1080, height: 1920)
         #expect(touch.count == 32)

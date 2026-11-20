@@ -1,3 +1,6 @@
+// Android Compose presentation and user actions for benchmark animation.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 package dev.seamless.companion.ui
 
 import androidx.compose.animation.core.LinearEasing
@@ -16,7 +19,9 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
+/** Composes the benchmark animation interface from state and supplied callbacks. */
 @Composable
+/** Handles benchmark animation callback by translating the native window event into the owning app action. */
 fun BenchmarkAnimation() {
     val transition = rememberInfiniteTransition(label = "Controlled capture workload")
     val progress by transition.animateFloat(

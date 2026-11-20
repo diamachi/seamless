@@ -1,3 +1,6 @@
+// Tests for BulkTransferTests and the behavior owned by its target module.
+// Keep assertions focused on externally visible results and failure boundaries.
+
 import CryptoKit
 import Foundation
 import Testing
@@ -5,7 +8,9 @@ import SeamlessCore
 @testable import SeamlessApp
 
 struct BulkTransferTests {
+    /// Checks rejects path traversal and allows large offer metadata by exercising its expected result and a relevant invalid or boundary input.
     @Test
+    /// Builds rejects path traversal and allows large offer metadata from deterministic test inputs and returns the protocol response.
     func rejectsPathTraversalAndAllowsLargeOfferMetadata() async {
         #expect(!BulkTransfers.validName("../private"))
         #expect(!BulkTransfers.validName(".."))
@@ -25,8 +30,9 @@ struct BulkTransferTests {
             #expect(transfers.offers.isEmpty)
         }
     }
-
+    /// Checks binary tlsstreams exceed old limit and reject corruption by exercising its expected result and a relevant invalid or boundary input.
     @Test(.enabled(if: ProcessInfo.processInfo.environment["SEAMLESS_BULK_LOOPBACK"] == "1"))
+    /// Builds binary tlsstreams exceed old limit and reject corruption from deterministic test inputs and returns the protocol response.
     func binaryTLSStreamsExceedOldLimitAndRejectCorruption() async throws {
         let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)

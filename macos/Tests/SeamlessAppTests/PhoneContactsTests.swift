@@ -1,9 +1,13 @@
+// Tests for PhoneContactsTests and the behavior owned by its target module.
+// Keep assertions focused on externally visible results and failure boundaries.
+
 import Testing
 import SeamlessCore
 @testable import SeamlessApp
 
 @MainActor
 struct PhoneContactsTests {
+    /// Exercises contacts stay scoped to the request and phone through the expected result and relevant rejection assertions.
     @Test func contactsStayScopedToTheRequestAndPhone() throws {
         let store = PhoneContactsStore()
         var request: ControlPacket?

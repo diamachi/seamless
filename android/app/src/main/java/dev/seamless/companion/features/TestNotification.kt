@@ -1,3 +1,6 @@
+// Android feature implementation for test notification.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 package dev.seamless.companion.features
 
 import android.app.Notification
@@ -7,7 +10,9 @@ import android.content.Context
 import android.os.Build
 
 object TestNotification {
+    /** Performs post for test notification. */
     @Suppress("DEPRECATION")
+    /** Handles post callback by translating the native window event into the owning app action. */
     fun post(context: Context) {
         val manager = context.getSystemService(NotificationManager::class.java)
         val channelID = "sharing_test"

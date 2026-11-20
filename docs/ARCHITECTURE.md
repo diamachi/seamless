@@ -10,6 +10,12 @@ macOS package minimum is 14; Swift tools version is 6. Android minSdk is 24 and 
 
 ## Entry points and ownership
 
+### Reading and changing the code
+
+The implementation is split by platform and responsibility: macOS UI and coordinators live in `macos/Sources/SeamlessApp`, cross-platform data/protocol rules live in `macos/Sources/SeamlessCore`, and Android UI, connection, feature, camera and screen code live under `android/app/src/main/java/dev/seamless/companion`. The `macos/Tests` and Android `src/test` trees exercise the platform-independent rules and state transitions. Build and packaging entry points live in `scripts/`; Gradle configuration and the Swift package manifest declare platform dependencies and build targets.
+
+Source files have a short ownership note at the top. Publicly meaningful operations and nontrivial callbacks have adjacent documentation describing their responsibility and the implementation path. UI callbacks and protocol handlers should stay thin and delegate to the owning coordinator/service. Update this guide when ownership, cross-platform calls, permissions, protocol behavior or build steps change; keep validation claims in `VALIDATION.md` tied to actual build/device evidence.
+
 ### Mac
 
 - `SeamlessApp.swift` creates app-lifetime stores, windows, notification delivery and the menu-bar dashboard.

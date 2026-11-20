@@ -1,3 +1,6 @@
+// Android feature implementation for companion permissions.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 package dev.seamless.companion.features
 
 import android.Manifest
@@ -22,11 +25,13 @@ data class CompanionPermissions(
     val battery: Boolean,
     val contacts: Boolean = false
 ) {
+    /** Performs to json for companion permissions. */
     fun toJson(): JSONObject = JSONObject().put("camera", camera).put("notifications", notifications)
         .put("notificationSharing", notificationSharing).put("phoneControl", phoneControl)
         .put("storage", storage).put("battery", battery).put("contacts", contacts)
 
     companion object {
+        /** Reads the requested representation from the owned input interface. */
         fun read(context: Context): CompanionPermissions {
             val listeners = Settings.Secure.getString(context.contentResolver, "enabled_notification_listeners").orEmpty()
                 .split(":").mapNotNull { ComponentName.unflattenFromString(it) }

@@ -1,3 +1,6 @@
+// Android Compose presentation and user actions for recommended access flow.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 package dev.seamless.companion.ui
 
 import androidx.compose.ui.unit.dp
@@ -31,7 +34,9 @@ private val accessSteps = listOf(
     AccessStep("Background connection", "Review battery restrictions for Seamless so Android can keep the connection available. This step is optional.")
 )
 
+/** Composes the recommended access flow interface from state and supplied callbacks. */
 @Composable
+/** Handles recommended access flow callback by translating the native window event into the owning app action. */
 internal fun RecommendedAccessFlow(onChanged: () -> Unit) {
     val context = LocalContext.current
     var stage by rememberSaveable { mutableIntStateOf(-1) }
@@ -72,10 +77,12 @@ internal fun RecommendedAccessFlow(onChanged: () -> Unit) {
     }
 }
 
+/** Finds the next setup permission that has not yet been granted. */
 private fun nextMissingStep(context: Context, start: Int): Int {
     return SetupAccessPolicy.nextMissingStep(CompanionPermissions.read(context), start)
 }
 
+/** Maps a setup permission step to Android’s corresponding system-settings destination. */
 private fun accessIntent(context: Context, step: Int): Intent? = when (step) {
     0 -> Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
     1 -> Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)

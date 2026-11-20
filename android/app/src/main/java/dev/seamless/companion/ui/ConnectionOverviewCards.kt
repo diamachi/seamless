@@ -1,3 +1,6 @@
+// Android Compose presentation and user actions for connection overview cards.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 package dev.seamless.companion.ui
 
 import android.content.Context
@@ -20,7 +23,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import dev.seamless.companion.connection.CompanionConnectionState
 
+/** Composes the connection overview cards interface from state and supplied callbacks. */
 @Composable
+/** Handles connection overview cards callback by translating the native window event into the owning app action. */
 internal fun ConnectionOverviewCards(state: CompanionConnectionState, onSetup: () -> Unit) {
     val context = LocalContext.current
     var showDetails by rememberSaveable { mutableStateOf(false) }

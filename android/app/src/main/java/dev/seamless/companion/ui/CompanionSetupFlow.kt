@@ -1,3 +1,6 @@
+// Android Compose presentation and user actions for companion setup flow.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 package dev.seamless.companion.ui
 
 import androidx.compose.foundation.layout.Arrangement
@@ -23,7 +26,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import dev.seamless.companion.connection.CompanionConnectionState
 
+/** Composes the companion setup flow interface from state and supplied callbacks. */
 @Composable
+/** Handles companion setup flow callback by translating the native window event into the owning app action. */
 fun CompanionSetupFlow(state: CompanionConnectionState, onScanMac: () -> Unit, onFinish: (Boolean) -> Unit) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val saved = context.getSharedPreferences("onboarding", android.content.Context.MODE_PRIVATE)

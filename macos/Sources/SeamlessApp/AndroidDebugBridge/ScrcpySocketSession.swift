@@ -1,3 +1,6 @@
+// Optional USB/ADB integration for scrcpy socket session.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 import Foundation
 import Network
 import SeamlessCore
@@ -21,6 +24,7 @@ final class ScrcpySocketSession {
     private var pointerIsDown = false
     private var gestureTask: Task<Void, Never>?
 
+    /// Establishes the configured connection and registers its asynchronous result handlers.
     func connect(port: UInt16, packageName: String) {
         close()
         self.port = port
@@ -35,6 +39,7 @@ final class ScrcpySocketSession {
         connectVideo(expected)
     }
 
+    /// Closes owned resources so sockets, buffers and pending work do not outlive their session.
     func close() {
         generation = UUID()
         startupTimeout?.cancel()
@@ -51,6 +56,7 @@ final class ScrcpySocketSession {
         pointerIsDown = false
     }
 
+    /// Performs input for scrcpy socket session.
     func input(kind: String, coordinates: [String: Double], text: String) {
         guard controlIsReady else { return }
         switch kind {
@@ -67,12 +73,14 @@ final class ScrcpySocketSession {
         }
     }
 
+    /// Performs make socket for scrcpy socket session.
     private func makeSocket() -> NWConnection {
         let tcp = NWProtocolTCP.Options()
         tcp.noDelay = true
         return NWConnection(host: "127.0.0.1", port: NWEndpoint.Port(rawValue: port)!, using: NWParameters(tls: nil, tcp: tcp))
     }
 
+    /// Performs connect video for scrcpy socket session.
     private func connectVideo(_ expected: UUID) {
         let socket = makeSocket()
         video = socket
@@ -89,6 +97,7 @@ final class ScrcpySocketSession {
         socket.start(queue: .global(qos: .userInteractive))
     }
 
+    /// Performs receive video for scrcpy socket session.
     private func receiveVideo(_ socket: NWConnection, _ expected: UUID) {
         socket.receive(minimumIncompleteLength: 1, maximumLength: 65_536) { [weak self] data, _, complete, error in
             Task { @MainActor [weak self] in
@@ -119,6 +128,7 @@ final class ScrcpySocketSession {
         }
     }
 
+    /// Performs retry or fail for scrcpy socket session.
     private func retryOrFail(_ socket: NWConnection, _ expected: UUID, _ description: String) {
         guard !hasDummyByte, Date() < deadline else { fail(description); return }
         socket.cancel()
@@ -130,6 +140,7 @@ final class ScrcpySocketSession {
         }
     }
 
+    /// Performs connect control for scrcpy socket session.
     private func connectControl(_ expected: UUID) {
         let socket = makeSocket()
         control = socket
@@ -149,6 +160,7 @@ final class ScrcpySocketSession {
         socket.start(queue: .global(qos: .userInteractive))
     }
 
+    /// Waits for the isolated display to be available before launching the requested Android package.
     private func launchApplicationWhenReady() {
         guard controlIsReady, dimensions != nil, !hasStartedApplication else { return }
         do {
@@ -159,6 +171,7 @@ final class ScrcpySocketSession {
         } catch { fail(error.localizedDescription) }
     }
 
+    /// Performs drain control for scrcpy socket session.
     private func drainControl(_ socket: NWConnection, _ expected: UUID) {
         // Clipboard autosync is disabled; drain bounded server events without retaining content.
         socket.receive(minimumIncompleteLength: 1, maximumLength: 8192) { [weak self] _, _, complete, error in
@@ -171,6 +184,7 @@ final class ScrcpySocketSession {
         }
     }
 
+    /// Submits an outgoing operation through this component’s transport or action handler.
     private func send(_ data: Data) {
         let expected = generation
         control?.send(content: data, completion: .contentProcessed { [weak self] error in
@@ -182,11 +196,13 @@ final class ScrcpySocketSession {
         })
     }
 
+    /// Performs send key for scrcpy socket session.
     private func sendKey(_ code: UInt32) {
         send(ScrcpyControlMessage.key(code: code, isDown: true))
         send(ScrcpyControlMessage.key(code: code, isDown: false))
     }
 
+    /// Forwards a normalized touch event while tracking the last dispatch time.
     private func sendPointer(action: UInt8, coordinates: [String: Double]) {
         guard let dimensions, gestureTask == nil else { return }
         if action != 0 && !pointerIsDown { return }
@@ -201,6 +217,7 @@ final class ScrcpySocketSession {
         }
     }
 
+    /// Performs start gesture for scrcpy socket session.
     private func startGesture(kind: String, coordinates: [String: Double]) {
         guard gestureTask == nil, !pointerIsDown, let dimensions else { return }
         let x = coordinates["x"] ?? 0.5
@@ -226,6 +243,7 @@ final class ScrcpySocketSession {
         }
     }
 
+    /// Publishes an operation failure and releases the resources owned by that operation.
     private func fail(_ message: String) {
         close()
         onFailure?(message)

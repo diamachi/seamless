@@ -1,3 +1,6 @@
+// macOS connection and transfer infrastructure for bulk socket.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 import CryptoKit
 import Foundation
 import Network
@@ -8,12 +11,15 @@ actor BulkSocket {
     private let connection: NWConnection
     private var buffered = Data()
 
+    /// Constructs BulkSocket with the dependencies and initial values supplied by its caller.
     init(profile: ConnectionProfile) throws {
         connection = try PinnedTLSConnection.make(profile: profile)
     }
 
+    /// Closes owned resources so sockets, buffers and pending work do not outlive their session.
     func close() { connection.cancel() }
 
+    /// Performs open for bulk socket.
     func open(authentication: ControlPacket) async throws {
         let socket = connection
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
@@ -40,6 +46,7 @@ actor BulkSocket {
         guard response.type == "bulkReady" else { throw ConnectionProtocolError.invalidMessage }
     }
 
+    /// Performs upload for bulk socket.
     func upload(url: URL, size: Int64, progress: @Sendable (Int64) async -> Void) async throws {
         let input = try FileHandle(forReadingFrom: url)
         defer { try? input.close() }
@@ -59,6 +66,7 @@ actor BulkSocket {
         guard try await readPacket().type == "bulkComplete" else { throw ConnectionProtocolError.invalidMessage }
     }
 
+    /// Requests the selected remote file through the authenticated browser channel.
     func download(to destination: URL, size: Int64, hash: String,
                   progress: @Sendable (Int64) async -> Void) async throws {
         FileManager.default.createFile(atPath: destination.path, contents: nil)
@@ -84,6 +92,7 @@ actor BulkSocket {
         guard actualHash == hash else { throw ConnectionProtocolError.invalidMessage }
     }
 
+    /// Writes the supplied representation through the owned output interface.
     private func write(_ bytes: Data) async throws {
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             connection.send(content: bytes, completion: .contentProcessed { error in
@@ -93,6 +102,7 @@ actor BulkSocket {
         }
     }
 
+    /// Reads the requested representation from the owned input interface.
     private func read(maximum: Int) async throws -> Data {
         if !buffered.isEmpty {
             let bytes = Data(buffered.prefix(maximum))
@@ -107,6 +117,7 @@ actor BulkSocket {
         }
     }
 
+    /// Reads one framed control message and enforces the framing size limits.
     private func readPacket() async throws -> ControlPacket {
         var header = Data()
         while true {

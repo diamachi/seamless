@@ -1,3 +1,6 @@
+// macOS application presentation and coordination for quit application button.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 import AppKit
 import SwiftUI
 

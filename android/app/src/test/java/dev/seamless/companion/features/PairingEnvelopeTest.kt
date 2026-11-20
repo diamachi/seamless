@@ -1,3 +1,6 @@
+// Tests for PairingEnvelopeTest and the behavior owned by its target module.
+// Keep assertions focused on externally visible results and failure boundaries.
+
 package dev.seamless.companion.features
 
 import org.junit.Assert.assertArrayEquals
@@ -10,6 +13,7 @@ class PairingEnvelopeTest {
     private val key = ByteArray(32) { it.toByte() }
     private val session = "11111111-2222-3333-4444-555555555555"
 
+    /** Checks decrypts swift envelope and rejects wrong purpose by exercising the valid case and the relevant rejection boundary. */
     @Test fun decryptsSwiftEnvelopeAndRejectsWrongPurpose() {
         val combined = Base64.getDecoder().decode("AAECAwQFBgcICQoLNGe3dqmAsWi8e+Ty350QCPe/5BmEHiwIFQ6L83QdYcZof8AqElQqVsbSqRwad9IFwcqg")
         assertEquals("seamless1:synthetic-test-invitation", String(PairingEnvelope.open(combined, key, session, "request"), Charsets.UTF_8))
@@ -19,6 +23,7 @@ class PairingEnvelopeTest {
         } catch (_: javax.crypto.AEADBadTagException) { }
     }
 
+    /** Checks tampering cannot change accepted invitation by exercising the valid case and the relevant rejection boundary. */
     @Test fun tamperingCannotChangeAcceptedInvitation() {
         val content = "private-test-invitation".toByteArray()
         val sealed = PairingEnvelope.seal(content, key, session, "request")

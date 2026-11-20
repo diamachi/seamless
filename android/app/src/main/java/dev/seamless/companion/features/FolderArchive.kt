@@ -1,3 +1,6 @@
+// Android feature implementation for folder archive.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 package dev.seamless.companion.features
 
 import android.content.Context
@@ -10,6 +13,7 @@ import java.util.zip.ZipOutputStream
 
 /** Archives only the tree explicitly selected through Android's document picker. */
 internal object FolderArchive {
+    /** Performs create for folder archive. */
     fun create(context: Context, tree: Uri): File {
         val archive = File(context.cacheDir, "Shared-folder-${UUID.randomUUID()}.zip")
         val root = DocumentsContract.getTreeDocumentId(tree)
@@ -24,6 +28,7 @@ internal object FolderArchive {
         }
     }
 
+    /** Performs append children for folder archive. */
     private fun appendChildren(context: Context, tree: Uri, parent: String, prefix: String,
                                output: ZipOutputStream, visited: MutableSet<String>) {
         check(prefix.count { it == '/' } < 128) { "Folder nesting is too deep" }

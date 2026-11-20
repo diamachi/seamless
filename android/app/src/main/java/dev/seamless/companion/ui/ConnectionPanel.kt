@@ -1,3 +1,6 @@
+// Android Compose presentation and user actions for connection panel.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 package dev.seamless.companion.ui
 
 import android.content.Intent
@@ -24,7 +27,9 @@ import androidx.compose.ui.unit.dp
 import dev.seamless.companion.connection.CompanionConnectionState
 import dev.seamless.companion.connection.ConnectionRuntime
 
+/** Composes the connection panel interface from state and supplied callbacks. */
 @Composable
+/** Handles connection panel callback by translating the native window event into the owning app action. */
 fun ConnectionPanel(state: CompanionConnectionState, onStartScreen: () -> Unit, onStartCamera: () -> Unit, onSetup: () -> Unit, onSettings: () -> Unit, onScanMac: () -> Unit) {
     val context = LocalContext.current
     val chooseFile = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
@@ -83,7 +88,9 @@ fun ConnectionPanel(state: CompanionConnectionState, onStartScreen: () -> Unit, 
     }
 }
 
+/** Composes the sharing requests interface from state and supplied callbacks. */
 @Composable
+/** Handles sharing requests callback by translating the native window event into the owning app action. */
 private fun SharingRequests(state: CompanionConnectionState, onStartScreen: () -> Unit, onStartCamera: () -> Unit) {
     if (state.screenRequestedBy != null) {
         CompanionCard("Screen sharing request") {
@@ -99,7 +106,9 @@ private fun SharingRequests(state: CompanionConnectionState, onStartScreen: () -
     }
 }
 
+/** Composes the file sharing card interface from state and supplied callbacks. */
 @Composable
+/** Handles file sharing card callback by translating the native window event into the owning app action. */
 private fun FileSharingCard(state: CompanionConnectionState, chooseFile: () -> Unit, saveFile: (String) -> Unit) {
     CompanionCard("Files") {
         Text("Send a file to your Mac, or accept one here. No fixed file-size cap; available storage applies.", color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -126,7 +135,9 @@ private fun FileSharingCard(state: CompanionConnectionState, chooseFile: () -> U
     }
 }
 
+/** Composes the clipboard card interface from state and supplied callbacks. */
 @Composable
+/** Handles clipboard card callback by translating the native window event into the owning app action. */
 private fun ClipboardCard(state: CompanionConnectionState) {
     val context = LocalContext.current
     CompanionCard("Clipboard") {
@@ -147,7 +158,9 @@ private fun ClipboardCard(state: CompanionConnectionState) {
     }
 }
 
+/** Composes the pairing approval interface from state and supplied callbacks. */
 @Composable
+/** Handles pairing approval callback by translating the native window event into the owning app action. */
 internal fun PairingApproval(state: CompanionConnectionState) {
     val request = state.pairingRequest ?: return
     AlertDialog(

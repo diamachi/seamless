@@ -1,3 +1,6 @@
+// macOS connection and transfer infrastructure for phone control client.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 import Foundation
 import Network
 import Security
@@ -14,6 +17,7 @@ final class PhoneControlClient {
     private var heartbeat: Timer?
     private var connectionDeadline: Task<Void, Never>?
 
+    /// Establishes the configured connection and registers its asynchronous result handlers.
     func connect(profile: ConnectionProfile, authentication: ControlPacket) {
         resetConnection()
         let currentGeneration = UUID()
@@ -52,6 +56,7 @@ final class PhoneControlClient {
         }
     }
 
+    /// Performs authenticated for phone control client.
     func authenticated() {
         connectionDeadline?.cancel()
         connectionDeadline = nil
@@ -65,6 +70,7 @@ final class PhoneControlClient {
         RunLoop.main.add(timer, forMode: .common)
     }
 
+    /// Submits an outgoing operation through this component’s transport or action handler.
     func send(_ packet: ControlPacket) {
         do {
             let data = try encoded(packet)
@@ -83,11 +89,13 @@ final class PhoneControlClient {
         }
     }
 
+    /// Disconnects the selected session and cancels operations scoped to it.
     func disconnect() {
         resetConnection()
         onState?(.disconnected, nil)
     }
 
+    /// Performs reset connection for phone control client.
     private func resetConnection() {
         connectionDeadline?.cancel()
         connectionDeadline = nil
@@ -99,6 +107,7 @@ final class PhoneControlClient {
         decoder = ControlFrameDecoder()
     }
 
+    /// Performs send and wait for phone control client.
     func sendAndWait(_ packet: ControlPacket) async throws {
         let data = try encoded(packet)
         guard let connection else { throw ConnectionProtocolError.invalidMessage }
@@ -110,6 +119,7 @@ final class PhoneControlClient {
         }
     }
 
+    /// Performs encoded for phone control client.
     private func encoded(_ packet: ControlPacket) throws -> Data {
         var data = try JSONEncoder().encode(packet)
         guard data.count < 262_144 else { throw ConnectionProtocolError.oversizedMessage }
@@ -117,6 +127,7 @@ final class PhoneControlClient {
         return data
     }
 
+    /// Routes incoming data to the matching operation or session state.
     private func receive(generation currentGeneration: UUID) {
         connection?.receive(minimumIncompleteLength: 1, maximumLength: 65_536) { [weak self] data, _, complete, error in
             Task { @MainActor in
@@ -131,10 +142,12 @@ final class PhoneControlClient {
         }
     }
 
+    /// Performs consume for phone control client.
     private func consume(_ data: Data) throws {
         for packet in try decoder.append(data) { onPacket?(packet) }
     }
 
+    /// Publishes an operation failure and releases the resources owned by that operation.
     private func fail(_ message: String) {
         resetConnection()
         onState?(.disconnected, message)

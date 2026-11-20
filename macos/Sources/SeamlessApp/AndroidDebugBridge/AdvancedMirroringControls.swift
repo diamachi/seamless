@@ -1,3 +1,6 @@
+// Optional USB/ADB integration for advanced mirroring controls.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 import SwiftUI
 import SeamlessCore
 

@@ -1,3 +1,6 @@
+// Android screen-capture pipeline for benchmark statistics.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 package dev.seamless.companion.screen
 
 data class BenchmarkSnapshot(
@@ -23,6 +26,7 @@ class BenchmarkStatistics(private val startedAtNanoseconds: Long) {
     private var previousFrameAt: Long? = null
     private var longestOutputGapNanoseconds = 0L
 
+    /** Performs record frame for benchmark statistics. */
     fun recordFrame(sizeBytes: Int, nowNanoseconds: Long) {
         val previous = previousFrameAt
         if (previous != null) {
@@ -34,6 +38,7 @@ class BenchmarkStatistics(private val startedAtNanoseconds: Long) {
         intervalBytes += sizeBytes
     }
 
+    /** Performs sample for benchmark statistics. */
     fun sample(nowNanoseconds: Long, previous: BenchmarkSnapshot): BenchmarkSnapshot? {
         val intervalNanoseconds = nowNanoseconds - intervalStartedAt
         if (intervalNanoseconds < 1_000_000_000L) {

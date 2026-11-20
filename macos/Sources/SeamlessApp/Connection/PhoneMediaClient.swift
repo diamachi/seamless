@@ -1,3 +1,6 @@
+// macOS connection and transfer infrastructure for phone media client.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 import Foundation
 import Network
 import SeamlessCore
@@ -12,6 +15,7 @@ final class PhoneMediaClient {
     private var hasReceivedHello = false
     private var decoder = MediaRecordDecoder()
 
+    /// Establishes the configured connection and registers its asynchronous result handlers.
     func connect(profile: ConnectionProfile, authentication: ControlPacket) throws {
         disconnect()
         let currentGeneration = UUID()
@@ -36,6 +40,7 @@ final class PhoneMediaClient {
         socket.start(queue: .global(qos: .userInteractive))
     }
 
+    /// Disconnects the selected session and cancels operations scoped to it.
     func disconnect() {
         generation = UUID()
         connection?.cancel()
@@ -45,6 +50,7 @@ final class PhoneMediaClient {
         decoder = MediaRecordDecoder()
     }
 
+    /// Routes incoming data to the matching operation or session state.
     private func receive(generation currentGeneration: UUID) {
         connection?.receive(minimumIncompleteLength: 1, maximumLength: 65_536) { [weak self] data, _, complete, error in
             Task { @MainActor in
@@ -59,6 +65,7 @@ final class PhoneMediaClient {
         }
     }
 
+    /// Performs consume for phone media client.
     private func consume(_ data: Data) throws {
         var mediaData = data
         if !hasReceivedHello {
@@ -77,6 +84,7 @@ final class PhoneMediaClient {
         for record in try decoder.append(mediaData) { try onRecord?(record) }
     }
 
+    /// Publishes an operation failure and releases the resources owned by that operation.
     private func fail(_ message: String) {
         disconnect()
         onFailure?(message)

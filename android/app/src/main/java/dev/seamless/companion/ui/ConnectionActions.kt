@@ -1,3 +1,6 @@
+// Android Compose presentation and user actions for connection actions.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 package dev.seamless.companion.ui
 
 import android.content.ClipData
@@ -10,6 +13,7 @@ import dev.seamless.companion.connection.ConnectionRuntime
 import dev.seamless.companion.connection.ConnectionService
 import java.io.File
 
+/** Performs start connection for connection actions. */
 internal fun startConnection(context: Context, pairing: Boolean, reconnect: Boolean = false) {
     context.getSharedPreferences("connection_settings", Context.MODE_PRIVATE)
         .edit().putBoolean("reconnect_on_launch", true).apply()
@@ -31,17 +35,20 @@ internal fun startConnection(context: Context, pairing: Boolean, reconnect: Bool
     }
 }
 
+/** Performs stop connection for connection actions. */
 internal fun stopConnection(context: Context) {
     context.getSharedPreferences("connection_settings", Context.MODE_PRIVATE)
         .edit().putBoolean("reconnect_on_launch", false).apply()
     context.stopService(Intent(context, ConnectionService::class.java))
 }
 
+/** Performs copy text for connection actions. */
 internal fun copyText(context: Context, label: String, text: String) {
     val clipboard = context.getSystemService(ClipboardManager::class.java)
     clipboard.setPrimaryClip(ClipData.newPlainText(label, text))
 }
 
+/** Performs send phone clipboard for connection actions. */
 internal fun sendPhoneClipboard(context: Context) {
     val clipboard = context.getSystemService(ClipboardManager::class.java)
     val text = clipboard.primaryClip?.getItemAt(0)?.coerceToText(context)?.toString().orEmpty()
@@ -52,6 +59,7 @@ internal fun sendPhoneClipboard(context: Context) {
     }
 }
 
+/** Performs save received file for connection actions. */
 internal fun saveReceivedFile(context: Context, destination: Uri) {
     val received = ConnectionRuntime.state.value.receivedFile ?: return
     Thread({

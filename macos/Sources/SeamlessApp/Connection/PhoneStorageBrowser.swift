@@ -12,6 +12,7 @@ struct PhoneStorageEntry: Identifiable {
     let isDirectory: Bool
     let size: Int64
 
+    /// Converts the external representation into the local model, applying the declared decoding rules.
     static func decode(_ payload: JSONValue) -> [PhoneStorageEntry] {
         payload.array.prefix(100).compactMap { value in
             guard let id = value["id"].string, id.count <= 64,
@@ -91,45 +92,53 @@ final class PhoneStorageBrowser: ObservableObject {
         else { selectionRequest += 1; selectingEntireFolder = false }
     }
 
+    /// Performs open for phone storage browser.
     func open(_ entry: PhoneStorageEntry) {
         guard let phoneID, entry.isDirectory else { return }
         breadcrumbs.append((entry.id, entry.name))
         load(phoneID: phoneID, media: media, directory: entry.id)
     }
 
+    /// Moves to the parent directory and reloads its entries using the retained breadcrumb token.
     func back() {
         guard let phoneID, breadcrumbs.count > 1 else { return }
         breadcrumbs.removeLast()
         load(phoneID: phoneID, media: media, directory: breadcrumbs.last!.0)
     }
 
+    /// Refreshes the model from its current system or transport source.
     func refresh() {
         guard let phoneID else { return }
         load(phoneID: phoneID, media: media, directory: breadcrumbs.last?.0 ?? "")
     }
 
+    /// Requests the next page for the active directory or media collection.
     func more() {
         guard let phoneID, nextOffset >= 0 else { return }
         load(phoneID: phoneID, media: media, directory: breadcrumbs.last?.0 ?? "", append: true)
     }
 
+    /// Queues selected files or directory trees for download to the local Downloads directory.
     func saveToDownloads(_ entries: [PhoneStorageEntry], bulk: BulkTransfers) {
         guard let phoneID else { return }
         folderDownloads.save(entries: entries, phoneID: phoneID, bulk: bulk)
     }
 
+    /// Requests the selected remote file through the authenticated browser channel.
     func download(_ entry: PhoneStorageEntry) {
         guard let phoneID, !entry.isDirectory else { return }
         send?(phoneID, ControlPacket(type: "browseDownload", payload: .object(["entry": .string(entry.id)])))
         message = "Requested \(entry.name). Accept the incoming transfer to save it."
     }
 
+    /// Performs thumbnail for phone storage browser.
     func thumbnail(_ entry: PhoneStorageEntry) {
         guard let phoneID, !entry.isDirectory, entry.mime.hasPrefix("image/") || entry.mime.hasPrefix("video/"),
               thumbnailRequests.insert(entry.id).inserted else { return }
         send?(phoneID, ControlPacket(type: "browseThumbnail", payload: .object(["entry": .string(entry.id)])))
     }
 
+    /// Routes incoming data to the matching operation or session state.
     func receive(_ packet: ControlPacket, phoneID: String) {
         if folderDownloads.receive(packet, phoneID: phoneID) { return }
         guard self.phoneID == phoneID else { return }

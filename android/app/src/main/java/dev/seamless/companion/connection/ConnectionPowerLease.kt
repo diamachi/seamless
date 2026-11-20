@@ -1,3 +1,6 @@
+// Android connection infrastructure for connection power lease.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 package dev.seamless.companion.connection
 
 import android.content.Context
@@ -16,6 +19,7 @@ internal class ConnectionPowerLease(context: Context) : AutoCloseable {
         .createWifiLock(WifiManager.WIFI_MODE_FULL_HIGH_PERF, "Seamless:PairedConnection")
     private var connected = false
     private val renewal = object : Runnable {
+        /** Runs the supplied work through this component’s execution or process interface. */
         override fun run() {
             if (!connected) return
             // A bounded lease prevents a stuck owner from holding the CPU indefinitely.
@@ -29,6 +33,7 @@ internal class ConnectionPowerLease(context: Context) : AutoCloseable {
         wifiLock.setReferenceCounted(false)
     }
 
+    /** Performs set connected for connection power lease. */
     fun setConnected(value: Boolean) {
         if (connected == value) return
         connected = value
@@ -40,12 +45,14 @@ internal class ConnectionPowerLease(context: Context) : AutoCloseable {
         }
     }
 
+    /** Performs release for connection power lease. */
     private fun release() {
         handler.removeCallbacks(renewal)
         if (wakeLock.isHeld) wakeLock.release()
         if (wifiLock.isHeld) wifiLock.release()
     }
 
+    /** Closes owned resources so sockets, buffers and pending work do not outlive their session. */
     override fun close() {
         connected = false
         release()

@@ -1,9 +1,13 @@
+// Tests for PhoneStorageBrowserTests and the behavior owned by its target module.
+// Keep assertions focused on externally visible results and failure boundaries.
+
 import Testing
 import SeamlessCore
 @testable import SeamlessApp
 
 @MainActor
 struct PhoneStorageBrowserTests {
+    /// Exercises refresh after late capability uses selected phone through the expected result and relevant rejection assertions.
     @Test func refreshAfterLateCapabilityUsesSelectedPhone() {
         let browser = PhoneStorageBrowser()
         var requestedPhone: String?
@@ -17,6 +21,7 @@ struct PhoneStorageBrowserTests {
         browser.disconnected(phoneID: "test-phone")
     }
 
+    /// Exercises reconnect refresh starts at root through the expected result and relevant rejection assertions.
     @Test func reconnectRefreshStartsAtRoot() {
         let browser = PhoneStorageBrowser()
         browser.supportedPhones.insert("test-phone")

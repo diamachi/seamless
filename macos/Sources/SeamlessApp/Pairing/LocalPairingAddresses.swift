@@ -1,7 +1,11 @@
+// macOS application presentation and coordination for local pairing addresses.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 import Darwin
 import Foundation
 
 struct LocalPairingAddresses {
+    /// Performs available for local pairing addresses.
     static func available() -> [String] {
         var interfaces: UnsafeMutablePointer<ifaddrs>?
         guard getifaddrs(&interfaces) == 0 else { return [] }

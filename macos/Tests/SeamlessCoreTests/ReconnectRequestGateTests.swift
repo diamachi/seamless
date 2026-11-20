@@ -1,7 +1,11 @@
+// Tests for ReconnectRequestGateTests and the behavior owned by its target module.
+// Keep assertions focused on externally visible results and failure boundaries.
+
 import Foundation
 import Testing
 @testable import SeamlessCore
 
+/// Exercises reconnect requests reject replays and throttle discovery noise through the expected result and relevant rejection assertions.
 @Test func reconnectRequestsRejectReplaysAndThrottleDiscoveryNoise() {
     var gate = ReconnectRequestGate()
     let firstRequest = UUID().uuidString
@@ -20,6 +24,7 @@ import Testing
     #expect(result6)
 }
 
+/// Exercises discovery accepts android name collision suffix without changing phone identity through the expected result and relevant rejection assertions.
 @Test func discoveryAcceptsAndroidNameCollisionSuffixWithoutChangingPhoneIdentity() {
     let phoneID = UUID().uuidString.lowercased()
     #expect(DiscoveredPhoneEndpoint.phoneIdentifier(serviceName: "Seamless-" + phoneID + " (2)") == phoneID)

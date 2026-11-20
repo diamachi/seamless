@@ -1,3 +1,6 @@
+// macOS application presentation and coordination for interface palette.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 import SwiftUI
 import AppKit
 
@@ -15,11 +18,13 @@ struct InterfacePalette {
     var secondaryText: Color { neutral(light: 0x58616B, dark: 0xB9C0C8) }
     var border: Color { neutral(light: 0xD7DCE1, dark: 0x41464D) }
 
+    /// Performs neutral for interface palette.
     private func neutral(light: UInt32, dark: UInt32) -> Color {
         if scheme == .dark { return Color(nsColor: NSColor(Color(rgb: dark)).blended(withFraction: 0.035, of: NSColor(accent)) ?? NSColor(Color(rgb: dark))) }
         return Color(nsColor: NSColor(Color(rgb: light)).blended(withFraction: 0.045, of: NSColor(accent)) ?? NSColor(Color(rgb: light)))
     }
 
+    /// Performs adaptive for interface palette.
     private func adaptive(light: UInt32, dark: UInt32) -> Color {
         if scheme == .dark {
             return themed(dark)
@@ -27,6 +32,7 @@ struct InterfacePalette {
             return themed(light)
         }
     }
+    /// Performs themed for interface palette.
     private func themed(_ value: UInt32) -> Color {
         let original = NSColor(Color(rgb: value)).usingColorSpace(.deviceRGB) ?? .gray
         let hue: CGFloat
@@ -44,6 +50,7 @@ struct InterfacePalette {
 }
 
 extension Color {
+    /// Constructs InterfacePalette with the dependencies and initial values supplied by its caller.
     init(rgb: UInt32) {
         self.init(.sRGB, red: Double((rgb >> 16) & 255) / 255,
                   green: Double((rgb >> 8) & 255) / 255,

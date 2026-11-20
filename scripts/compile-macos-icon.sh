@@ -1,4 +1,5 @@
 #!/bin/sh
+# Compiles the source icon asset into the app icon resources used by the Mac build.
 set -eu
 
 PROJECT_DIRECTORY=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)

@@ -1,4 +1,6 @@
 #!/bin/sh
+# Builds the selected Android variant, runs its checks and stages the versioned APK.
+# Release signing is used only when the local distribution key is configured.
 set -eu
 
 PROJECT_DIRECTORY=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)

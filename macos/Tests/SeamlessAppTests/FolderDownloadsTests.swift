@@ -1,3 +1,6 @@
+// Tests for FolderDownloadsTests and the behavior owned by its target module.
+// Keep assertions focused on externally visible results and failure boundaries.
+
 import Foundation
 import Testing
 import SeamlessCore
@@ -5,7 +8,9 @@ import SeamlessCore
 
 @MainActor
 struct FolderDownloadsTests {
+    /// Checks folder listing preserves structure and rejects other peers by exercising its expected result and a relevant invalid or boundary input.
     @Test
+    /// Builds folder listing preserves structure and rejects other peers from deterministic test inputs and returns the protocol response.
     func folderListingPreservesStructureAndRejectsOtherPeers() throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
@@ -36,6 +41,7 @@ struct FolderDownloadsTests {
         downloads.cancel()
         transfers.disconnected(phoneID: "phone-a")
     }
+    /// Checks entry by exercising its expected result and a relevant invalid or boundary input.
 
     private func entry(id: String, name: String, directory: Bool) -> JSONValue {
         .object(["id": .string(id), "name": .string(name), "directory": .bool(directory), "size": .number(1)])

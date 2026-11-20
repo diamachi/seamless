@@ -1,8 +1,12 @@
+// Tests for CallAudioRouterTests and the behavior owned by its target module.
+// Keep assertions focused on externally visible results and failure boundaries.
+
 import Testing
 @testable import SeamlessApp
 
 @MainActor
 struct CallAudioRouterTests {
+    /// Exercises feedback endpoint is rejected before microphone permission or device open through the expected result and relevant rejection assertions.
     @Test func feedbackEndpointIsRejectedBeforeMicrophonePermissionOrDeviceOpen() async {
         let router = CallAudioRouter()
         let phone = CallAudioDevice(id: 100, uid: "test-phone", name: "Test phone", hasInput: true, hasOutput: true, isBluetooth: true)

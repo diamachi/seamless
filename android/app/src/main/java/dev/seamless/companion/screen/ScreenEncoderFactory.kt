@@ -1,3 +1,6 @@
+// Android screen-capture pipeline for screen encoder factory.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 package dev.seamless.companion.screen
 
 import android.media.MediaCodec
@@ -16,6 +19,7 @@ data class ScreenEncodingConfiguration(
 )
 
 object ScreenEncoderFactory {
+    /** Performs select configuration for screen encoder factory. */
     fun selectConfiguration(
         displayWidth: Int,
         displayHeight: Int,
@@ -53,6 +57,7 @@ object ScreenEncoderFactory {
         error("No hardware H.264 encoder advertises this resolution at $requestedFramesPerSecond fps. Try the smaller profile or 60 fps.")
     }
 
+    /** Performs create for screen encoder factory. */
     fun create(configuration: ScreenEncodingConfiguration): MediaCodec {
         val format = MediaFormat.createVideoFormat(
             MediaFormat.MIMETYPE_VIDEO_AVC, configuration.width, configuration.height
@@ -77,10 +82,12 @@ object ScreenEncoderFactory {
         return encoder
     }
 
+    /** Performs align down for screen encoder factory. */
     private fun alignDown(value: Int, alignment: Int): Int {
         return maxOf(alignment, value / alignment * alignment)
     }
 
+    /** Evaluates is hardware encoder against the current model or supplied input. */
     private fun isHardwareEncoder(codec: MediaCodecInfo): Boolean {
         if (Build.VERSION.SDK_INT >= 29) {
             return codec.isHardwareAccelerated

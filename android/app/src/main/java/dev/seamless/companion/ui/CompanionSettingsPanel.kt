@@ -1,3 +1,6 @@
+// Android Compose presentation and user actions for companion settings panel.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 package dev.seamless.companion.ui
 
 import android.content.Intent
@@ -25,7 +28,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 
+/** Composes the companion settings panel interface from state and supplied callbacks. */
 @Composable
+/** Handles companion settings panel callback by translating the native window event into the owning app action. */
 fun CompanionSettingsPanel(onPerformance: () -> Unit, onSetup: () -> Unit) {
     val context = LocalContext.current
     val connection by ConnectionRuntime.state.collectAsStateWithLifecycle()
@@ -74,7 +79,9 @@ fun CompanionSettingsPanel(onPerformance: () -> Unit, onSetup: () -> Unit) {
     }
 }
 
+/** Composes the trusted mac settings interface from state and supplied callbacks. */
 @Composable
+/** Handles trusted mac settings callback by translating the native window event into the owning app action. */
 internal fun TrustedMacSettings(macID: String, name: String) {
     val context = LocalContext.current
     val preferences = context.getSharedPreferences("phone_policies", android.content.Context.MODE_PRIVATE)

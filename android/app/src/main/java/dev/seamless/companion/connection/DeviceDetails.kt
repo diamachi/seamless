@@ -1,3 +1,6 @@
+// Android connection infrastructure for device details.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 package dev.seamless.companion.connection
 
 import android.app.ActivityManager
@@ -14,7 +17,9 @@ internal object DeviceDetails {
     private var cached: JSONObject? = null
     private var sampledAt = 0L
 
+    /** Performs snapshot for device details. */
     @Synchronized
+    /** Handles snapshot callback by translating the native window event into the owning app action. */
     fun snapshot(context: Context): JSONObject {
         val now = SystemClock.elapsedRealtime()
         val previous = cached
@@ -32,6 +37,7 @@ internal object DeviceDetails {
         return JSONObject(result.toString())
     }
 
+    /** Performs processor name for device details. */
     private fun processorName(): String {
         if (Build.VERSION.SDK_INT >= 31) {
             val model = reportedName(Build.SOC_MODEL)
@@ -46,6 +52,7 @@ internal object DeviceDetails {
         return reportedName(Build.HARDWARE) ?: "Unknown"
     }
 
+    /** Performs reported name for device details. */
     private fun reportedName(value: String): String? {
         val name = value.trim().take(120)
         if (name.isEmpty() || name.equals(Build.UNKNOWN, ignoreCase = true)) {
@@ -54,6 +61,7 @@ internal object DeviceDetails {
         return name
     }
 
+    /** Performs operating system name for device details. */
     private fun operatingSystemName(): String {
         val display = Build.DISPLAY.lowercase()
         // A manufacturer name alone cannot identify the OS installed on a custom-ROM phone.
@@ -69,6 +77,7 @@ internal object DeviceDetails {
         return "Android"
     }
 
+    /** Performs add memory for device details. */
     private fun addMemory(context: Context, result: JSONObject) {
         try {
             val information = ActivityManager.MemoryInfo()
@@ -83,6 +92,7 @@ internal object DeviceDetails {
         }
     }
 
+    /** Performs add storage for device details. */
     private fun addStorage(context: Context, result: JSONObject) {
         if (Build.VERSION.SDK_INT >= 26) {
             try {

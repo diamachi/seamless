@@ -1,3 +1,4 @@
+// Generates the Seamless Mac app icon variants from the shared vector design.
 import AVFoundation
 
 import AppKit

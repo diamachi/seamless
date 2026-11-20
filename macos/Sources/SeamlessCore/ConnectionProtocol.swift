@@ -1,3 +1,6 @@
+// Shared protocol/model rules for connection protocol.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 import Foundation
 
 public enum JSONValue: Codable, Equatable, Sendable {
@@ -8,6 +11,7 @@ public enum JSONValue: Codable, Equatable, Sendable {
     case bool(Bool)
     case null
 
+    /// Constructs ConnectionProtocol with the dependencies and initial values supplied by its caller.
     public init(from decoder: Decoder) throws {
         let value = try decoder.singleValueContainer()
         if value.decodeNil() { self = .null }
@@ -18,6 +22,7 @@ public enum JSONValue: Codable, Equatable, Sendable {
         else { self = .object(try value.decode([String: JSONValue].self)) }
     }
 
+    /// Converts the local model into its wire or persisted representation.
     public func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
         switch self {
@@ -58,6 +63,7 @@ public struct ControlPacket: Codable, Sendable {
     public let type: String
     public let payload: JSONValue
 
+    /// Constructs ConnectionProtocol with the dependencies and initial values supplied by its caller.
     public init(type: String, payload: JSONValue = .object([:]), id: String = UUID().uuidString) {
         version = 1
         self.id = id
@@ -71,6 +77,7 @@ public struct ConnectionProfile: Codable, Equatable, Sendable {
     public var port: UInt16
     public var certificatePin: String
 
+    /// Constructs ConnectionProtocol with the dependencies and initial values supplied by its caller.
     public init(host: String, port: UInt16, certificatePin: String) {
         self.host = host
         self.port = port
@@ -87,6 +94,7 @@ public struct PairingInvitation: Codable, Sendable {
     public let certificatePin: String
     public let secret: String
 
+    /// Performs parse for connection protocol.
     public static func parse(_ code: String) throws -> PairingInvitation {
         let trimmed = code.trimmingCharacters(in: .whitespacesAndNewlines)
         let prefix = "seamless1:"

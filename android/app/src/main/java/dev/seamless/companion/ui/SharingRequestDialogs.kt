@@ -1,3 +1,6 @@
+// Android Compose presentation and user actions for sharing request dialogs.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 package dev.seamless.companion.ui
 
 import android.net.Uri
@@ -15,7 +18,9 @@ import androidx.compose.ui.unit.dp
 import dev.seamless.companion.connection.CompanionConnectionState
 import dev.seamless.companion.connection.ConnectionRuntime
 
+/** Composes the sharing request dialogs interface from state and supplied callbacks. */
 @Composable
+/** Handles sharing request dialogs callback by translating the native window event into the owning app action. */
 internal fun SharingRequestDialogs(state: CompanionConnectionState, onStartCamera: () -> Unit) {
     val offer = state.incomingFileOffer
     var dismissedFile by rememberSaveable(offer?.transferID, state.requestReviewSequence) { mutableStateOf(false) }
@@ -39,7 +44,9 @@ internal fun SharingRequestDialogs(state: CompanionConnectionState, onStartCamer
     }
 }
 
+/** Composes the shared files destination dialog interface from state and supplied callbacks. */
 @Composable
+/** Handles shared files destination dialog callback by translating the native window event into the owning app action. */
 internal fun SharedFilesDestinationDialog(state: CompanionConnectionState) {
     val context = androidx.compose.ui.platform.LocalContext.current
     if (state.sharedFilesToSend.isEmpty() || state.connectedMacIDs.size == 1) return
@@ -64,8 +71,10 @@ internal fun SharedFilesDestinationDialog(state: CompanionConnectionState) {
     )
 }
 
+/** Composes the shared text destination dialog interface from state and supplied callbacks. */
 
 @Composable
+/** Handles shared text destination dialog callback by translating the native window event into the owning app action. */
 internal fun SharedTextDestinationDialog(state: CompanionConnectionState) {
     if (state.sharedTextToSend.isEmpty() || state.connectedMacIDs.size == 1) return
     AlertDialog(

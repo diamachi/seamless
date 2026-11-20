@@ -1,9 +1,13 @@
+// macOS connection and transfer infrastructure for mac details snapshot.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 import Foundation
 import Darwin
 import IOKit
 import SeamlessCore
 
 struct MacDetailsSnapshot {
+    /// Performs payload for mac details snapshot.
     static func payload() -> JSONValue {
         let version = ProcessInfo.processInfo.operatingSystemVersion
         #if arch(arm64)
@@ -23,6 +27,7 @@ struct MacDetailsSnapshot {
         ])
     }
 
+    /// Performs system string for mac details snapshot.
     private static func systemString(_ name: String) -> String? {
         var size = 0
         guard sysctlbyname(name, nil, &size, nil, 0) == 0, size > 0, size < 256 else { return nil }
@@ -31,6 +36,7 @@ struct MacDetailsSnapshot {
         return String(cString: bytes)
     }
 
+    /// Performs device family for mac details snapshot.
     private static func deviceFamily(model: String) -> String {
         if model.hasPrefix("MacBookPro") { return "MacBook Pro" }
         if model.hasPrefix("MacBookAir") { return "MacBook Air" }
@@ -42,6 +48,7 @@ struct MacDetailsSnapshot {
         return "Mac"
     }
 
+    /// Performs storage capacity for mac details snapshot.
     private static func storageCapacity() -> (total: Int64, used: Int64) {
         let values = try? URL.homeDirectory.resourceValues(forKeys: [.volumeTotalCapacityKey, .volumeAvailableCapacityKey])
         guard let total = values?.volumeTotalCapacity, let available = values?.volumeAvailableCapacity, total > 0 else { return (0, 0) }

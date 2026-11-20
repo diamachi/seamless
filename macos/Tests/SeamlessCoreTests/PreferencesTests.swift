@@ -1,9 +1,14 @@
+// Tests for PreferencesTests and the behavior owned by its target module.
+// Keep assertions focused on externally visible results and failure boundaries.
+
 import Foundation
 import Testing
 @testable import SeamlessCore
 
 struct PreferencesTests {
+    /// Checks test notification selection does not leak across profiles by exercising its expected result and a relevant invalid or boundary input.
     @Test
+    /// Builds test notification selection does not leak across profiles from deterministic test inputs and returns the protocol response.
     func testNotificationSelectionDoesNotLeakAcrossProfiles() {
         let personal = AndroidApplicationIdentity(packageName: "org.example.chat", profileIdentifier: "personal")
         let work = AndroidApplicationIdentity(packageName: "org.example.chat", profileIdentifier: "work")
@@ -13,8 +18,9 @@ struct PreferencesTests {
         policy.isPaused = true
         #expect(!policy.permits(personal))
     }
-
+    /// Checks test saved preferences survive reload by exercising its expected result and a relevant invalid or boundary input.
     @Test
+    /// Builds test saved preferences survive reload from deterministic test inputs and returns the protocol response.
     func testSavedPreferencesSurviveReload() throws {
         let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: directory) }
@@ -28,8 +34,9 @@ struct PreferencesTests {
         try repository.save(preferences)
         #expect(try repository.load() == preferences)
     }
-
+    /// Checks appearance persists and older preferences follow system by exercising its expected result and a relevant invalid or boundary input.
     @Test
+    /// Builds appearance persists and older preferences follow system from deterministic test inputs and returns the protocol response.
     func appearancePersistsAndOlderPreferencesFollowSystem() throws {
         var preferences = AppPreferences()
         preferences.appearance = .dark
@@ -40,8 +47,9 @@ struct PreferencesTests {
         let legacyData = try JSONSerialization.data(withJSONObject: legacyObject)
         #expect(try JSONDecoder().decode(AppPreferences.self, from: legacyData).appearance == .system)
     }
-
+    /// Checks test newer settings are rejected without overwriting by exercising its expected result and a relevant invalid or boundary input.
     @Test
+    /// Builds test newer settings are rejected without overwriting from deterministic test inputs and returns the protocol response.
     func testNewerSettingsAreRejectedWithoutOverwriting() throws {
         let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: directory) }
@@ -54,8 +62,9 @@ struct PreferencesTests {
         #expect(try Data(contentsOf: repository.fileURL) == original)
     }
 }
-
+/// Checks renaming aphone preserves its identity and profile by exercising its expected result and a relevant invalid or boundary input.
 @Test
+/// Builds renaming aphone preserves its identity and profile from deterministic test inputs and returns the protocol response.
 func renamingAPhonePreservesItsIdentityAndProfile() throws {
     var preferences = AppPreferences()
     try preferences.rememberPhone(id: "phone-a", displayName: "A063")

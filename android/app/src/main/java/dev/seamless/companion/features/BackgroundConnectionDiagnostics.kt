@@ -1,3 +1,6 @@
+// Android feature implementation for background connection diagnostics.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 package dev.seamless.companion.features
 
 import android.app.ActivityManager
@@ -6,6 +9,7 @@ import android.content.Context
 import android.os.Build
 
 internal object BackgroundConnectionDiagnostics {
+    /** Performs summary for background connection diagnostics. */
     fun summary(context: Context): String {
         if (Build.VERSION.SDK_INT < 30) return "System exit diagnostics require Android 11 or newer."
         return try {

@@ -1,3 +1,6 @@
+// macOS calling integration for call audio controls.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 import SwiftUI
 
 struct CallAudioControls: View {
@@ -54,6 +57,7 @@ struct CallAudioControls: View {
     private var phoneOutput: CallAudioDevice? { calls.phoneEndpoint(options: calls.options(for: phoneID), input: false) }
     private var canBridge: Bool { calls.state.hasCall && calls.isAudioConnected && phoneInput != nil && phoneOutput != nil }
 
+    /// Performs device picker for call audio controls.
     private func devicePicker(_ title: String, input: Bool, keyPath: WritableKeyPath<PhoneCallingOptions, String>) -> some View {
         var choices = [("system", "System default")]
         choices.append(contentsOf: missingChoice(keyPath))
@@ -62,6 +66,7 @@ struct CallAudioControls: View {
                                    selection: binding(keyPath), choices: choices)
     }
 
+    /// Performs endpoint picker for call audio controls.
     private func endpointPicker(_ title: String, input: Bool, keyPath: WritableKeyPath<PhoneCallingOptions, String>) -> some View {
         var choices = [("", "Auto-match phone")]
         choices.append(contentsOf: missingChoice(keyPath))
@@ -69,6 +74,7 @@ struct CallAudioControls: View {
         return WorkspaceMenuPicker(title: title, symbol: "waveform", selection: binding(keyPath), choices: choices)
     }
 
+    /// Performs missing choice for call audio controls.
     private func missingChoice(_ keyPath: WritableKeyPath<PhoneCallingOptions, String>) -> [(String, String)] {
         let saved = calls.options(for: phoneID)[keyPath: keyPath]
         if !saved.isEmpty && saved != "system" && !devices.devices.contains(where: { $0.uid == saved }) {
@@ -77,6 +83,7 @@ struct CallAudioControls: View {
         return []
     }
 
+    /// Performs binding for call audio controls.
     private func binding(_ keyPath: WritableKeyPath<PhoneCallingOptions, String>) -> Binding<String> {
         Binding(get: { calls.options(for: phoneID)[keyPath: keyPath] },
                 set: { value in calls.updateOptions(phoneID: phoneID) { $0[keyPath: keyPath] = value } })

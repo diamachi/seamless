@@ -57,6 +57,7 @@ final class BulkTransfers: ObservableObject {
     private var expirations: [String: Task<Void, Never>] = [:]
     nonisolated static let maximumBytes: Int64 = 9_007_199_254_740_991
 
+    /// Performs enqueue browser downloads for bulk transfers.
     func enqueueBrowserDownloads(phoneID: String, entries: [PhoneStorageEntry], directory: URL) {
         guard browserQueue.count + entries.count <= 100_000 else { message = "Download queue is full. Let queued files finish first."; return }
         browserQueue.append(contentsOf: entries.filter { !$0.isDirectory }.map {
@@ -65,6 +66,7 @@ final class BulkTransfers: ObservableObject {
         startNextBrowserDownload()
     }
 
+    /// Performs cancel browser downloads for bulk transfers.
     func cancelBrowserDownloads(phoneID: String) {
         browserQueue.removeAll { $0.phoneID == phoneID }
         if browserRequest?.phoneID == phoneID {
@@ -75,6 +77,7 @@ final class BulkTransfers: ObservableObject {
         }
     }
 
+    /// Performs start next browser download for bulk transfers.
     private func startNextBrowserDownload() {
         guard browserRequest == nil, !browserQueue.isEmpty else { return }
         let request = browserQueue.removeFirst()
@@ -91,6 +94,7 @@ final class BulkTransfers: ObservableObject {
     /// Removes received-file history for one phone while preserving downloaded files on disk.
     func clearDownloads(phoneID: String) { downloads.removeAll { $0.phoneID == phoneID } }
 
+    /// Performs choose for bulk transfers.
     func choose(phoneID: String) {
         let panel = NSOpenPanel()
         panel.allowsMultipleSelection = true
@@ -100,6 +104,7 @@ final class BulkTransfers: ObservableObject {
         }
     }
 
+    /// Performs offer for bulk transfers.
     func offer(url: URL, phoneID: String) {
         guard supportedPhones.contains(phoneID) else { message = "Install the latest companion to use large file transfers."; return }
         guard activities.count < 8 else { message = "Finish the current transfers first."; return }
@@ -125,6 +130,7 @@ final class BulkTransfers: ObservableObject {
         }
     }
 
+    /// Routes incoming data to the matching operation or session state.
     func receive(_ packet: ControlPacket, phoneID: String) {
         guard let id = packet.payload["transferID"].string, id.count <= 64 else { return }
         switch packet.type {
@@ -162,6 +168,7 @@ final class BulkTransfers: ObservableObject {
         }
     }
 
+    /// Accepts a pending offer and prepares the selected local destination.
     func accept(_ offer: BulkOffer, directory: URL? = nil, promisedURL: URL? = nil, completion: ((Error?) -> Void)? = nil) {
         guard offers.contains(where: { $0.id == offer.id && $0.phoneID == offer.phoneID }) else {
             completion?(CancellationError())
@@ -206,6 +213,7 @@ final class BulkTransfers: ObservableObject {
         }
     }
 
+    /// Declines a pending offer and releases its transfer state.
     func reject(id: String, phoneID: String) {
         guard owns(id: id, phoneID: phoneID) else { return }
         send?(phoneID, ControlPacket(type: "bulkCancel", payload: .object(["transferID": .string(id)])))
@@ -225,6 +233,7 @@ final class BulkTransfers: ObservableObject {
         for id in identifiers { cleanup(id: id) }
     }
 
+    /// Starts this component’s operation using the provided session inputs.
     private func start(id: String, phoneID: String, direction: String,
                        operation: @escaping (BulkSocket) async throws -> Void) {
         do {
@@ -248,6 +257,7 @@ final class BulkTransfers: ObservableObject {
         } catch { fail(id: id, phoneID: phoneID, message: error.localizedDescription) }
     }
 
+    /// Updates the visible byte count for the matching active transfer.
     private func progress(id: String, count: Int64) {
         guard let index = activities.firstIndex(where: { $0.id == id }) else { return }
         if Date().timeIntervalSince(lastProgress[id] ?? .distantPast) > 10 {
@@ -258,10 +268,12 @@ final class BulkTransfers: ObservableObject {
         activities[index].status = "Transferring"
     }
 
+    /// Evaluates owns against the current model or supplied input.
     private func owns(id: String, phoneID: String) -> Bool {
         activities.contains { $0.id == id && $0.phoneID == phoneID } || offers.contains { $0.id == id && $0.phoneID == phoneID }
     }
 
+    /// Publishes an operation failure and releases the resources owned by that operation.
     private func fail(id: String, phoneID: String, message: String) {
         guard owns(id: id, phoneID: phoneID) else { return }
         notifyTransfer(id: id, title: "Transfer failed", detail: message)
@@ -270,12 +282,14 @@ final class BulkTransfers: ObservableObject {
         self.message = message
     }
 
+    /// Publishes a transfer outcome for the menu dashboard without reopening the main window.
     private func notifyTransfer(id: String, title: String, detail: String, quiet: Bool = false) {
         guard let activity = activities.first(where: { $0.id == id }) else { return }
         DiagnosticsConsole.shared.record("Transfer: " + title)
         latestTransferResult = activity.name + " · " + title + " · " + detail
     }
 
+    /// Removes transfer-local resources and completes any waiting callbacks.
     private func cleanup(id: String) {
         promiseCompletions.removeValue(forKey: id)?(CancellationError())
         tasks.removeValue(forKey: id)?.cancel()
@@ -292,6 +306,7 @@ final class BulkTransfers: ObservableObject {
         }
     }
 
+    /// Performs expire for bulk transfers.
     private func expire(id: String, phoneID: String, seconds: Int = 300) {
         expirations.removeValue(forKey: id)?.cancel()
         expirations[id] = Task {
@@ -300,6 +315,7 @@ final class BulkTransfers: ObservableObject {
         }
     }
 
+    /// Performs unique destination for bulk transfers.
     private func uniqueDestination(directory: URL, name: String) -> URL {
         var destination = directory.appendingPathComponent(name)
         while FileManager.default.fileExists(atPath: destination.path) {
@@ -308,10 +324,12 @@ final class BulkTransfers: ObservableObject {
         return destination
     }
 
+    /// Rejects unsafe filenames before constructing a destination path.
     nonisolated static func validName(_ name: String) -> Bool {
         !name.isEmpty && name.count <= 255 && name != "." && name != ".." && !name.contains("/") && !name.contains("\\") && !name.contains("\0")
     }
 
+    /// Performs metadata for bulk transfers.
     nonisolated static func metadata(url: URL) throws -> (Int64, String) {
         let values = try url.resourceValues(forKeys: [.fileSizeKey, .isRegularFileKey])
         guard values.isRegularFile == true, let size = values.fileSize, size <= maximumBytes else { throw ConnectionProtocolError.invalidMessage }

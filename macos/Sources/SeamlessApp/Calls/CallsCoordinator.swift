@@ -1,3 +1,6 @@
+// macOS calling integration for calls coordinator.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 import AppKit
 import Combine
 import UserNotifications
@@ -32,6 +35,7 @@ final class CallsCoordinator: ObservableObject {
     private var routeAnsweredCallToMac = false
     private var applyAudioWhenAvailable = false
 
+    /// Constructs CallsCoordinator with the dependencies and initial values supplied by its caller.
     init() {
         MacNotificationDelivery.shared.onCallAction = { [weak self] phoneID, token, action in
             guard let self, self.activePhoneID == phoneID, self.incomingCallToken == token, self.state.canAnswer else { return }
@@ -47,8 +51,10 @@ final class CallsCoordinator: ObservableObject {
         devices.onChange = { [weak self] in self?.audioDevicesChanged() }
     }
 
+    /// Performs options for calls coordinator.
     func options(for phoneID: String) -> PhoneCallingOptions { preferences.options(for: phoneID) }
 
+    /// Performs update options for calls coordinator.
     func updateOptions(phoneID: String, change: (inout PhoneCallingOptions) -> Void) {
         var options = preferences.options(for: phoneID)
         change(&options)
@@ -60,6 +66,7 @@ final class CallsCoordinator: ObservableObject {
         objectWillChange.send()
     }
 
+    /// Performs discover paired phones for calls coordinator.
     func discoverPairedPhones() {
         guard !isDiscovering else { return }
         isDiscovering = true
@@ -82,6 +89,7 @@ final class CallsCoordinator: ObservableObject {
         }
     }
 
+    /// Establishes the configured connection and registers its asynchronous result handlers.
     func connect(phoneID: String) {
         guard !state.hasCall else { message = "Finish the current call before changing the calling phone."; return }
         let options = preferences.options(for: phoneID)
@@ -114,6 +122,7 @@ final class CallsCoordinator: ObservableObject {
         }
     }
 
+    /// Disconnects the selected session and cancels operations scoped to it.
     func disconnect() {
         if let activePhoneID { MacNotificationDelivery.shared.clearIncomingCall(phoneID: activePhoneID) }
         incomingCallToken = nil
@@ -136,13 +145,16 @@ final class CallsCoordinator: ObservableObject {
         message = "Calls disconnected. An existing call stays on the phone."
     }
 
+    /// Performs forget for calls coordinator.
     func forget(phoneID: String) {
         if activePhoneID == phoneID { disconnect() }
         preferences.remove(phoneID: phoneID)
     }
 
+    /// Tears down the owning subsystem and cancels its outstanding work.
     func shutdown() { disconnect(); devices.stop() }
 
+    /// Performs dial for calls coordinator.
     func dial(_ text: String) {
         guard state.isConnected, !state.hasCall, let number = PhoneCallState.dialNumber(text) else { return }
         routeAnsweredCallToMac = true
@@ -150,6 +162,7 @@ final class CallsCoordinator: ObservableObject {
         message = "Dial request sent. Waiting for the phone's call state."
     }
 
+    /// Performs answer for calls coordinator.
     func answer() {
         guard state.canAnswer else { return }
         routeAnsweredCallToMac = true
@@ -157,6 +170,7 @@ final class CallsCoordinator: ObservableObject {
         message = "Answer requested."
     }
 
+    /// Performs end for calls coordinator.
     func end() {
         guard state.isConnected, state.hasCall else { return }
         routeAnsweredCallToMac = false
@@ -165,11 +179,13 @@ final class CallsCoordinator: ObservableObject {
         message = "End call requested."
     }
 
+    /// Performs send tone for calls coordinator.
     func sendTone(_ tone: String) {
         guard state.isConnected, state.isActive, tone.count == 1, "0123456789*#".contains(tone) else { return }
         handsFree?.sendDTMF(tone)
     }
 
+    /// Performs use mac audio for calls coordinator.
     func useMacAudio() {
         guard state.isConnected, state.hasCall else { return }
         applyAudioWhenAvailable = true
@@ -184,6 +200,7 @@ final class CallsCoordinator: ObservableObject {
         }
     }
 
+    /// Performs use phone audio for calls coordinator.
     func usePhoneAudio() {
         applyAudioWhenAvailable = false
         routeAnsweredCallToMac = false
@@ -193,6 +210,7 @@ final class CallsCoordinator: ObservableObject {
         message = "Phone audio requested."
     }
 
+    /// Performs apply selected audio for calls coordinator.
     func applySelectedAudio(phoneID: String) async {
         guard activePhoneID == phoneID, state.hasCall, isAudioConnected else { return }
         let options = preferences.options(for: phoneID)
@@ -207,6 +225,7 @@ final class CallsCoordinator: ObservableObject {
         if !audio.isRunning, activePhoneID == phoneID { handsFree?.transferAudioToPhone() }
     }
 
+    /// Performs phone endpoint for calls coordinator.
     func phoneEndpoint(options: PhoneCallingOptions, input: Bool) -> CallAudioDevice? {
         let explicitUID = input ? options.phoneInputUID : options.phoneOutputUID
         if !explicitUID.isEmpty {
@@ -221,6 +240,7 @@ final class CallsCoordinator: ObservableObject {
         return nil
     }
 
+    /// Routes incoming data to the matching operation or session state.
     private func receive(_ event: HandsFreeEvent) {
         switch event.kind {
         case .connected:
@@ -264,6 +284,7 @@ final class CallsCoordinator: ObservableObject {
         updateIncomingCallNotification()
     }
 
+    /// Performs update incoming call notification for calls coordinator.
     private func updateIncomingCallNotification() {
         guard let phoneID = activePhoneID else { return }
         if state.canAnswer && incomingCallToken == nil {
@@ -276,6 +297,7 @@ final class CallsCoordinator: ObservableObject {
         }
     }
 
+    /// Performs receive current call for calls coordinator.
     private func receiveCurrentCall(_ event: HandsFreeEvent) {
         switch event.value {
         case 0: state.isActive = true
@@ -287,6 +309,7 @@ final class CallsCoordinator: ObservableObject {
         if !event.text.isEmpty { state.caller = event.text }
     }
 
+    /// Performs clean up ended call for calls coordinator.
     private func cleanUpEndedCall() {
         if !state.hasCall {
             routeAnsweredCallToMac = false
@@ -296,6 +319,7 @@ final class CallsCoordinator: ObservableObject {
         }
     }
 
+    /// Performs refresh audio endpoints for calls coordinator.
     private func refreshAudioEndpoints() {
         refreshTask?.cancel()
         refreshTask = Task { [weak self] in
@@ -314,6 +338,7 @@ final class CallsCoordinator: ObservableObject {
         }
     }
 
+    /// Performs audio devices changed for calls coordinator.
     private func audioDevicesChanged() {
         if audio.isRunning && !audio.deviceUIDs.isSubset(of: Set(devices.devices.map(\.uid))) {
             usePhoneAudio()

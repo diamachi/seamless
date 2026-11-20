@@ -1,3 +1,6 @@
+// macOS connection and transfer infrastructure for pinned tlsconnection.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 import CryptoKit
 import Foundation
 import Network
@@ -5,6 +8,7 @@ import Security
 import SeamlessCore
 
 enum PinnedTLSConnection {
+    /// Performs make for pinned tlsconnection.
     static func make(profile: ConnectionProfile, interactive: Bool = false) throws -> NWConnection {
         guard let port = NWEndpoint.Port(rawValue: profile.port), !profile.host.isEmpty,
               profile.certificatePin.count == 64 else { throw ConnectionProtocolError.invalidInvitation }

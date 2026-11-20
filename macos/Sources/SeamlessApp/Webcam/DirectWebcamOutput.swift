@@ -1,3 +1,6 @@
+// macOS webcam output integration for direct webcam output.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 import AppKit
 @preconcurrency import CoreMedia
 @preconcurrency import CoreVideo
@@ -27,6 +30,7 @@ private final class WebcamFramePipeline: @unchecked Sendable {
     private var lastReport = Date.distantPast
     var report: (@Sendable (String, Bool) -> Void)?
 
+    /// Starts this component’s operation using the provided session inputs.
     func start() {
         worker.async { [self] in
             do {
@@ -42,6 +46,7 @@ private final class WebcamFramePipeline: @unchecked Sendable {
         }
     }
 
+    /// Stops the current operation and releases its active resources.
     func stop() {
         lock.withLock { enabled = false }
         worker.async { [self] in
@@ -53,6 +58,7 @@ private final class WebcamFramePipeline: @unchecked Sendable {
         }
     }
 
+    /// Performs submit for direct webcam output.
     func submit(_ sample: CMSampleBuffer, isKeyFrame: Bool) {
         let accepted = lock.withLock {
             if !enabled { return false }
@@ -81,6 +87,7 @@ private final class WebcamFramePipeline: @unchecked Sendable {
         }
     }
 
+    /// Converts the external representation into the local model, applying the declared decoding rules.
     private func decode(_ sample: CMSampleBuffer) throws {
         guard let format = CMSampleBufferGetFormatDescription(sample) else { return }
         if currentFormat == nil || !CMFormatDescriptionEqual(currentFormat!, otherFormatDescription: format) {
@@ -118,6 +125,7 @@ private final class WebcamFramePipeline: @unchecked Sendable {
         if result != noErr { throw WebcamOutputError(description: "Webcam decoding failed (\(result)).") }
     }
 
+    /// Performs invalidate decoder for direct webcam output.
     private func invalidateDecoder() {
         if let decoder { VTDecompressionSessionInvalidate(decoder) }
         decoder = nil
@@ -132,6 +140,7 @@ final class DirectWebcamOutput: ObservableObject {
     @Published private(set) var message = "Use the installed OBS camera driver directly, with OBS closed."
     private let pipeline = WebcamFramePipeline()
 
+    /// Constructs DirectWebcamOutput with the dependencies and initial values supplied by its caller.
     init() {
         pipeline.report = { [weak self] message, active in
             Task { @MainActor in
@@ -142,6 +151,7 @@ final class DirectWebcamOutput: ObservableObject {
         }
     }
 
+    /// Starts this component’s operation using the provided session inputs.
     func start() {
         guard !isStarting, !isActive else { return }
         guard NSRunningApplication.runningApplications(withBundleIdentifier: "com.obsproject.obs-studio").isEmpty else {
@@ -152,11 +162,13 @@ final class DirectWebcamOutput: ObservableObject {
         pipeline.start()
     }
 
+    /// Stops the current operation and releases its active resources.
     func stop() {
         isActive = false
         pipeline.stop()
     }
 
+    /// Performs submit for direct webcam output.
     func submit(_ sample: CMSampleBuffer, isKeyFrame: Bool) {
         if isActive { pipeline.submit(sample, isKeyFrame: isKeyFrame) }
     }

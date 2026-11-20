@@ -1,3 +1,5 @@
+# Provides a small local TLS peer fixture for transfer protocol exercises.
+# Test certificates and payloads are synthetic and must never be reused for pairing.
 """Loopback-only peer for binary-transfer framing/integrity integration tests."""
 import hashlib
 import json

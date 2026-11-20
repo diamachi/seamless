@@ -1,3 +1,6 @@
+// Android feature implementation for received text notification.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 package dev.seamless.companion.features
 
 import android.app.Notification
@@ -13,6 +16,7 @@ import android.app.Activity
 import dev.seamless.companion.connection.ConnectionRuntime
 
 object ReceivedTextNotification {
+    /** Performs show for received text notification. */
     fun show(context: Context, text: String) {
         val manager = context.getSystemService(NotificationManager::class.java)
         if (android.os.Build.VERSION.SDK_INT >= 26) {
@@ -41,6 +45,7 @@ object ReceivedTextNotification {
 }
 
 class CopyReceivedTextActivity : Activity() {
+    /** Initializes Android-owned resources when this component is created. */
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val text = intent.getStringExtra("text")

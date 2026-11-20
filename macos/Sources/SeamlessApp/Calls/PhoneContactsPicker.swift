@@ -1,3 +1,6 @@
+// macOS calling integration for phone contacts picker.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 import SwiftUI
 import SeamlessCore
 
@@ -19,6 +22,7 @@ final class PhoneContactsStore: ObservableObject {
     private var deadline: Task<Void, Never>?
     var send: ((String, ControlPacket) -> Void)?
 
+    /// Loads the requested data into the component’s local model.
     func load(phoneID: String) {
         clear(phoneID: nil)
         self.phoneID = phoneID
@@ -36,6 +40,7 @@ final class PhoneContactsStore: ObservableObject {
         }
     }
 
+    /// Routes incoming data to the matching operation or session state.
     func receive(_ packet: ControlPacket, phoneID: String) {
         guard self.phoneID == phoneID, isLoading, packet.payload["token"].string == token else { return }
         if packet.type == "contactsError" {
@@ -66,6 +71,7 @@ final class PhoneContactsStore: ObservableObject {
         }
     }
 
+    /// Clears the collection owned by this component.
     func clear(phoneID: String?) {
         if let phoneID, self.phoneID != phoneID { return }
         deadline?.cancel()

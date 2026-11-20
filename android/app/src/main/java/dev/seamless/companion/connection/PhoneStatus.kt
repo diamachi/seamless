@@ -1,3 +1,6 @@
+// Android connection infrastructure for phone status.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 package dev.seamless.companion.connection
 
 import android.content.Context
@@ -9,6 +12,7 @@ import android.os.SystemClock
 import org.json.JSONObject
 
 object PhoneStatus {
+    /** Performs snapshot for phone status. */
     fun snapshot(context: Context, phoneID: String): JSONObject {
         val battery = context.registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
         val level = battery?.getIntExtra(BatteryManager.EXTRA_LEVEL, -1) ?: -1

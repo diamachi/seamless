@@ -1,11 +1,17 @@
+// macOS application presentation and coordination for clipboard text editor.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 import AppKit
 import SwiftUI
 
 struct ClipboardTextEditor: NSViewRepresentable {
+    /// Creates the delegate bridge that forwards native callbacks into SwiftUI state.
     @Binding var text: String
 
+    /// Handles make coordinator callback by translating the native window event into the owning app action.
     func makeCoordinator() -> Coordinator { Coordinator(text: $text) }
 
+    /// Creates the native AppKit view hosted by SwiftUI.
     func makeNSView(context: Context) -> NSScrollView {
         let editor = PlaceholderTextView()
         editor.font = .systemFont(ofSize: 14)
@@ -30,6 +36,7 @@ struct ClipboardTextEditor: NSViewRepresentable {
         return scroll
     }
 
+    /// Applies the latest SwiftUI state to the existing native view without recreating it.
     func updateNSView(_ scroll: NSScrollView, context: Context) {
         context.coordinator.text = $text
         guard let editor = scroll.documentView as? PlaceholderTextView else { return }
@@ -39,7 +46,9 @@ struct ClipboardTextEditor: NSViewRepresentable {
 
     final class Coordinator: NSObject, NSTextViewDelegate {
         var text: Binding<String>
+        /// Constructs ClipboardTextEditor with the dependencies and initial values supplied by its caller.
         init(text: Binding<String>) { self.text = text }
+        /// Performs text did change for clipboard text editor.
         func textDidChange(_ notification: Notification) {
             guard let editor = notification.object as? NSTextView else { return }
             text.wrappedValue = editor.string
@@ -49,6 +58,7 @@ struct ClipboardTextEditor: NSViewRepresentable {
 }
 
 private final class PlaceholderTextView: NSTextView {
+    /// Performs draw for clipboard text editor.
     override func draw(_ dirtyRect: NSRect) {
         super.draw(dirtyRect)
         guard string.isEmpty else { return }

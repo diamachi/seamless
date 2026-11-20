@@ -69,6 +69,7 @@ class PhoneServer(private val context: Context) : AutoCloseable {
     private var invitation: Invitation? = null
     private var pendingApproval: PendingApproval? = null
 
+    /** Starts this component’s operation using the provided session inputs. */
     fun start(reconnectRequested: Boolean = false) {
         if (reconnectRequested) {
             synchronized(pausedMacs) {
@@ -84,7 +85,9 @@ class PhoneServer(private val context: Context) : AutoCloseable {
         scheduler.scheduleWithFixedDelay({ bulk.expire(); publishStatus() }, 0, 5, TimeUnit.SECONDS)
     }
 
+    /** Performs create invitation for phone server. */
     @Synchronized
+    /** Handles create invitation callback by translating the native window event into the owning app action. */
     fun createInvitation(): String {
         val secret = SecureIdentity.randomSecret()
         invitation = Invitation(secret, SystemClock.elapsedRealtime() + 300_000)
@@ -104,6 +107,7 @@ class PhoneServer(private val context: Context) : AutoCloseable {
         return encoded
     }
 
+    /** Performs pair using mac qr for phone server. */
     fun pairUsingMacQr(text: String, onResult: (String?) -> Unit): dev.seamless.companion.features.MacQrPairingTask {
         val task = dev.seamless.companion.features.MacQrPairingTask()
         executor.execute {
@@ -124,7 +128,9 @@ class PhoneServer(private val context: Context) : AutoCloseable {
         return task
     }
 
+    /** Performs resolve pairing for phone server. */
     @Synchronized
+    /** Handles resolve pairing callback by translating the native window event into the owning app action. */
     fun resolvePairing(requestID: String, approved: Boolean) {
         val pending = pendingApproval ?: return
         if (pending.requestID != requestID) return
@@ -132,6 +138,7 @@ class PhoneServer(private val context: Context) : AutoCloseable {
         pending.latch.countDown()
     }
 
+    /** Reads explicitly requested local clipboard text and submits it to the selected connected peer. */
     fun sendClipboard(text: String, macID: String? = null): Boolean {
         val peer = if (macID == null) peers.values.singleOrNull() else peers[macID]
         if (peer == null || text.isEmpty() || text.length > 32_000) {
@@ -149,6 +156,7 @@ class PhoneServer(private val context: Context) : AutoCloseable {
         }
     }
 
+    /** Performs forget all macs for phone server. */
     fun forgetAllMacs() {
         identity.revokeAllPeers()
         preferences.edit().clear().commit()
@@ -157,17 +165,22 @@ class PhoneServer(private val context: Context) : AutoCloseable {
         ConnectionRuntime.update { it.copy(pairingCode = "", message = "Trusted Macs removed. Pair again to reconnect.") }
     }
 
+    /** Performs advance file queue for phone server. */
     fun advanceFileQueue() { bulk.presentNextOffer() }
 
+    /** Performs revoke browser access for phone server. */
     fun revokeBrowserAccess() { storage.revoke() }
 
+    /** Performs offer file for phone server. */
     fun offerFile(uri: Uri) { offerFiles(listOf(uri)) }
 
+    /** Revokes per-Mac contact consent and tells the Mac to clear its in-memory contact cache. */
     fun revokeContacts(macID: String) {
         preferences.edit().putBoolean("contacts_allowed.$macID", false).apply()
         peers[macID]?.let { safeSend(it, "contactsRevoked", JSONObject()) }
     }
 
+    /** Checks OS access and per-Mac consent before paging contact records over the authenticated channel. */
     fun shareContacts(request: ContactsRequest, allowed: Boolean, rememberConsent: Boolean = true) {
         if (allowed && rememberConsent) {
             preferences.edit().putBoolean("contacts_allowed.${request.macID}", true).apply()
@@ -196,6 +209,7 @@ class PhoneServer(private val context: Context) : AutoCloseable {
         }
     }
 
+    /** Performs request reconnect for phone server. */
     fun requestReconnect() {
         synchronized(pausedMacs) {
             pausedMacs.clear()
@@ -205,6 +219,7 @@ class PhoneServer(private val context: Context) : AutoCloseable {
         advertisement.start(identity.phoneID, PORT, UUID.randomUUID().toString())
     }
 
+    /** Performs disconnect mac for phone server. */
     fun disconnectMac(macID: String) {
         executor.execute {
             val peer = peers[macID] ?: return@execute
@@ -220,11 +235,13 @@ class PhoneServer(private val context: Context) : AutoCloseable {
         }
     }
 
+    /** Performs save paused macs for phone server. */
     private fun savePausedMacs() {
         context.getSharedPreferences("connection_settings", Context.MODE_PRIVATE).edit()
             .putStringSet("paused_macs", pausedMacs.toSet()).apply()
     }
 
+    /** Queues selected file URIs for the authenticated destination, registering temporary files for transfer cleanup when requested. */
     fun offerFiles(uris: List<Uri>, targetMacID: String? = null, temporary: Boolean = false): Boolean {
         val peer = if (targetMacID == null) peers.values.singleOrNull() else peers[targetMacID]
         if (peer == null) {
@@ -243,6 +260,7 @@ class PhoneServer(private val context: Context) : AutoCloseable {
         return true
     }
 
+    /** Builds a ZIP on a worker and queues it only if the original authenticated peer is still connected. */
     fun offerFolder(tree: Uri) {
         val peer = peers.values.singleOrNull() ?: return
         ConnectionRuntime.update { it.copy(isPreparingFolder = true, message = "Preparing folder ZIP…") }
@@ -262,6 +280,7 @@ class PhoneServer(private val context: Context) : AutoCloseable {
         }
     }
 
+    /** Creates a short-lived screen media grant scoped to an authenticated Mac. */
     fun prepareScreenStream(macID: String): MediaStreamSink {
         val peer = peers[macID] ?: error("The requesting Mac is disconnected")
         for (stream in screenStreams.values) stream.close()
@@ -275,11 +294,13 @@ class PhoneServer(private val context: Context) : AutoCloseable {
         return sink
     }
 
+    /** Performs screen capture ended for phone server. */
     fun screenCaptureEnded(macID: String) {
         screenStreams.remove(macID)?.close()
         peers[macID]?.let { safeSend(it, "screenEnded", JSONObject()) }
     }
 
+    /** Creates a short-lived camera media grant scoped to an authenticated Mac. */
     fun prepareCameraStream(macID: String): MediaStreamSink {
         val peer = peers[macID] ?: error("The requesting Mac is disconnected")
         for (stream in cameraStreams.values) stream.close()
@@ -293,19 +314,23 @@ class PhoneServer(private val context: Context) : AutoCloseable {
         return sink
     }
 
+    /** Performs camera capture ended for phone server. */
     fun cameraCaptureEnded(macID: String) {
         cameraStreams.remove(macID)?.close()
         peers[macID]?.let { safeSend(it, "cameraEnded", JSONObject()) }
     }
 
+    /** Performs report white balance modes for phone server. */
     fun reportWhiteBalanceModes(macID: String, modes: List<String>) {
         peers[macID]?.let { safeSend(it, "cameraWhiteBalanceModes", JSONObject().put("modes", modes.joinToString(","))) }
     }
 
+    /** Performs report camera error for phone server. */
     fun reportCameraError(macID: String, message: String) {
         peers[macID]?.let { safeSend(it, "cameraError", JSONObject().put("message", message.take(500))) }
     }
 
+    /** Performs accept file for phone server. */
     fun acceptFile(transferID: String, accepted: Boolean) {
         executor.execute {
             try {
@@ -317,6 +342,7 @@ class PhoneServer(private val context: Context) : AutoCloseable {
         }
     }
 
+    /** Performs relay notification for phone server. */
     fun relayNotification(applicationID: String, profileID: String, payload: JSONObject) {
         for (peer in peers.values) {
             if (allowsNotification(peer.id, applicationID, profileID)) {
@@ -325,12 +351,14 @@ class PhoneServer(private val context: Context) : AutoCloseable {
         }
     }
 
+    /** Performs relay notification removal for phone server. */
     fun relayNotificationRemoval(applicationID: String, profileID: String, payload: JSONObject) {
         for (peer in peers.values) {
             if (allowsNotification(peer.id, applicationID, profileID)) safeSend(peer, "notificationRemoved", payload)
         }
     }
 
+    /** Closes owned resources so sockets, buffers and pending work do not outlive their session. */
     override fun close() {
         closed = true
         advertisement.close()
@@ -356,6 +384,7 @@ class PhoneServer(private val context: Context) : AutoCloseable {
         }
     }
 
+    /** Accepts incoming local sockets and hands each connection to its authentication handler. */
     private fun acceptConnections() {
         while (!closed) {
             try {
@@ -380,6 +409,7 @@ class PhoneServer(private val context: Context) : AutoCloseable {
         }
     }
 
+    /** Performs handle connection for phone server. */
     private fun handleConnection(socket: SSLSocket) {
         var peer: MacPeer? = null
         try {
@@ -459,6 +489,7 @@ class PhoneServer(private val context: Context) : AutoCloseable {
         }
     }
 
+    /** Waits for explicit trust approval before recording a new Mac credential. */
     private fun authorizeNewMac(payload: JSONObject, channel: ControlChannel, macID: String, macName: String) {
         val pending = synchronized(this) {
             val active = invitation ?: error("Create a new pairing invitation")
@@ -483,6 +514,7 @@ class PhoneServer(private val context: Context) : AutoCloseable {
         }
     }
 
+    /** Performs dispatch for phone server. */
     private fun dispatch(peer: MacPeer, packet: JSONObject) {
         require(identity.hasPeer(peer.id)) { "Mac trust has been revoked" }
         val payload = packet.optJSONObject("payload") ?: JSONObject()
@@ -605,6 +637,7 @@ class PhoneServer(private val context: Context) : AutoCloseable {
         }
     }
 
+    /** Authenticates a one-use media grant before attaching its socket to the matching stream. */
     private fun handleMediaSocket(socket: SSLSocket, macID: String, payload: JSONObject) {
         val expected = identity.peerCredential(macID) ?: error("Mac is not paired")
         require(SecureIdentity.secretsMatch(expected, payload.getString("credential")) && peers.containsKey(macID))
@@ -633,6 +666,7 @@ class PhoneServer(private val context: Context) : AutoCloseable {
         }
     }
 
+    /** Checks the persisted peer-specific app allow-list and pause state. */
     private fun allowsNotification(macID: String, packageName: String, profileID: String): Boolean {
         val stored = preferences.getString("policy.$macID", null) ?: return false
         val policy = JSONObject(stored)
@@ -645,12 +679,14 @@ class PhoneServer(private val context: Context) : AutoCloseable {
         return false
     }
 
+    /** Expires stale media grants and sends current phone status to authenticated peers. */
     private fun publishStatus() {
         if (closed) return
         mediaGrants.entries.removeAll { it.value.expiresAt <= SystemClock.elapsedRealtime() }
         for (peer in peers.values) safeSend(peer, "status", PhoneStatus.snapshot(context, identity.phoneID))
     }
 
+    /** Performs safe send for phone server. */
     private fun safeSend(peer: MacPeer, type: String, payload: JSONObject) {
         try {
             peer.channel.send(type, payload)
@@ -659,6 +695,7 @@ class PhoneServer(private val context: Context) : AutoCloseable {
         }
     }
 
+    /** Publishes peer identities and details only when this server still owns the shared runtime. */
     private fun updateConnectedMacs() {
         if (ConnectionRuntime.server !== this) return
         val connected = peers.values.sortedBy { it.id }

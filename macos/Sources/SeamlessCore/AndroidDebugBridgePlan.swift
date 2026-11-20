@@ -1,3 +1,6 @@
+// Shared protocol/model rules for android debug bridge plan.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 import Foundation
 
 public struct AndroidDebugDevice: Identifiable, Equatable, Sendable {
@@ -7,6 +10,7 @@ public struct AndroidDebugDevice: Identifiable, Equatable, Sendable {
     public let isUSB: Bool
     public var id: String { serial }
 
+    /// Performs parse list for android debug bridge plan.
     public static func parseList(_ output: String) -> [AndroidDebugDevice] {
         var devices: [AndroidDebugDevice] = []
         for line in output.split(separator: "\n") {
@@ -21,6 +25,7 @@ public struct AndroidDebugDevice: Identifiable, Equatable, Sendable {
         return devices
     }
 
+    /// Evaluates is valid serial against the current model or supplied input.
     public static func isValidSerial(_ serial: String) -> Bool {
         guard !serial.isEmpty, serial.count <= 200, !serial.hasPrefix("-") else { return false }
         return serial.unicodeScalars.allSatisfy { scalar in
@@ -30,20 +35,24 @@ public struct AndroidDebugDevice: Identifiable, Equatable, Sendable {
 }
 
 public enum AndroidDebugBridgePlan {
+    /// Performs forward for android debug bridge plan.
     public static func forward(serial: String, remotePort: UInt16) throws -> [String] {
         guard AndroidDebugDevice.isValidSerial(serial), remotePort > 0 else { throw PlanError.invalidDevice }
         return ["-s", serial, "forward", "tcp:0", "tcp:\(remotePort)"]
     }
 
+    /// Performs remove forward for android debug bridge plan.
     public static func removeForward(serial: String, localPort: UInt16) throws -> [String] {
         guard AndroidDebugDevice.isValidSerial(serial), localPort > 0 else { throw PlanError.invalidDevice }
         return ["-s", serial, "forward", "--remove", "tcp:\(localPort)"]
     }
 
+    /// Performs validate package name for android debug bridge plan.
     public static func validatePackageName(_ packageName: String) throws {
         if !isValidPackageName(packageName) { throw PlanError.invalidDevice }
     }
 
+    /// Evaluates is valid package name against the current model or supplied input.
     private static func isValidPackageName(_ name: String) -> Bool {
         guard name.count <= 255 else { return false }
         let components = name.split(separator: ".", omittingEmptySubsequences: false)

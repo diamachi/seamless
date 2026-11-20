@@ -1,3 +1,6 @@
+// macOS application presentation and coordination for phone illustration.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 import SwiftUI
 
 struct PhoneIllustration: View {

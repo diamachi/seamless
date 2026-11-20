@@ -1,3 +1,6 @@
+// Android Compose presentation and user actions for received text cards.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 package dev.seamless.companion.ui
 
 import android.content.Intent
@@ -13,7 +16,9 @@ import androidx.compose.ui.unit.dp
 import dev.seamless.companion.connection.CompanionConnectionState
 import dev.seamless.companion.connection.ConnectionRuntime
 
+/** Composes the received text cards interface from state and supplied callbacks. */
 @Composable
+/** Handles received text cards callback by translating the native window event into the owning app action. */
 internal fun ReceivedTextCards(state: CompanionConnectionState) {
     val context = LocalContext.current
     CompanionCard("Received text") {
@@ -37,7 +42,9 @@ internal fun ReceivedTextCards(state: CompanionConnectionState) {
     }
 }
 
+/** Composes the notification overview card interface from state and supplied callbacks. */
 @Composable
+/** Handles notification overview card callback by translating the native window event into the owning app action. */
 internal fun NotificationOverviewCard() {
     val context = LocalContext.current
     CompanionCard("Notifications") {
@@ -51,8 +58,10 @@ internal fun NotificationOverviewCard() {
     }
 }
 
+/** Composes the send text composer interface from state and supplied callbacks. */
 
 @Composable
+/** Handles send text composer callback by translating the native window event into the owning app action. */
 internal fun SendTextComposer(state: CompanionConnectionState) {
     var text by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf("") }
     CompanionCard("Send text to Mac") {

@@ -1,3 +1,6 @@
+// macOS calling integration for call audio pipe.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 @preconcurrency import AVFoundation
 import AudioToolbox
 import CoreAudio
@@ -21,6 +24,7 @@ final class CallAudioPipe: @unchecked Sendable {
     private var muted = false
     private var generation = UUID()
 
+    /// Performs set muted for call audio pipe.
     func setMuted(_ muted: Bool) {
         admission.withLock { self.muted = muted }
         worker.async { [self] in
@@ -29,6 +33,7 @@ final class CallAudioPipe: @unchecked Sendable {
         }
     }
 
+    /// Starts this component’s operation using the provided session inputs.
     func start(input: AudioDeviceID, output: AudioDeviceID) throws {
         try worker.sync {
             do {
@@ -47,8 +52,10 @@ final class CallAudioPipe: @unchecked Sendable {
         }
     }
 
+    /// Stops the current operation and releases its active resources.
     func stop() { worker.sync { stopOnWorker() } }
 
+    /// Performs make capture for call audio pipe.
     private func makeCapture(device: AudioDeviceID) throws -> AVAudioFormat {
         var componentDescription = AudioComponentDescription(componentType: kAudioUnitType_Output,
             componentSubType: kAudioUnitSubType_HALOutput, componentManufacturer: kAudioUnitManufacturer_Apple,
@@ -76,6 +83,7 @@ final class CallAudioPipe: @unchecked Sendable {
         return format
     }
 
+    /// Performs read capture format for call audio pipe.
     private func readCaptureFormat() throws -> AVAudioFormat {
         var hardware = AudioStreamBasicDescription()
         var size = UInt32(MemoryLayout.size(ofValue: hardware))
@@ -89,6 +97,7 @@ final class CallAudioPipe: @unchecked Sendable {
         return format
     }
 
+    /// Performs capture frames for call audio pipe.
     private func captureFrames(flags: UnsafeMutablePointer<AudioUnitRenderActionFlags>, timestamp: UnsafePointer<AudioTimeStamp>, count: UInt32) -> OSStatus {
         guard admission.try() else { return noErr }
         let accepted = running && !muted && queuedBuffers < 4 && count <= 8192
@@ -110,8 +119,10 @@ final class CallAudioPipe: @unchecked Sendable {
         return noErr
     }
 
+    /// Performs release buffer for call audio pipe.
     private func releaseBuffer() { admission.withLock { queuedBuffers = max(0, queuedBuffers - 1) } }
 
+    /// Performs stop on worker for call audio pipe.
     private func stopOnWorker() {
         admission.withLock { running = false; generation = UUID() }
         if let capture {
@@ -125,12 +136,14 @@ final class CallAudioPipe: @unchecked Sendable {
         engine.stop()
     }
 
+    /// Performs set property for call audio pipe.
     private func setProperty<T>(_ property: AudioUnitPropertyID, scope: AudioUnitScope, element: AudioUnitElement, value: inout T) throws {
         try withUnsafePointer(to: &value) { pointer in
             try check(AudioUnitSetProperty(capture!, property, scope, element, pointer, UInt32(MemoryLayout<T>.size)), operation: "Configure audio device")
         }
     }
 
+    /// Performs check for call audio pipe.
     private func check(_ status: OSStatus, operation: String) throws {
         if status != noErr { throw CallAudioFailure(description: "\(operation) failed (\(status)). Return audio to the phone and check the selected devices.") }
     }

@@ -1,3 +1,6 @@
+// Android feature implementation for file exchange.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 package dev.seamless.companion.features
 
 import android.content.Context
@@ -27,6 +30,7 @@ class FileExchange(private val context: Context) : AutoCloseable {
     private val outgoing = mutableMapOf<String, OutgoingFile>()
     private val incoming = mutableMapOf<String, IncomingFile>()
 
+    /** Performs offer for file exchange. */
     fun offer(uri: Uri, peer: MacPeer) {
         val bytes = readBounded(uri)
         val name = documentName(uri)
@@ -41,7 +45,9 @@ class FileExchange(private val context: Context) : AutoCloseable {
         ConnectionRuntime.update { it.copy(message = "Waiting for your Mac to accept $name") }
     }
 
+    /** Performs handle for file exchange. */
     @Synchronized
+    /** Handles handle callback by translating the native window event into the owning app action. */
     fun handle(peer: MacPeer, type: String, payload: JSONObject) {
         val transferID = payload.getString("transferID")
         require(transferID.matches(Regex("[a-zA-Z0-9-]{1,64}")))
@@ -58,7 +64,9 @@ class FileExchange(private val context: Context) : AutoCloseable {
         }
     }
 
+    /** Accepts a pending offer and prepares the selected local destination. */
     @Synchronized
+    /** Handles accept callback by translating the native window event into the owning app action. */
     fun accept(transferID: String) {
         val transfer = incoming[transferID] ?: return
         require(SystemClock.elapsedRealtime() - transfer.createdAt < 120_000)
@@ -67,19 +75,24 @@ class FileExchange(private val context: Context) : AutoCloseable {
         ConnectionRuntime.update { it.copy(incomingFileOffer = null, message = "Receiving ${transfer.name}") }
     }
 
+    /** Declines a pending offer and releases its transfer state. */
     @Synchronized
+    /** Handles reject callback by translating the native window event into the owning app action. */
     fun reject(transferID: String) {
         val transfer = incoming[transferID] ?: return
         transfer.peer.channel.send("fileCancel", JSONObject().put("transferID", transferID))
         cancel(transfer.peer.id, transferID)
     }
 
+    /** Disconnects the selected session and cancels operations scoped to it. */
     @Synchronized
+    /** Handles disconnect callback by translating the native window event into the owning app action. */
     fun disconnect(peerID: String) {
         incoming.filterValues { it.peer.id == peerID }.keys.toList().forEach { cancel(peerID, it) }
         outgoing.entries.removeAll { it.value.peerID == peerID }
     }
 
+    /** Closes owned resources so sockets, buffers and pending work do not outlive their session. */
     @Synchronized
     override fun close() {
         for (transfer in incoming.values) { transfer.output?.close(); transfer.path.delete() }
@@ -87,6 +100,7 @@ class FileExchange(private val context: Context) : AutoCloseable {
         outgoing.clear()
     }
 
+    /** Performs receive offer for file exchange. */
     private fun receiveOffer(peer: MacPeer, transferID: String, payload: JSONObject) {
         val name = payload.getString("name")
         val size = payload.getLong("size")
@@ -101,6 +115,7 @@ class FileExchange(private val context: Context) : AutoCloseable {
         dev.seamless.companion.connection.ConnectionService.notifyFileRequest(context, name)
     }
 
+    /** Performs receive chunk for file exchange. */
     private fun receiveChunk(peer: MacPeer, transferID: String, payload: JSONObject) {
         val transfer = incoming[transferID] ?: error("Unknown transfer")
         require(transfer.peer.id == peer.id && transfer.output != null)
@@ -113,6 +128,7 @@ class FileExchange(private val context: Context) : AutoCloseable {
         transfer.receivedBytes += bytes.size
     }
 
+    /** Performs finish receiving for file exchange. */
     private fun finishReceiving(peer: MacPeer, transferID: String) {
         val transfer = incoming[transferID] ?: error("Unknown transfer")
         require(transfer.peer.id == peer.id && transfer.output != null && transfer.receivedBytes == transfer.size)
@@ -125,6 +141,7 @@ class FileExchange(private val context: Context) : AutoCloseable {
         peer.channel.send("fileComplete", JSONObject().put("transferID", transferID))
     }
 
+    /** Performs send file for file exchange. */
     private fun sendFile(peer: MacPeer, transferID: String) {
         val transfer = outgoing[transferID] ?: error("Unknown transfer")
         require(transfer.peerID == peer.id && SystemClock.elapsedRealtime() - transfer.createdAt < 120_000)
@@ -138,6 +155,7 @@ class FileExchange(private val context: Context) : AutoCloseable {
         peer.channel.send("fileFinish", JSONObject().put("transferID", transferID), waitForCapacity = true)
     }
 
+    /** Performs cancel for file exchange. */
     private fun cancel(peerID: String, transferID: String) {
         val transfer = incoming[transferID]
         if (transfer != null && transfer.peer.id == peerID) {
@@ -149,6 +167,7 @@ class FileExchange(private val context: Context) : AutoCloseable {
         if (outgoing[transferID]?.peerID == peerID) outgoing.remove(transferID)
     }
 
+    /** Performs read bounded for file exchange. */
     private fun readBounded(uri: Uri): ByteArray {
         val output = ByteArrayOutputStream()
         context.contentResolver.openInputStream(uri).use { input ->
@@ -164,6 +183,7 @@ class FileExchange(private val context: Context) : AutoCloseable {
         return output.toByteArray()
     }
 
+    /** Performs document name for file exchange. */
     private fun documentName(uri: Uri): String {
         context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null).use { cursor ->
             if (cursor != null && cursor.moveToFirst()) return cursor.getString(0).replace('/', '_').replace('\\', '_').take(255)

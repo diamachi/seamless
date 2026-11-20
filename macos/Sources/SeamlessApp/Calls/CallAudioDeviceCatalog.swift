@@ -1,3 +1,6 @@
+// macOS calling integration for call audio device catalog.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 import Combine
 import CoreAudio
 import Foundation
@@ -17,6 +20,7 @@ final class CallAudioDeviceCatalog: ObservableObject {
     var onChange: (() -> Void)?
     private var listener: AudioObjectPropertyListenerBlock?
 
+    /// Starts this component’s operation using the provided session inputs.
     func start() {
         guard listener == nil else { refresh(); return }
         let listener: AudioObjectPropertyListenerBlock = { [weak self] _, _ in
@@ -28,6 +32,7 @@ final class CallAudioDeviceCatalog: ObservableObject {
         refresh()
     }
 
+    /// Stops the current operation and releases its active resources.
     func stop() {
         guard let listener else { return }
         var property = Self.address(kAudioHardwarePropertyDevices)
@@ -35,6 +40,7 @@ final class CallAudioDeviceCatalog: ObservableObject {
         self.listener = nil
     }
 
+    /// Refreshes the model from its current system or transport source.
     func refresh() {
         var property = Self.address(kAudioHardwarePropertyDevices)
         var size: UInt32 = 0
@@ -56,6 +62,7 @@ final class CallAudioDeviceCatalog: ObservableObject {
         onChange?()
     }
 
+    /// Performs resolve for call audio device catalog.
     func resolve(_ uid: String, input: Bool) -> CallAudioDevice? {
         if uid == "system" {
             let selector = input ? kAudioHardwarePropertyDefaultInputDevice : kAudioHardwarePropertyDefaultOutputDevice
@@ -65,10 +72,12 @@ final class CallAudioDeviceCatalog: ObservableObject {
         return devices.first { $0.uid == uid && (input ? $0.hasInput : $0.hasOutput) }
     }
 
+    /// Performs address for call audio device catalog.
     private static func address(_ selector: AudioObjectPropertySelector, scope: AudioObjectPropertyScope = kAudioObjectPropertyScopeGlobal) -> AudioObjectPropertyAddress {
         AudioObjectPropertyAddress(mSelector: selector, mScope: scope, mElement: kAudioObjectPropertyElementMain)
     }
 
+    /// Performs string for call audio device catalog.
     private static func string(_ device: AudioObjectID, selector: AudioObjectPropertySelector) -> String? {
         var property = address(selector)
         var value: Unmanaged<CFString>?
@@ -77,6 +86,7 @@ final class CallAudioDeviceCatalog: ObservableObject {
         return value?.takeRetainedValue() as String?
     }
 
+    /// Performs integer for call audio device catalog.
     private static func integer(_ device: AudioObjectID, selector: AudioObjectPropertySelector) -> UInt32 {
         var property = address(selector)
         var value: UInt32 = 0
@@ -85,6 +95,7 @@ final class CallAudioDeviceCatalog: ObservableObject {
         return value
     }
 
+    /// Evaluates has streams against the current model or supplied input.
     private static func hasStreams(_ device: AudioDeviceID, scope: AudioObjectPropertyScope) -> Bool {
         var property = address(kAudioDevicePropertyStreams, scope: scope)
         var size: UInt32 = 0

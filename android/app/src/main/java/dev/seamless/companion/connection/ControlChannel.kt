@@ -1,3 +1,6 @@
+// Android connection infrastructure for control channel.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 package dev.seamless.companion.connection
 
 import org.json.JSONObject
@@ -23,6 +26,7 @@ class ControlChannel(private val socket: Socket) : AutoCloseable {
     private val isClosed = AtomicBoolean(false)
     private val sender = Thread({ sendQueuedMessages() }, "SeamlessControlSender").apply { start() }
 
+    /** Reads the requested representation from the owned input interface. */
     fun read(): JSONObject? {
         val buffer = ByteArrayOutputStream()
         while (true) {
@@ -40,6 +44,7 @@ class ControlChannel(private val socket: Socket) : AutoCloseable {
         return packet
     }
 
+    /** Submits an outgoing operation through this component’s transport or action handler. */
     fun send(type: String, payload: JSONObject = JSONObject(), requestID: String = UUID.randomUUID().toString(), waitForCapacity: Boolean = false) {
         val bytes = encodePacket(type, payload, requestID)
         check(!isClosed.get()) { "Connection is closed" }
@@ -48,6 +53,7 @@ class ControlChannel(private val socket: Socket) : AutoCloseable {
         check(enqueued) { "Connection is congested" }
     }
 
+    /** Performs send and wait for control channel. */
     fun sendAndWait(type: String) {
         val completion = ControlWriteCompletion()
         val write = QueuedControlWrite(encodePacket(type, JSONObject(), UUID.randomUUID().toString()), completion)
@@ -55,6 +61,7 @@ class ControlChannel(private val socket: Socket) : AutoCloseable {
         check(completion.latch.await(5, TimeUnit.SECONDS) && completion.successful) { "Connection write did not complete" }
     }
 
+    /** Performs encode packet for control channel. */
     private fun encodePacket(type: String, payload: JSONObject, requestID: String): ByteArray {
         val packet = JSONObject().put("version", 1).put("id", requestID).put("type", type).put("payload", payload)
         val bytes = (packet.toString() + "\n").toByteArray(Charsets.UTF_8)
@@ -62,15 +69,19 @@ class ControlChannel(private val socket: Socket) : AutoCloseable {
         return bytes
     }
 
+    /** Performs bulk input for control channel. */
     fun bulkInput(): java.io.InputStream = input
+    /** Performs bulk output for control channel. */
     fun bulkOutput(): java.io.OutputStream = output
 
+    /** Performs send direct for control channel. */
     fun sendDirect(type: String) {
         val packet = JSONObject().put("version", 1).put("id", UUID.randomUUID().toString()).put("type", type).put("payload", JSONObject())
         output.write((packet.toString() + "\n").toByteArray(Charsets.UTF_8))
         output.flush()
     }
 
+    /** Closes owned resources so sockets, buffers and pending work do not outlive their session. */
     override fun close() {
         if (!isClosed.compareAndSet(false, true)) return
         socket.close()
@@ -78,6 +89,7 @@ class ControlChannel(private val socket: Socket) : AutoCloseable {
         outgoing.clear()
     }
 
+    /** Performs send queued messages for control channel. */
     private fun sendQueuedMessages() {
         try {
             while (!isClosed.get()) {

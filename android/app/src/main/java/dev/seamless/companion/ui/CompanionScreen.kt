@@ -1,3 +1,6 @@
+// Android Compose presentation and user actions for companion screen.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 package dev.seamless.companion.ui
 
 import android.os.Build
@@ -28,7 +31,9 @@ import androidx.compose.ui.unit.dp
 import dev.seamless.companion.screen.BenchmarkSnapshot
 import java.util.Locale
 
+/** Composes the companion screen interface from state and supplied callbacks. */
 @Composable
+/** Handles companion screen callback by translating the native window event into the owning app action. */
 fun CompanionScreen(
     benchmark: BenchmarkSnapshot,
     initialFrameRate: Int,
@@ -102,7 +107,9 @@ fun CompanionScreen(
     }
 }
 
+/** Composes the benchmark results interface from state and supplied callbacks. */
 @Composable
+/** Handles benchmark results callback by translating the native window event into the owning app action. */
 private fun BenchmarkResults(benchmark: BenchmarkSnapshot) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {

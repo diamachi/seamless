@@ -1,3 +1,6 @@
+// macOS calling integration for overview calls shortcut.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 import SwiftUI
 
 struct OverviewCallsShortcut: View {

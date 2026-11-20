@@ -1,3 +1,6 @@
+// macOS application presentation and coordination for photos workspace view.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 import AppKit
 import SwiftUI
 
@@ -101,6 +104,7 @@ struct PhotosWorkspaceView: View {
         }
     }
 
+    /// Performs save selection for photos workspace view.
     private func saveSelection() {
         guard let phoneID = preferencesStore.preferences.selectedPhoneID else { return }
         guard let directory = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask).first else { return }

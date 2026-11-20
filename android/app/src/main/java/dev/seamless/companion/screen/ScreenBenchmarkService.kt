@@ -1,3 +1,6 @@
+// Android screen-capture pipeline for screen benchmark service.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 package dev.seamless.companion.screen
 
 import android.app.Activity
@@ -23,12 +26,14 @@ class ScreenBenchmarkService : Service() {
     private var hasStarted = false
     private var activeTargetMacID: String? = null
 
+    /** Initializes Android-owned resources when this component is created. */
     override fun onCreate() {
         super.onCreate()
         workerThread.start()
         worker = Handler(workerThread.looper)
     }
 
+    /** Handles foreground-service commands and selects the service restart policy. */
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_STOP) {
             stopSelf()
@@ -57,8 +62,10 @@ class ScreenBenchmarkService : Service() {
         return START_NOT_STICKY
     }
 
+    /** Implements the Android binding contract for this service. */
     override fun onBind(intent: Intent?): IBinder? = null
 
+    /** Releases this component’s resources when Android destroys it; ownership checks protect replacement sessions. */
     override fun onDestroy() {
         worker.post {
             try {
@@ -81,6 +88,7 @@ class ScreenBenchmarkService : Service() {
         super.onDestroy()
     }
 
+    /** Performs start capture for screen benchmark service. */
     private fun startCapture(consent: Intent, framesPerSecond: Int, maximumDimension: Int, targetMacID: String?) {
         try {
             val metrics = resources.displayMetrics
@@ -105,6 +113,7 @@ class ScreenBenchmarkService : Service() {
         }
     }
 
+    /** Performs finish with failure for screen benchmark service. */
     private fun finishWithFailure(exception: Exception) {
         BenchmarkState.publish(BenchmarkState.snapshot.value.copy(
             isRunning = false, message = exception.message ?: "Screen capture failed"
@@ -112,6 +121,7 @@ class ScreenBenchmarkService : Service() {
         stopSelf()
     }
 
+    /** Promotes capture to an Android foreground service before protected capture APIs are used. */
     private fun enterForeground() {
         val manager = getSystemService(NotificationManager::class.java)
         if (Build.VERSION.SDK_INT >= 26) {
@@ -139,7 +149,9 @@ class ScreenBenchmarkService : Service() {
         }
     }
 
+    /** Performs read projection consent for screen benchmark service. */
     @Suppress("DEPRECATION")
+    /** Handles read projection consent callback by translating the native window event into the owning app action. */
     private fun readProjectionConsent(intent: Intent): Intent? {
         if (Build.VERSION.SDK_INT >= 33) {
             return intent.getParcelableExtra(EXTRA_PROJECTION_CONSENT, Intent::class.java)

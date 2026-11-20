@@ -1,10 +1,15 @@
+// Tests for PhoneWallpaperStoreTests and the behavior owned by its target module.
+// Keep assertions focused on externally visible results and failure boundaries.
+
 import AppKit
 import Testing
 @testable import SeamlessApp
 
 @MainActor
 struct PhoneWallpaperStoreTests {
+    /// Checks selected wallpapers stay with their phone and survive reload by exercising its expected result and a relevant invalid or boundary input.
     @Test
+    /// Builds selected wallpapers stay with their phone and survive reload from deterministic test inputs and returns the protocol response.
     func selectedWallpapersStayWithTheirPhoneAndSurviveReload() throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: directory) }

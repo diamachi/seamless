@@ -1,3 +1,6 @@
+// Tests for MacQrPairingTests and the behavior owned by its target module.
+// Keep assertions focused on externally visible results and failure boundaries.
+
 import AppKit
 import CoreImage
 import Darwin
@@ -9,6 +12,7 @@ import Vision
 
 @MainActor
 struct MacQrPairingTests {
+    /// Exercises rendered qr receives one authenticated invitation and rejects old session through the expected result and relevant rejection assertions.
     @Test func renderedQrReceivesOneAuthenticatedInvitationAndRejectsOldSession() async throws {
         let coordinator = MacQrPairingCoordinator()
         defer { coordinator.stop() }
@@ -33,6 +37,7 @@ struct MacQrPairingTests {
         #expect(coordinator.image == nil)
         #expect(coordinator.expiresAt == nil)
     }
+    /// Checks read offer by exercising its expected result and a relevant invalid or boundary input.
 
     private func readOffer(_ coordinator: MacQrPairingCoordinator) async throws -> MacQrPairingOffer {
         let deadline = Date().addingTimeInterval(5)
@@ -50,6 +55,7 @@ struct MacQrPairingTests {
         let data = try #require(Data(base64Encoded: String(text.dropFirst("seamlessmac1:".count))))
         return try JSONDecoder().decode(MacQrPairingOffer.self, from: data)
     }
+    /// Checks phone invitation by exercising its expected result and a relevant invalid or boundary input.
 
     private func phoneInvitation() throws -> String {
         let fields: [String: Any] = ["version": 1, "phoneID": UUID().uuidString, "name": "Test phone",
@@ -57,6 +63,7 @@ struct MacQrPairingTests {
             "secret": Data(repeating: 7, count: 32).base64EncodedString()]
         return "seamless1:" + (try JSONSerialization.data(withJSONObject: fields)).base64EncodedString()
     }
+    /// Builds packet from deterministic inputs used by the test cases in this file.
 
     private func packet(offer: MacQrPairingOffer, invitation: String) throws -> Data {
         let encrypted = try offer.seal(Data(invitation.utf8), purpose: "request")
@@ -66,6 +73,7 @@ struct MacQrPairingTests {
         return data
     }
 
+    /// Builds exchange from deterministic test inputs and returns the protocol response.
     nonisolated private static func exchange(port: UInt16, request: Data) async throws -> Data {
         try await Task.detached {
             let socket = Darwin.socket(AF_INET, SOCK_STREAM, 0)

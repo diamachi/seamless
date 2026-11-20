@@ -1,3 +1,6 @@
+// macOS application presentation and coordination for diagnostics console.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 import AppKit
 import SwiftUI
 
@@ -5,9 +8,11 @@ import SwiftUI
 @MainActor
 final class DiagnosticsConsole: ObservableObject {
     static let shared = DiagnosticsConsole()
+    /// Performs record for diagnostics console.
     @Published var isEnabled = false
     @Published private(set) var lines: [String] = []
 
+    /// Handles record callback by translating the native window event into the owning app action.
     func record(_ event: String) {
         guard isEnabled else { return }
         let timestamp = Date().formatted(date: .omitted, time: .standard)
@@ -15,6 +20,7 @@ final class DiagnosticsConsole: ObservableObject {
         if lines.count > 500 { lines.removeFirst(lines.count - 500) }
     }
 
+    /// Clears the collection owned by this component.
     func clear() { lines = [] }
 
     /// Copies bounded diagnostic events plus version context. Event producers omit private payloads before recording.

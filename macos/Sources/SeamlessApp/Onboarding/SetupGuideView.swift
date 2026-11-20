@@ -1,3 +1,6 @@
+// macOS application presentation and coordination for setup guide view.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 import SwiftUI
 import SeamlessCore
 
@@ -146,6 +149,7 @@ private struct SetupMacPermissions: View {
             if !setup.message.isEmpty { Text(setup.message).font(.caption).foregroundStyle(.secondary) }
         }
     }
+    /// Performs permission for setup guide view.
     private func permission(_ title: String, purpose: String, status: String, action: String, perform: @escaping () -> Void) -> some View {
         HStack(spacing: 20) {
             VStack(alignment: .leading, spacing: 5) {
@@ -179,6 +183,7 @@ private struct DownloadsSetupCard: View {
         }
     }
 
+    /// Performs check downloads access for setup guide view.
     private func checkDownloadsAccess() {
         do {
             let directory = try FileManager.default.url(for: .downloadsDirectory, in: .userDomainMask, appropriateFor: nil, create: true)

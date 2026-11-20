@@ -1,3 +1,6 @@
+// Android screen-capture pipeline for media stream sink.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 package dev.seamless.companion.screen
 
 import org.json.JSONObject
@@ -18,11 +21,14 @@ class MediaStreamSink : AutoCloseable {
     @Volatile var requestKeyFrame: (() -> Unit)? = null
     val isAvailable: Boolean get() = !closed && socket?.isClosed == false
 
+    /** Configures this component using the supplied settings and its current dependencies. */
     fun configure(payload: JSONObject) {
         format = payload.toString().toByteArray(Charsets.UTF_8)
     }
 
+    /** Performs attach for media stream sink. */
     @Synchronized
+    /** Handles attach callback by translating the native window event into the owning app action. */
     fun attach(connection: Socket) {
         check(!closed)
         socket?.close()
@@ -39,7 +45,9 @@ class MediaStreamSink : AutoCloseable {
         requestKeyFrame?.invoke()
     }
 
+    /** Performs offer for media stream sink. */
     @Synchronized
+    /** Handles offer callback by translating the native window event into the owning app action. */
     fun offer(bytes: ByteArray, presentationTimeMicroseconds: Long, isKeyFrame: Boolean) {
         if (closed || socket == null || format == null || bytes.size > 4 * 1024 * 1024) return
         if (awaitingKeyFrame && !isKeyFrame) return
@@ -52,6 +60,7 @@ class MediaStreamSink : AutoCloseable {
         }
     }
 
+    /** Closes owned resources so sockets, buffers and pending work do not outlive their session. */
     override fun close() {
         closed = true
         requestKeyFrame = null
@@ -60,6 +69,7 @@ class MediaStreamSink : AutoCloseable {
         frames.clear()
     }
 
+    /** Performs write frames for media stream sink. */
     private fun writeFrames(connection: Socket) {
         try {
             val output = DataOutputStream(BufferedOutputStream(connection.getOutputStream()))
@@ -85,6 +95,7 @@ class MediaStreamSink : AutoCloseable {
         }
     }
 
+    /** Writes one length-delimited media record with its timestamp and kind. */
     private fun writeRecord(output: DataOutputStream, kind: Int, presentationTime: Long, bytes: ByteArray) {
         output.writeByte(kind)
         output.writeInt(bytes.size)

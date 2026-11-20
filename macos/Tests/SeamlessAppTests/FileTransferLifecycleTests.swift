@@ -1,3 +1,6 @@
+// Tests for FileTransferLifecycleTests and the behavior owned by its target module.
+// Keep assertions focused on externally visible results and failure boundaries.
+
 import Foundation
 import Testing
 import SeamlessCore
@@ -5,7 +8,9 @@ import SeamlessCore
 
 @MainActor
 struct FileTransferLifecycleTests {
+    /// Checks one phone cannot cancel another phones offer by exercising its expected result and a relevant invalid or boundary input.
     @Test
+    /// Builds one phone cannot cancel another phones offer from deterministic test inputs and returns the protocol response.
     func onePhoneCannotCancelAnotherPhonesOffer() {
         let transfers = FileTransfers()
         transfers.receive(offer(id: "incoming-1"), phoneID: "phone-a")
@@ -14,8 +19,9 @@ struct FileTransferLifecycleTests {
         transfers.receive(ControlPacket(type: "fileCancel", payload: .object(["transferID": .string("incoming-1")])), phoneID: "phone-a")
         #expect(transfers.offers.isEmpty)
     }
-
+    /// Checks unaccepted offer expires and notifies its original phone by exercising its expected result and a relevant invalid or boundary input.
     @Test
+    /// Builds unaccepted offer expires and notifies its original phone from deterministic test inputs and returns the protocol response.
     func unacceptedOfferExpiresAndNotifiesItsOriginalPhone() async throws {
         let transfers = FileTransfers(transferTimeout: .milliseconds(20))
         var cancellationPhoneID: String?
@@ -32,8 +38,9 @@ struct FileTransferLifecycleTests {
         #expect(transfers.offers.isEmpty)
         #expect(cancellationPhoneID == "phone-a")
     }
-
+    /// Checks cancelling an outgoing file releases its memory and rejects late acceptance by exercising its expected result and a relevant invalid or boundary input.
     @Test
+    /// Builds cancelling an outgoing file releases its memory and rejects late acceptance from deterministic test inputs and returns the protocol response.
     func cancellingAnOutgoingFileReleasesItsMemoryAndRejectsLateAcceptance() throws {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try Data("Seamless test".utf8).write(to: url)
@@ -49,6 +56,7 @@ struct FileTransferLifecycleTests {
         #expect(!packets.contains("fileChunk"))
         #expect(packets.contains("fileCancel"))
     }
+    /// Checks offer by exercising its expected result and a relevant invalid or boundary input.
 
     private func offer(id: String) -> ControlPacket {
         ControlPacket(type: "fileOffer", payload: .object([

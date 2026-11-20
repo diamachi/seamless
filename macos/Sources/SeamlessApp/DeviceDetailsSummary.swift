@@ -1,3 +1,6 @@
+// macOS application presentation and coordination for device details summary.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 import SwiftUI
 import SeamlessCore
 
@@ -42,6 +45,7 @@ struct DeviceDetailsSummary: View {
         }
     }
 
+    /// Performs detail for device details summary.
     private func detail(_ title: String, value: String, symbol: String) -> some View {
         VStack(alignment: .leading, spacing: 7) {
             Label(title, systemImage: symbol).font(.system(size: 11)).foregroundStyle(.secondary)
@@ -49,6 +53,7 @@ struct DeviceDetailsSummary: View {
         }.frame(maxWidth: .infinity, alignment: .leading)
     }
 
+    /// Performs storage size for device details summary.
     private func storageSize(_ bytes: Int64) -> String {
         ByteCountFormatter.string(fromByteCount: bytes, countStyle: .file)
     }

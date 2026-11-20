@@ -1,3 +1,6 @@
+// macOS application presentation and coordination for notification settings view.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 import SwiftUI
 import SeamlessCore
 
@@ -59,6 +62,7 @@ struct NotificationSettingsView: View {
         }
     }
 
+    /// Performs application settings for notification settings view.
     private func applicationSettings(phoneID: String) -> some View {
         VStack(alignment: .leading, spacing: 16) {
             TextField("Find an app", text: $viewState.search)
@@ -81,6 +85,7 @@ struct NotificationSettingsView: View {
         }
     }
 
+    /// Performs notification feed for notification settings view.
     private func notificationFeed(phoneID: String) -> some View {
         let notifications = connections.notifications.filter { $0.phoneID == phoneID }
         return VStack(alignment: .leading, spacing: 16) {
@@ -109,12 +114,14 @@ struct NotificationSettingsView: View {
         }
     }
 
+    /// Performs filtered applications for notification settings view.
     private func filteredApplications(phoneID: String) -> [PhoneApplication] {
         (connections.applications[phoneID] ?? []).filter {
             viewState.search.isEmpty || $0.name.localizedCaseInsensitiveContains(viewState.search)
         }
     }
 
+    /// Performs application binding for notification settings view.
     private func applicationBinding(_ application: AndroidApplicationIdentity) -> Binding<Bool> {
         Binding(
             get: { preferencesStore.preferences.selectedPhone?.preferences.notifications.allowedApplications.contains(application) ?? false },

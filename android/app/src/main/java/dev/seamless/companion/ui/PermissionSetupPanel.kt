@@ -1,3 +1,6 @@
+// Android Compose presentation and user actions for permission setup panel.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 package dev.seamless.companion.ui
 
 import android.Manifest
@@ -31,7 +34,9 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import dev.seamless.companion.connection.ConnectionRuntime
 import dev.seamless.companion.features.CompanionPermissions
 
+/** Composes the permission setup panel interface from state and supplied callbacks. */
 @Composable
+/** Handles permission setup panel callback by translating the native window event into the owning app action. */
 internal fun PermissionSetupPanel() {
     val context = LocalContext.current
     var access by remember { mutableStateOf(CompanionPermissions.read(context)) }
@@ -101,7 +106,9 @@ internal fun PermissionSetupPanel() {
     }
 }
 
+/** Composes the permission row interface from state and supplied callbacks. */
 @Composable
+/** Handles permission row callback by translating the native window event into the owning app action. */
 private fun PermissionRow(title: String, purpose: String, allowed: Boolean, action: () -> Unit) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -113,7 +120,9 @@ private fun PermissionRow(title: String, purpose: String, allowed: Boolean, acti
     }
 }
 
+/** Composes the storage setup card interface from state and supplied callbacks. */
 @Composable
+/** Handles storage setup card callback by translating the native window event into the owning app action. */
 private fun StorageSetupCard(allowed: Boolean, onChanged: () -> Unit) {
     val context = LocalContext.current
     val chooseFolder = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
@@ -159,6 +168,7 @@ private fun StorageSetupCard(allowed: Boolean, onChanged: () -> Unit) {
     }
 }
 
+/** Performs open setup settings for permission setup panel. */
 internal fun openSetupSettings(context: Context, intent: Intent) {
     try { context.startActivity(intent) }
     catch (_: android.content.ActivityNotFoundException) {
@@ -166,7 +176,9 @@ internal fun openSetupSettings(context: Context, intent: Intent) {
     }
 }
 
+/** Composes the automatic downloads setup card interface from state and supplied callbacks. */
 @Composable
+/** Handles automatic downloads setup card callback by translating the native window event into the owning app action. */
 private fun AutomaticDownloadsSetupCard() {
     val context = LocalContext.current
     val policies = context.getSharedPreferences("phone_policies", Context.MODE_PRIVATE)

@@ -21,10 +21,12 @@ internal object AlertChannels {
         register(context, "sharing_test", "Notification test", NotificationManager.IMPORTANCE_DEFAULT)
     }
 
+    /** Performs sound for alert channels. */
     fun sound(context: Context): Uri {
         return Uri.parse("android.resource://${context.packageName}/raw/seamless_notification")
     }
 
+    /** Performs register for alert channels. */
     fun register(context: Context, identifier: String, title: String, importance: Int) {
         if (Build.VERSION.SDK_INT < 26) return
         val channel = NotificationChannel(identifier, title, importance)

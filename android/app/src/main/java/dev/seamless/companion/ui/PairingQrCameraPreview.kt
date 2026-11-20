@@ -1,3 +1,6 @@
+// Android Compose presentation and user actions for pairing qr camera preview.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 package dev.seamless.companion.ui
 
 import android.util.Size
@@ -27,7 +30,9 @@ import com.google.zxing.common.HybridBinarizer
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
 
+/** Composes the pairing qr camera preview interface from state and supplied callbacks. */
 @Composable
+/** Handles pairing qr camera preview callback by translating the native window event into the owning app action. */
 internal fun PairingQrCameraPreview(modifier: Modifier, onCode: (String) -> Unit, onError: (String) -> Unit) {
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current
@@ -73,6 +78,7 @@ private class PairingQrFrameReader(private val onCode: (String) -> Unit) : Image
     private var lastScan = 0L
     private var found = false
 
+    /** Performs analyze for pairing qr camera preview. */
     override fun analyze(image: ImageProxy) {
         try {
             val now = android.os.SystemClock.elapsedRealtime()

@@ -1,3 +1,6 @@
+// Shared protocol/model rules for device details.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 import Foundation
 
 public struct DeviceDetails: Equatable, Sendable {
@@ -9,6 +12,7 @@ public struct DeviceDetails: Equatable, Sendable {
     public let storageUsedBytes: Int64?
     public let storageLabel: String
 
+    /// Constructs DeviceDetails with the dependencies and initial values supplied by its caller.
     public init(payload: JSONValue) {
         processorName = Self.boundedText(payload["processorName"])
         operatingSystemName = Self.boundedText(payload["operatingSystemName"]) ?? "Android"
@@ -24,11 +28,13 @@ public struct DeviceDetails: Equatable, Sendable {
         storageLabel = Self.boundedText(payload["storageLabel"]) ?? "Internal storage"
     }
 
+    /// Performs bounded text for device details.
     private static func boundedText(_ value: JSONValue) -> String? {
         guard let text = value.string?.trimmingCharacters(in: .whitespacesAndNewlines), !text.isEmpty else { return nil }
         return String(text.prefix(120))
     }
 
+    /// Performs byte count for device details.
     private static func byteCount(_ value: JSONValue, allowsZero: Bool) -> Int64? {
         guard let number = value.number, number.isFinite, number.rounded() == number,
               number >= 0, number <= 1_000_000_000_000_000 else { return nil }

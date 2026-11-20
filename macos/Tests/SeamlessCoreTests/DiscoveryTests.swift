@@ -1,9 +1,14 @@
+// Tests for DiscoveryTests and the behavior owned by its target module.
+// Keep assertions focused on externally visible results and failure boundaries.
+
 import Foundation
 import Testing
 @testable import SeamlessCore
 
 struct DiscoveryTests {
+    /// Checks address changes preserve the paired certificate by exercising its expected result and a relevant invalid or boundary input.
     @Test
+    /// Builds address changes preserve the paired certificate from deterministic test inputs and returns the protocol response.
     func addressChangesPreserveThePairedCertificate() throws {
         let phoneID = UUID().uuidString.lowercased()
         var phone = RememberedPhone(id: phoneID, displayName: "Phone")
@@ -18,8 +23,9 @@ struct DiscoveryTests {
         phone.connection = nil
         #expect(endpoint.connectionProfile(for: phone) == nil)
     }
-
+    /// Checks malformed advertisements cannot become connection candidates by exercising its expected result and a relevant invalid or boundary input.
     @Test
+    /// Builds malformed advertisements cannot become connection candidates from deterministic test inputs and returns the protocol response.
     func malformedAdvertisementsCannotBecomeConnectionCandidates() {
         let serviceName = "Seamless-" + UUID().uuidString
         #expect(DiscoveredPhoneEndpoint(serviceName: "Other-" + UUID().uuidString, host: "phone.local.", port: 48763) == nil)

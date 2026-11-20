@@ -1,3 +1,6 @@
+// Android camera-capture pipeline for camera encoding session.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 package dev.seamless.companion.camera
 
 import android.Manifest
@@ -41,6 +44,7 @@ class CameraEncodingSession(
     private var characteristics: CameraCharacteristics? = null
     private val bufferInfo = MediaCodec.BufferInfo()
     private val drainTask = object : Runnable {
+        /** Runs the supplied work through this component’s execution or process interface. */
         override fun run() {
             if (closed) return
             try {
@@ -50,6 +54,7 @@ class CameraEncodingSession(
         }
     }
 
+    /** Starts this component’s operation using the provided session inputs. */
     fun start(facing: String, resolutionHeight: Int, framesPerSecond: Int, exposureEV: Double = 0.0, zoom: Double = 1.0, torch: Boolean = false, whiteBalance: String = "auto") {
         require(context.checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED)
         this.exposureEV = exposureEV
@@ -100,18 +105,22 @@ class CameraEncodingSession(
             }
         }
         manager.openCamera(cameraID, object : CameraDevice.StateCallback() {
+            /** Performs on opened for camera encoding session. */
             override fun onOpened(device: CameraDevice) {
                 if (closed) { device.close(); return }
                 camera = device
                 try { createCaptureSession(device, inputSurface, rate) }
                 catch (exception: Exception) { onFailure(exception) }
             }
+            /** Performs on disconnected for camera encoding session. */
             override fun onDisconnected(device: CameraDevice) { device.close(); onFailure(IllegalStateException("Camera disconnected")) }
+            /** Performs on error for camera encoding session. */
             override fun onError(device: CameraDevice, error: Int) { device.close(); onFailure(IllegalStateException("Camera could not start ($error)")) }
         }, handler)
         handler.post(drainTask)
     }
 
+    /** Selects an encoder that advertises support for the requested media format. */
     private fun chooseEncoder(format: MediaFormat): String {
         val codecs = MediaCodecList(MediaCodecList.REGULAR_CODECS)
         if (Build.VERSION.SDK_INT >= 29) {
@@ -129,9 +138,12 @@ class CameraEncodingSession(
         return codecs.findEncoderForFormat(format) ?: error("No encoder supports this camera profile")
     }
 
+    /** Connects the camera output surface and repeating capture request to the active camera session. */
     @Suppress("DEPRECATION")
+    /** Handles create capture session callback by translating the native window event into the owning app action. */
     private fun createCaptureSession(device: CameraDevice, inputSurface: Surface, rate: android.util.Range<Int>) {
         device.createCaptureSession(listOf(inputSurface), object : CameraCaptureSession.StateCallback() {
+            /** Performs on configured for camera encoding session. */
             override fun onConfigured(session: CameraCaptureSession) {
                 if (closed) { session.close(); return }
                 cameraSession = session
@@ -144,10 +156,12 @@ class CameraEncodingSession(
                     session.setRepeatingRequest(request.build(), null, handler)
                 } catch (exception: Exception) { onFailure(exception) }
             }
+            /** Performs on configure failed for camera encoding session. */
             override fun onConfigureFailed(session: CameraCaptureSession) { onFailure(IllegalStateException("Camera profile was rejected")) }
         }, handler)
     }
 
+    /** Performs update controls for camera encoding session. */
     fun updateControls(exposureEV: Double, zoom: Double, torch: Boolean, whiteBalance: String) {
         if (closed) return
         this.exposureEV = exposureEV
@@ -160,6 +174,7 @@ class CameraEncodingSession(
         activeSession.setRepeatingRequest(request.build(), null, handler)
     }
 
+    /** Clamps requested camera controls to the lens capabilities before applying its repeating request. */
     private fun applyControls(request: CaptureRequest.Builder) {
         val info = characteristics ?: return
         // High-quality temporal processing can add multiple frames before encoding.
@@ -196,6 +211,7 @@ class CameraEncodingSession(
         }
     }
 
+    /** Closes owned resources so sockets, buffers and pending work do not outlive their session. */
     override fun close() {
         if (closed) return
         closed = true
@@ -209,6 +225,7 @@ class CameraEncodingSession(
         }
     }
 
+    /** Consumes available encoder output and forwards bounded media records to the authenticated stream sink. */
     private fun drain() {
         val codec = encoder ?: return
         for (index in 0 until 32) {

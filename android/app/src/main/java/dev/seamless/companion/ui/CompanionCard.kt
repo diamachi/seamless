@@ -1,3 +1,6 @@
+// Android Compose presentation and user actions for companion card.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 package dev.seamless.companion.ui
 
 import androidx.compose.foundation.layout.Arrangement
@@ -14,7 +17,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
+/** Composes the companion card interface from state and supplied callbacks. */
 @Composable
+/** Handles companion card callback by translating the native window event into the owning app action. */
 internal fun CompanionCard(title: String, content: @Composable ColumnScope.() -> Unit) {
     Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)) {

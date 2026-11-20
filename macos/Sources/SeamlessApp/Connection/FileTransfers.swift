@@ -1,3 +1,6 @@
+// macOS connection and transfer infrastructure for file transfers.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 import AppKit
 import CryptoKit
 import Foundation
@@ -45,10 +48,12 @@ final class FileTransfers: ObservableObject {
     private let transferTimeout: Duration
     private static let maximumBytes = 20 * 1024 * 1024
 
+    /// Constructs FileTransfers with the dependencies and initial values supplied by its caller.
     init(transferTimeout: Duration = .seconds(120)) {
         self.transferTimeout = transferTimeout
     }
 
+    /// Performs choose and offer for file transfers.
     func chooseAndOffer(phoneID: String) {
         let panel = NSOpenPanel()
         panel.canChooseDirectories = false
@@ -57,6 +62,7 @@ final class FileTransfers: ObservableObject {
         offer(url: url, phoneID: phoneID)
     }
 
+    /// Performs offer for file transfers.
     func offer(url: URL, phoneID: String) {
         do {
             guard outgoing.count < 2 else { throw FileTransferError.tooManyTransfers }
@@ -77,6 +83,7 @@ final class FileTransfers: ObservableObject {
         } catch { message = error.localizedDescription }
     }
 
+    /// Routes incoming data to the matching operation or session state.
     func receive(_ packet: ControlPacket, phoneID: String) {
         do {
             guard let id = packet.payload["transferID"].string, id.count <= 64 else { throw FileTransferError.invalidTransfer }
@@ -102,6 +109,7 @@ final class FileTransfers: ObservableObject {
         }
     }
 
+    /// Accepts a pending offer and prepares the selected local destination.
     func accept(_ offer: FileOffer) {
         guard incoming.count < 2 else { message = FileTransferError.tooManyTransfers.localizedDescription; return }
         let panel = NSSavePanel()
@@ -117,17 +125,20 @@ final class FileTransfers: ObservableObject {
         message = "Receiving \(offer.name)."
     }
 
+    /// Declines a pending offer and releases its transfer state.
     func reject(_ offer: FileOffer) {
         cancel(id: offer.id, phoneID: offer.phoneID)
         send?(offer.phoneID, ControlPacket(type: "fileCancel", payload: .object(["transferID": .string(offer.id)])))
     }
 
+    /// Performs cancel transfer for file transfers.
     func cancelTransfer(_ activity: FileTransferActivity) {
         cancel(id: activity.id, phoneID: activity.phoneID)
         send?(activity.phoneID, ControlPacket(type: "fileCancel", payload: .object(["transferID": .string(activity.id)])))
         message = "Transfer cancelled."
     }
 
+    /// Performs disconnected for file transfers.
     func disconnected(phoneID: String) {
         let expiredIDs = activities.filter { $0.phoneID == phoneID }.map(\.id)
         let offerIDs = offers.filter { $0.phoneID == phoneID }.map(\.id)
@@ -142,6 +153,7 @@ final class FileTransfers: ObservableObject {
         offers.removeAll { $0.phoneID == phoneID }
     }
 
+    /// Performs receive offer for file transfers.
     private func receiveOffer(_ payload: JSONValue, id: String, phoneID: String) throws {
         guard offers.count < 4, let name = payload["name"].string,
               !name.isEmpty, name.count <= 255, name != ".", name != "..",
@@ -153,6 +165,7 @@ final class FileTransfers: ObservableObject {
         scheduleExpiration(id: id, phoneID: phoneID)
     }
 
+    /// Performs receive chunk for file transfers.
     private func receiveChunk(_ payload: JSONValue, id: String, phoneID: String) throws {
         guard var transfer = incoming[id], transfer.offer.phoneID == phoneID,
               payload["offset"].number == Double(transfer.data.count),
@@ -164,6 +177,7 @@ final class FileTransfers: ObservableObject {
         updateActivity(id: id, completedBytes: transfer.data.count, status: "Receiving")
     }
 
+    /// Performs finish receiving for file transfers.
     private func finishReceiving(id: String, phoneID: String) throws {
         guard let transfer = incoming[id], transfer.offer.phoneID == phoneID,
               transfer.data.count == transfer.offer.size, hash(transfer.data) == transfer.offer.sha256 else { throw FileTransferError.invalidTransfer }
@@ -174,6 +188,7 @@ final class FileTransfers: ObservableObject {
         message = "Saved and verified \(transfer.offer.name)."
     }
 
+    /// Performs start sending for file transfers.
     private func startSending(id: String, phoneID: String) throws {
         guard let transfer = outgoing[id], transfer.phoneID == phoneID, sendingTasks[id] == nil else { throw FileTransferError.invalidTransfer }
         scheduleExpiration(id: id, phoneID: phoneID)
@@ -208,6 +223,7 @@ final class FileTransfers: ObservableObject {
         }
     }
 
+    /// Performs cancel for file transfers.
     private func cancel(id: String, phoneID: String) {
         if activities.contains(where: { $0.id == id && $0.phoneID == phoneID }) ||
             offers.contains(where: { $0.id == id && $0.phoneID == phoneID }) {
@@ -221,17 +237,20 @@ final class FileTransfers: ObservableObject {
         offers.removeAll { $0.id == id && $0.phoneID == phoneID }
     }
 
+    /// Performs update activity for file transfers.
     private func updateActivity(id: String, completedBytes: Int, status: String) {
         guard let index = activities.firstIndex(where: { $0.id == id }) else { return }
         activities[index].completedBytes = completedBytes
         activities[index].status = status
     }
 
+    /// Performs remove activity for file transfers.
     private func removeActivity(id: String) {
         activities.removeAll { $0.id == id }
         expirationTasks.removeValue(forKey: id)?.cancel()
     }
 
+    /// Performs schedule expiration for file transfers.
     private func scheduleExpiration(id: String, phoneID: String) {
         expirationTasks.removeValue(forKey: id)?.cancel()
         let timeout = transferTimeout
@@ -248,6 +267,7 @@ final class FileTransfers: ObservableObject {
         }
     }
 
+    /// Evaluates hash against the current model or supplied input.
     private func hash(_ data: Data) -> String {
         SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
     }

@@ -1,3 +1,6 @@
+// Android feature implementation for mac qr pairing task.
+// See docs/ARCHITECTURE.md for the owning subsystem and cross-platform call flow.
+
 package dev.seamless.companion.features
 
 import android.util.Base64
@@ -12,6 +15,7 @@ class MacQrPairingTask : AutoCloseable {
     internal val isCancelled: Boolean get() = cancelled.get()
     private val activeSocket = AtomicReference<Socket?>()
 
+    /** Submits an outgoing operation through this component’s transport or action handler. */
     internal fun send(offer: MacQrPairingOffer, invitation: String) {
         val encrypted = PairingEnvelope.seal(invitation.toByteArray(Charsets.UTF_8), offer.key, offer.sessionID, "request")
         val packet = JSONObject().put("version", 1).put("sessionID", offer.sessionID)
@@ -45,6 +49,7 @@ class MacQrPairingTask : AutoCloseable {
         throw IllegalStateException("Could not reach the Mac. Keep its QR page open, use the same local network, and create a fresh QR.", lastError)
     }
 
+    /** Performs read response for mac qr pairing task. */
     private fun readResponse(socket: Socket): JSONObject {
         val bytes = java.io.ByteArrayOutputStream()
         while (bytes.size() < 1_024) {
@@ -57,8 +62,10 @@ class MacQrPairingTask : AutoCloseable {
         error("Invalid Mac pairing reply")
     }
 
+    /** Performs check active for mac qr pairing task. */
     private fun checkActive() { check(!cancelled.get()) { "Pairing cancelled" } }
 
+    /** Closes owned resources so sockets, buffers and pending work do not outlive their session. */
     override fun close() {
         cancelled.set(true)
         try { activeSocket.getAndSet(null)?.close() } catch (_: java.io.IOException) { }
