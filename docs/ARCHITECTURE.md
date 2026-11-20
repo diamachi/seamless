@@ -96,6 +96,8 @@ Calls uses public IOBluetooth HFP with explicit phone mapping. Input/output sele
 
 ## Build and package
 
+The 0.6.27 handoff adds screenshot references to the README and documents source ownership and operation paths across Mac, Android, tests and build scripts. It does not change runtime behavior. Release artifacts still require platform builds and checksums; see the release template for the unnotarized Mac installation guidance.
+
 ```sh
 sh scripts/test-macos.sh
 sh scripts/build-macos.sh

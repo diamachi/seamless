@@ -9,6 +9,16 @@
 
 Files, notifications, clipboard, phone screen and live camera, together in a native Mac app and Android companion. Pair your devices over your local network, select a phone, and keep the controls within reach from the window or menu bar.
 
+## Screenshots
+
+### macOS overview
+
+![Seamless for macOS showing device status, quick actions and phone notifications](docs/screenshots/macos-overview.png)
+
+### Android overview
+
+![Seamless for Android showing the connected Mac and sharing actions](docs/screenshots/android-overview.png)
+
 **Development preview.** A free public preview is available; production distribution is still in development. Some integrations are experimental; the [validation record](docs/VALIDATION.md) separates device-tested behavior from remaining work. GitHub Actions builds test installers; there is no automatic updater yet.
 
 ## Features
@@ -45,7 +55,7 @@ Files, notifications, clipboard, phone screen and live camera, together in a nat
 
 ## Try it
 
-Download the [0.6.26 preview from GitHub Releases](https://github.com/diamachi/seamless/releases/tag/v0.6.26), or get CI packages from **Actions → Build test installers → a successful run → Artifacts**. See [CI setup and signing limits](docs/CI.md). Local build outputs are placed in `dist/`:
+Download the [0.6.27 preview from GitHub Releases](https://github.com/diamachi/seamless/releases/tag/v0.6.27), or get CI packages from **Actions → Build test installers → a successful run → Artifacts**. See [CI setup and signing limits](docs/CI.md). Local build outputs are placed in `dist/`:
 
 | Platform | Package | Install |
 | --- | --- | --- |
