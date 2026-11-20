@@ -7,7 +7,7 @@
 <p align="center">Bring your Android phone into your Mac workflow.</p>
 <p align="center"><a href="#features">Features</a> · <a href="#try-it">Try it</a> · <a href="#permissions">Permissions</a> · <a href="#build-from-source">Build</a> · <a href="docs/ARCHITECTURE.md">Architecture</a></p>
 
-Files, notifications, clipboard, phone screen and live camera, together in a native Mac app and Android companion. Pair your devices over your local network, select a phone, and keep the controls within reach from the window or menu bar.
+Text and file sharing, phone notifications, phone screen, photos and live camera, together in a native Mac app and Android companion. Pair your devices over your local network, select a phone, and keep the controls within reach from the window or menu bar.
 
 ## Screenshots
 
